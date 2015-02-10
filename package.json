@@ -1,0 +1,17 @@
+{
+  "name": "twitter-import",
+  "version": "1.0.0",
+  "description": "import your twitter info into mongo",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Elliott Rezny",
+  "license": "MIT",
+  "dependencies": {
+    "limiter": "^1.0.5",
+    "mongodb": "^1.4.30",
+    "semaphore": "^1.0.1",
+    "twit": "^1.1.19"
+  }
+}
