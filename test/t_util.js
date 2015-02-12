@@ -26,5 +26,18 @@ describe('util', function(){
       done();
 
     });
+    it('should return fewer values of a non-unique array', function(done){
+
+      var unique_array = [1,2,3,3];
+      var result = util.uniqArray(unique_array);
+
+      //console.log(result);
+
+      assert.equal(3, result.length);
+
+      done();
+
+    });
   });
+
 });
