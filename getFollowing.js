@@ -58,7 +58,7 @@ MongoClient.connect(url, function(err, db_) {
 
   GetFollowing(username, '0', function(){
 
-    //get only unique results
+    // #get:0  only unique results
     var following = [];
     var unique = {};
     for (var i in userObj.following){
@@ -70,7 +70,7 @@ MongoClient.connect(url, function(err, db_) {
     console.log("gathered following: " + following.length);
 
 
-    //add other necessary fields
+    // #add:0  other necessary fields
     following = following.map( function(friend){
       friend.service = 'twitter';
       friend.following = [];
@@ -79,7 +79,7 @@ MongoClient.connect(url, function(err, db_) {
       return friend;
     });
 
-    //commit each to database
+    // #commit:0  each to database
     following.forEach(function(friend){
       collection.update({screen_name: friend.screen_name, service: friend.service},
         friend, {upsert: true},function(err, result){
@@ -88,7 +88,7 @@ MongoClient.connect(url, function(err, db_) {
       } );
     });
 
-    //reduce object space
+    // #reduce:0  object space
     userObj.following = following.map(function(friend){
         return {
           id: friend.id,
@@ -96,7 +96,7 @@ MongoClient.connect(url, function(err, db_) {
           screen_name: friend.screen_name};
     });
 
-    //update original user
+    // #update:0  original user
     collection.update({'screen_name': userObj.screen_name},
       {$set:{'following': userObj.following}}, function(err, result){
         console.log("added following to original user, " + err);
