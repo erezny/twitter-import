@@ -9,6 +9,7 @@
   "author": "Elliott Rezny",
   "license": "MIT",
   "dependencies": {
+    "gulp": "^3.8.11",
     "limiter": "^1.0.5",
     "mongodb": "^1.4.30",
     "semaphore": "^1.0.1",
