@@ -1,6 +1,6 @@
 
 var twitter_controller = require('../../lib/twitter/controller.js');
-twitter_controller.init();
+twitter_controller.init(function(){});
 
 var assert = require('assert');
 
@@ -24,7 +24,6 @@ describe('twitter.controller', function(){
 
     //console.log(typeof(twitter_controller.updateUser));
     assert.equal(typeof(twitter_controller.updateUser), 'function');
-    //done();
 
   });
 
@@ -32,7 +31,18 @@ describe('twitter.controller', function(){
 
     //console.log(typeof(twitter_controller.saveTweet));
     assert.equal(typeof(twitter_controller.updateTweet), 'function');
-    //done();
+
+  });
+
+  it('should have saveFollowers', function(){
+
+    assert.equal(typeof(twitter_controller.saveFollowers), 'function');
+
+  });
+
+  it('should have saveFollowing', function(){
+
+    assert.equal(typeof(twitter_controller.saveFollowing), 'function');
 
   });
 
