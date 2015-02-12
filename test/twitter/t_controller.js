@@ -1,53 +1,143 @@
 
 var twitter_controller = require('../../lib/twitter/controller.js');
+twitter_controller.init();
 
 var assert = require('assert');
 
 describe('twitter.controller', function(){
+    before( function(){
+    });
+
+    it('should have queryUser', function(){
+
+      //console.log(typeof(twitter_controller.queryUser));
+      assert.equal(typeof(twitter_controller.queryUser), 'function');
+      //done();
+
+    });
 
   it('should have updateUser', function(){
 
-    console.log(typeof(twitter_controller.updateUser));
+    //console.log(typeof(twitter_controller.updateUser));
     assert.equal(typeof(twitter_controller.updateUser), 'function');
     //done();
 
   });
 
-  it('should have saveTweet', function(){
+  it('should have updateTweet', function(){
 
     //console.log(typeof(twitter_controller.saveTweet));
-    assert.equal(typeof(twitter_controller.saveTweet), 'function');
+    assert.equal(typeof(twitter_controller.updateTweet), 'function');
     //done();
 
   });
 
-  describe('#saveUser()', function(){
-
-    it('should change user in database', function(done){
-
-      assert(false, 'test not implemented');
-
-      done();
-
-    });
-
-    it('should add user not already in database', function(done){
-
-      assert(false, 'test not implemented');
-
-      done();
-
-    });
+  it('should have a database connection', function(){
+    assert(twitter_controller.db !== null, 'collection not ready');
 
   });
 
-  describe('#saveTweet()', function(){
+  var user = {
+        "id": 16876313,
+        "id_str": "16876313",
+        "name": "Elliott Rezny",
+        "screen_name": "erezny",
+        "followers_count": 74,
+        "friends_count": 258,
+      };
+
+  var insertUser = {
+        "id": 76,
+        "id_str": "76",
+        "name": "Trombones",
+        "screen_name": "trombin",
+        "followers_count": 80000,
+        "friends_count": 76,
+      };
+
+
+  describe('#queryUser()', function(){
+
+      it('should return user from database', function(done){
+
+          twitter_controller.queryUser(user, function(err, result_){
+
+            assert(err === null, 'query returned an error');
+            result = result_;
+            //console.log(result);
+            assert(result.name == 'Elliott Rezny', 'did not return 1 object');
+
+            done();
+          });
+
+      });
+
+
+    });
+
+  describe('#updateUser()', function(){
+
+
+    it('should add user not already in database', function(done){
+
+      twitter_controller.updateUser(insertUser, function(err, result_){
+
+        assert(err === null, 'query returned an error');
+        //console.log(result);
+        done();
+      });
+
+    });
+
+    before(function(){
+
+      insertUser = {
+            "id": 76,
+            "id_str": "76",
+            "name": "Brass Rails",
+            "screen_name": "trombin",
+            "followers_count": 80000,
+            "friends_count": 76,
+          };
+
+    });
+
+    it('should change user in database', function(done){
+
+      twitter_controller.updateUser(insertUser, function(err, result_){
+
+        assert(err === null, 'query returned an error');
+        //console.log(result);
+        done();
+      });
+
+    });
+
+
+  });
+
+  describe('#updateTweet()', function(){
+
+    var tweet = {
+      text: "RT @ChinaFile: Game Boys—In China's vast subculture of video game addicts, a few go pro and get rich—Gregory Isaacson via @aeonmag—http://t…",
+      id: 563843714552844289,
+      id_str: "563843714552844289",
+      user: {
+        id: 481943972,
+        followers_count: 54254,
+        id_str: "481943972",
+        screen_name: "aeonmag",
+      },
+    }
 
     it('should change tweet in database', function(done){
 
-      assert(false, 'test not implemented');
+      twitter_controller.updateTweet(insertUser, function(err, result_){
 
-      done();
+        assert(err === null, 'query returned an error');
+        //console.log(result);
+        done();
+      });
 
     });
 
