@@ -1,0 +1,57 @@
+
+//for tonight!
+
+Rules
+1) For each,
+  - Branch
+  - Modify function
+  - Modify test
+  - Checkin
+  - Test
+  - Merge
+
+Branch refactor {
+
+  #environmentCleanup:0 Twitter query
+   0 query user from twitter
+   1 download followers, friends, both
+   2 download lists, populate lists
+
+  #environmentCleanup:0 Twitter controller
+   0 query user for friend list
+   1 query user's 1st degree network
+   2 query user's 2nd degree network
+   3 paginate mongo stuff
+
+  #environmentCleanup:0 index.js include libraries
+   0 call query user, pipe to twitter, pipe to mongo
+   1 call to query user, query frieds, pipe friends to twitter, pipe results to mongo
+   2 call query list, grab twitter lists, pipe to mongo
+   3 make database isomorphic
+
+
+  #refactor:0 run program with screen_name argument and populate database
+
+} merge origin/master
+
+
+branch cli {
+
+#refactor:10 Add cli, 'populate twitter <username>'
+
+} merge origin/master
+
+
+branch refactor:config {
+
+  #refactor:0 get mongo and twitter config working in place
+
+} merge origin master
+
+
+#refactor:10
+#cli
+
+
+#environmentalCleanup:10
+  0 build test environment on heroku
