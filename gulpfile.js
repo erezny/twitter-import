@@ -7,11 +7,17 @@ var mocha = require('gulp-mocha');
 var source = ['lib/**/*.js', 'lib/*.js', 'index.js'];
 
 gulp.task('test', function (cb) {
+  gulp.src(['test/index.js'])
+      .pipe(mocha())
+      .on('end', cb);
+});
+
+gulp.task('coverage', function (cb) {
   gulp.src(source)
     .pipe(istanbul()) // Covering files
     .pipe(istanbul.hookRequire()) // Force `require` to return covered files
     .on('finish', function () {
-      gulp.src(['test/t_*.js', 'test/**/t_*.js'])
+      gulp.src(['test/index.js'])
         .pipe(mocha())
         .pipe(istanbul.writeReports()) // Creating the reports after tests runned
         .on('end', cb);
