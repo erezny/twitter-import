@@ -4,6 +4,18 @@ var twitter_query = require('../../lib/twitter/query.js');
 var assert = require('assert');
 
 describe('twitter.query', function(){
+  var user = {};
+
+  before(function(){
+    user = {
+      "id": 16876313,
+      "id_str": "16876313",
+      "name": "Elliott Rezny",
+      "screen_name": "erezny",
+      "followers_count": 74,
+      "friends_count": 258,
+    };
+  });
 
   it('should have getFollowers', function(){
 
@@ -30,26 +42,16 @@ describe('twitter.query', function(){
   });
 
   describe('#getFollowers()', function(){
-    var user = {};
 
-    before(function(){
-      user = {
-        "id": 16876313,
-        "id_str": "16876313",
-        "name": "Elliott Rezny",
-        "screen_name": "erezny",
-        "followers_count": 74,
-        "friends_count": 250,
-      };
-    });
 
     it('should return close to the correct number of followers for a user', function(done){
 
       var followers = [];
 
       twitter_query.getFollowers(user, function(results, finished){
-        followers.push.apply(results);
-        console.log(followers);
+
+        followers.push.apply(followers, results);
+
         if (finished){
           assert(Math.abs(followers.length - user.followers_count) < 5);
           done();
@@ -66,9 +68,18 @@ describe('twitter.query', function(){
 
     it('should return close to the correct number of followers for a user', function(done){
 
-      assert(false, 'test not implemented');
+      var following = [];
 
-      done();
+      twitter_query.getFollowing(user, function(results, finished){
+
+        following.push.apply(following, results);
+
+        if (finished){
+          assert(Math.abs(following.length - user.friends_count) < 5);
+          done();
+        }
+
+      });
 
     });
 
@@ -78,9 +89,13 @@ describe('twitter.query', function(){
 
     it('should return a user', function(done){
 
-      assert(false, 'test not implemented');
+      twitter_query.getUser(user, function(returnedUser){
 
-      done();
+        assert(returnedUser.description);
+        done();
+
+
+      });
 
     });
 
