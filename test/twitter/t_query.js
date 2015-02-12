@@ -89,8 +89,9 @@ describe('twitter.query', function(){
 
     it('should return a user', function(done){
 
-      twitter_query.getUser(user, function(returnedUser){
-
+      twitter_query.getUser(user, function(err, returnedUser){
+        assert(err === null, 'query returned an error');
+        
         assert(returnedUser.description);
         done();
 

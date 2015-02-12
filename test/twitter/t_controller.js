@@ -8,6 +8,10 @@ describe('twitter.controller', function(){
     before( function(){
     });
 
+    after( function(){
+      twitter_controller.db.close();
+    });
+
     it('should have queryUser', function(){
 
       //console.log(typeof(twitter_controller.queryUser));
@@ -130,9 +134,9 @@ describe('twitter.controller', function(){
       },
     }
 
-    it('should change tweet in database', function(done){
+    it('should add tweet not already in database', function(done){
 
-      twitter_controller.updateTweet(insertUser, function(err, result_){
+      twitter_controller.updateTweet(tweet, function(err, result_){
 
         assert(err === null, 'query returned an error');
         //console.log(result);
@@ -141,13 +145,20 @@ describe('twitter.controller', function(){
 
     });
 
-    it('should add tweet not already in database', function(done){
 
-      assert(false, 'test not implemented');
 
-      done();
+    it('should change tweet in database', function(done){
+
+      twitter_controller.updateTweet(tweet, function(err, result_){
+
+        assert(err === null, 'query returned an error');
+        //console.log(result);
+        done();
+      });
 
     });
+
+
 
   });
 
