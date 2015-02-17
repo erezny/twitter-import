@@ -12,8 +12,8 @@ describe('twitter.query', function(){
       "id_str": "16876313",
       "name": "Elliott Rezny",
       "screen_name": "erezny",
-      "followers_count": 74,
-      "friends_count": 258,
+      "followers_count": 71,
+      "friends_count": 267,
     };
   });
 
@@ -48,12 +48,12 @@ describe('twitter.query', function(){
 
       var followers = [];
 
-      twitter_query.queryFollowers(user, function(results, finished){
+      twitter_query.queryFollowers(user, function(err, results, finished){
 
         followers.push.apply(followers, results);
 
         if (finished){
-          assert(Math.abs(followers.length - user.followers_count) < 5);
+          assert.equal(followers.length, user.followers_count);
           done();
         }
 
@@ -71,12 +71,12 @@ describe('twitter.query', function(){
 
       var friends = [];
 
-      twitter_query.queryFriends(user, function(results, finished){
+      twitter_query.queryFriends(user, function(err, results, finished){
 
         friends.push.apply(friends, results);
 
         if (finished){
-          assert(Math.abs(friends.length - user.friends_count) < 5);
+          assert.equal(friends.length, user.friends_count);
           done();
         }
 
