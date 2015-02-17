@@ -11,6 +11,7 @@ describe('util', function(){
   });
 
   describe('#uniqArray()', function(){
+
     it('should return all values of a unique array', function(done){
 
       var unique_array = [1,2,3];
@@ -26,6 +27,7 @@ describe('util', function(){
       done();
 
     });
+    
     it('should return fewer values of a non-unique array', function(done){
 
       var unique_array = [1,2,3,3];
