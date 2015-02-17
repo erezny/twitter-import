@@ -17,38 +17,38 @@ describe('twitter.query', function(){
     };
   });
 
-  it('should have getFollowers', function(){
+  it('should have queryFollowers', function(){
 
-    console.log(typeof(twitter_query.getFollowers));
-    assert.equal(typeof(twitter_query.getFollowers), 'function');
+    console.log(typeof(twitter_query.queryFollowers));
+    assert.equal(typeof(twitter_query.queryFollowers), 'function');
     //done();
 
   });
 
-  it('should have getFollowing', function(){
+  it('should have queryFollowing', function(){
 
-    //console.log(typeof(twitter_query.getFollowing));
-    assert.equal(typeof(twitter_query.getFollowing), 'function');
+    //console.log(typeof(twitter_query.queryFollowing));
+    assert.equal(typeof(twitter_query.queryFollowing), 'function');
     //done();
 
   });
 
-  it('should have getUser', function(){
+  it('should have queryUser', function(){
 
-    //console.log(typeof(twitter_query.getUser));
-    assert.equal(typeof(twitter_query.getUser), 'function');
+    //console.log(typeof(twitter_query.queryUser));
+    assert.equal(typeof(twitter_query.queryUser), 'function');
     //done();
 
   });
 
-  describe('#getFollowers()', function(){
+  describe('#queryFollowers()', function(){
 
 
     it('should return close to the correct number of followers for a user', function(done){
 
       var followers = [];
 
-      twitter_query.getFollowers(user, function(results, finished){
+      twitter_query.queryFollowers(user, function(results, finished){
 
         followers.push.apply(followers, results);
 
@@ -61,17 +61,17 @@ describe('twitter.query', function(){
 
 
     });
-    
+
 
   });
 
-  describe('#getFollowing()', function(){
+  describe('#queryFollowing()', function(){
 
     it('should return close to the correct number of followers for a user', function(done){
 
       var following = [];
 
-      twitter_query.getFollowing(user, function(results, finished){
+      twitter_query.queryFollowing(user, function(results, finished){
 
         following.push.apply(following, results);
 
@@ -86,11 +86,11 @@ describe('twitter.query', function(){
 
   });
 
-  describe('#getUser()', function(){
+  describe('#queryUser()', function(){
 
     it('should return a user', function(done){
 
-      twitter_query.getUser(user, function(err, returnedUser){
+      twitter_query.queryUser(user, function(err, returnedUser){
         assert(err === null, 'query returned an error');
 
         assert(returnedUser.description);
