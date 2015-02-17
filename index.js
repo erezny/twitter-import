@@ -13,7 +13,8 @@ var friendsSem = require('semaphore')(1);
 var docs = [];
 var seed = {
   screen_name: 'erezny',
-  id: 16876313
+  id: 16876313,
+  'id_str': '16878313'
 };
 
 var openEvents = 0;
@@ -29,6 +30,7 @@ engine.on('finishedEvent', function(){
   }
 });
 
+engine.emit('newEvent');
 
 // #refactor:10 get arguments
 
@@ -38,29 +40,38 @@ twitter.controller.init(function(){
 });
 
 engine.once('dbready', function(){
+
   engine.emit('newEvent');
+  //debugger;
   twitter.controller.queryUser(seed, function(err, user){
       assert(err === null, 'query returned an error');
+      console.log(err);
       //this should give us followers/following
-      //console.log(user);
-      assert(typeof(user.followers)!=='Array');
-      assert(typeof(user.following)!=='Array');
+      console.log(user);
+      if (! user){
+        engine.emit('finishedEvent');
+        engine.emit('checkUser', user);
+        return;
+      }
 
-      for (i in user.following){
-        if (user.following[i].id === null){
+      if ( ! ("folowing" in user || "followers" in user) ){
+        engine.emit('checkUser', user);
+      }
+      for (var i in user.following){
+        if (user.following[i].id_str === null){
           continue;
         }
         engine.emit('checkUser', user.following[i]);
         engine.emit('newEvent');
-        console.log('emit checkUser'+ user.following[i].id);
+        console.log('emit checkUser'+ user.following[i].id_str);
       }
-      for (i in user.followers){
-        if (user.followers[i].id === null){
+      for (var j in user.followers){
+        if (user.followers[j].id_str === null){
           continue;
         }
         engine.emit('checkUser', user.followers[i]);
         engine.emit('newEvent');
-        console.log('emit checkUser'+ user.followers[i].id);
+        console.log('emit checkUser '+ user.followers[i].id_str);
       }
       engine.emit('finishedEvent');
   });
@@ -68,17 +79,35 @@ engine.once('dbready', function(){
 
 engine.on('checkUser', function(user){
 
-  console.log('on checkUser ' + user.id);
+  console.log('on checkUser ' + user.id_str);
+  getAllUserInfo(user);
 
-  engine.emit('newEvent');
+});
+
+var getAllUserInfo = function(user){
+
+  engine.emit('newEvent'); //query user event
   twitter.controller.queryUser(user, function(err, user){
     //console.log(err);
-    //console.log(user);
-    console.log('queried from database ' + (user.screen_name || user.id));
+    console.log(user);
+
+    if (! user){
+      engine.emit('finishedEvent');
+      return;
+    }
+
+    var alert_user;
+    if ("screen_name" in user){
+      alert_user = user.screen_name;
+    }
+    else
+      alert_user = user.id_str;
+
+    console.log('queried from database ' + (user.screen_name || user.id_str));
 
     if (! user.screen_name){
 
-      console.log(user.id + ' no screen name, look it up.');
+      console.log(user.id_str + ' no screen name, look it up.');
 
       engine.emit('newEvent');
       engine.emit('queryUser', user);
@@ -88,27 +117,27 @@ engine.on('checkUser', function(user){
       console.log(user.screen_name + " found in database. find followers");
     }
 
-    if ( user.followers === null || user.followers.length == 0 ||
+    if ( (! user.followers) || user.followers.length == 0 ||
         ( user.followers_count - user.followers.length ) == -1)
     {
-      console.log(user.id + "need to query followers");
+      console.log(user.id_str + "need to query followers");
       engine.emit('newEvent');
       engine.emit('queryFollowers', user);
     }
 
-    if ( user.following === null || user.following.length == 0 ||
+    if ( ( ! user.following) || user.following.length == 0 ||
         (user.following_count - user.following.length ) == -1)
     {
-      console.log(user.id + "need to query following");
+      console.log(user.id_str + "need to query following");
       engine.emit('newEvent');
       engine.emit('queryFollowers', user);
     }
 
-    engine.emit('finishedEvent');
+    engine.emit('finishedEvent'); //query user event
   });
 
   engine.emit('finishedEvent');
-});
+};
 
 // #refactor:10 run queries.
 
@@ -137,10 +166,12 @@ engine.on('queryFollowers', function(user)
 
       if (finished){
         //save
-        followers = util.uniqArray(followers, function(follower) {return follower.id;});
-        twitter.conroller.saveFollowers(user, followers);
-        engine.emit('finishedEvent');
-        friendsSem.leave();
+        followers = util.uniqArray(followers);
+        twitter.controller.saveFollowers(user, followers, function(){
+
+          engine.emit('finishedEvent');
+          friendsSem.leave();
+        });
       }
 
     });
@@ -158,15 +189,18 @@ engine.on('queryFollowing', function(user)
 
       if (finished){
         //save
-          following = util.uniqArray(following, function(friend) {return friend.id;});
-          twitter.controller.saveFollowing(user, following);
-          engine.emit('finishedEvent');
-          friendsSem.leave();
+          following = util.uniqArray(following);
+          twitter.controller.saveFollowing(user, following, function(){
+            engine.emit('finishedEvent');
+            friendsSem.leave();
+          });
       }
 
     });
   });
 
 });
+
+// #refactor:0 get all engine calls down here, call functions up there
 
 // #refactor:5 listen on api
