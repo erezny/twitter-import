@@ -1,6 +1,6 @@
 
 var twitter_controller = require('../../lib/twitter/controller.js');
-twitter_controller.init(function(){});
+twitter_controller.init(function(){return;});
 
 var assert = require('assert');
 
