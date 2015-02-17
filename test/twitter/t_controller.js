@@ -47,6 +47,7 @@ describe('twitter.controller', function(){
   });
 
   it('should have a database connection', function(){
+    //console.log(twitter_controller.db);
     assert(twitter_controller.db !== null, 'collection not ready');
 
   });
