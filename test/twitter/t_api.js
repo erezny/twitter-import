@@ -25,10 +25,10 @@ describe('twitter.query', function(){
 
   });
 
-  it('should have queryFollowing', function(){
+  it('should have queryFriends', function(){
 
-    //console.log(typeof(twitter_query.queryFollowing));
-    assert.equal(typeof(twitter_query.queryFollowing), 'function');
+    //console.log(typeof(twitter_query.queryFriends));
+    assert.equal(typeof(twitter_query.queryFriends), 'function');
     //done();
 
   });
@@ -65,18 +65,18 @@ describe('twitter.query', function(){
 
   });
 
-  describe('#queryFollowing()', function(){
+  describe('#queryFriends()', function(){
 
     it('should return close to the correct number of followers for a user', function(done){
 
-      var following = [];
+      var friends = [];
 
-      twitter_query.queryFollowing(user, function(results, finished){
+      twitter_query.queryFriends(user, function(results, finished){
 
-        following.push.apply(following, results);
+        friends.push.apply(friends, results);
 
         if (finished){
-          assert(Math.abs(following.length - user.friends_count) < 5);
+          assert(Math.abs(friends.length - user.friends_count) < 5);
           done();
         }
 
