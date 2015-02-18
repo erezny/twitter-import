@@ -3,7 +3,7 @@
 
 var assert = require('assert');
 var config = require('./config/');
-config.init('dev');
+config.init('prod');
 var twitter = require('./lib/twitter/');
 var util = require('./lib/util.js');
 var events = require('events');
@@ -13,7 +13,7 @@ var FollowersSem = require('semaphore')(2);
 var FriendsSem = require('semaphore')(2);
 var BloomFilter = require('bloomfilter').BloomFilter;
 
-var logger = require('tracer').colorConsole(config.env.logger);
+var logger = require('tracer').dailyfile(config.env.logger);
 config.logger = logger;
 //logger.debug('hello %s',  'world', 123);
 
