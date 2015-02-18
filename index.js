@@ -3,6 +3,7 @@
 
 var assert = require('assert');
 var config = require('./config/');
+config.init('dev');
 var twitter = require('./lib/twitter/');
 var util = require('./lib/util.js');
 var events = require('events');
@@ -12,7 +13,8 @@ var FollowersSem = require('semaphore')(1);
 var FriendsSem = require('semaphore')(1);
 var BloomFilter = require('bloomfilter').BloomFilter;
 
-var logger = require('tracer').colorConsole({level:'debug'});
+var logger = require('tracer').colorConsole(config.env.logLevel);
+config.logger = logger;
 //logger.debug('hello %s',  'world', 123);
 
 var docs = {};
@@ -66,7 +68,7 @@ engine.emit('newEvent');
 
 // #refactor:10 get arguments
 
-twitter.controller.init({logger: logger}, function(){
+twitter.init(config, function(){
 
   engine.emit('dbready');
 });
@@ -139,6 +141,10 @@ function query_mongo_user (data) {
         query_friends: (data.internal.expand_friends > 0),
       };
 
+      //throw away anything we have.
+      results.friends = results.friends || [];
+      results.followers = results.friends || [];
+
       //logger.trace('%j', results);
       docs[results.id_str] = results;
 
@@ -155,7 +161,7 @@ function query_mongo_user (data) {
       if (docs[results.id_str].internal.query_friends)
       {
         if ( (docs[results.id_str].friends_count - docs[results.id_str].friends.length) > 5 &&
-              docs[results.id_str].friends_count < 50000){
+              docs[results.id_str].friends_count < 20000){
           docs[results.id_str].friends = [];
           engine.emit('query_twitter_friends', {id_str: results.id_str});
         }
@@ -168,7 +174,7 @@ function query_mongo_user (data) {
 
       if (docs[results.id_str].internal.query_followers){
         if ( (docs[results.id_str].followers_count - docs[results.id_str].followers.length) > 5 &&
-              docs[results.id_str].followers_count  < 50000 ){
+              docs[results.id_str].followers_count  < 20000 ){
           docs[results.id_str].followers = [];
           engine.emit('query_twitter_followers', {id_str: results.id_str});
         }
@@ -262,10 +268,12 @@ function query_twitter_user(data){
 
     //save results to database
     engine.emit('accumulate_user_changes', {id_str: results.id_str});
-    queryDBList.push({id_str: results.id_str});
+    if (results.internal.query_followers || results.internal.query_friends){
+      queryDBList.push(results);
+    }
   });
 
-};
+}
 
 var queryFriendsList = [];
 engine.on('query_twitter_friends', function(data){
@@ -290,23 +298,66 @@ function query_twitter_friends(data){
   logger.debug('run query_twitter_friends %s', data.id_str);
 
   var id_str = data.id_str;
-  var expand_friends = docs[id_str].internal.expand_friends;
   //query followers
-  twitter.api.queryFriends(data, function(err, results, finished)
+  twitter.api.queryFriendsUsers(data, callback_query_twitter_friends);
+
+}
+
+function callback_query_twitter_friends(err, results, finished, data, next_cursor_str)
   {
     //if there's an error, get out now
     // TODO add test for valid data
     if (err)
     {
-      logger.error("twitter api error querying %s, %s", id_str, err);
+      logger.error("twitter api error querying %s, %s", data.id_str, err);
       return;
     }
 
     //append set of friends to data's friends array
-    docs[id_str].friends = docs[id_str].friends.concat(results);
+    docs[data.id_str].friends = docs[data.id_str].friends.concat(
+        results.map(function(user){
+          return user.id_str;
+        })
+      );
+    results.forEach(function(user){
+      // TODO overwrite internal if values greater than current
+        if (blooms.haveQueried.test(user.id_str)){
+          //do nothing
+        }
+        else if (blooms.willQuery.test(user.id_str)){
+          //do nothing
+        }
+        else {
+          //save user
+          //strip extra fields
+          delete user.status;
 
+          //add internal fields
+          user.internal = {
+            user_queried: new Date(),
+            query_user: 0,
+            query_followers: (docs[data.id_str].internal.expand_followers - 1 > 0),
+            query_friends: (docs[data.id_str].internal.expand_friends - 1 > 0),
+            expand_followers: docs[data.id_str].internal.expand_followers - 1,
+            expand_friends: docs[data.id_str].internal.expand_friends - 1,
+          };
+
+          //throw away anything we have.
+          user.friends = [];
+          user.followers = [];
+
+          //save user into memory
+          docs[user.id_str] = user;
+
+          //save results to database
+          engine.emit('accumulate_user_changes', {id_str: user.id_str});
+          if (user.internal.query_followers || user.internal.query_friends){
+            queryDBList.push(user);
+          }
+        }
+    });
     logger.debug('query_twitter_friends 2 %s, new: %d, accumulated: %d/%d',
-      id_str,
+      data.id_str,
       results.length,
       docs[data.id_str].friends.length,
       docs[data.id_str].friends_count);
@@ -315,21 +366,23 @@ function query_twitter_friends(data){
     if (finished){
 
       //enforce unique values
-      docs[id_str].friends = util.uniqArray(docs[id_str].friends);
+      docs[data.id_str].friends = util.uniqArray(docs[data.id_str].friends);
 
       //set that we're finishe dquerying friends
-      docs[id_str].internal.query_friends--;
+      docs[data.id_str].internal.query_friends--;
 
       //save results to database
-      engine.emit('accumulate_user_changes', {id_str: id_str});
+      engine.emit('accumulate_user_changes', {id_str: data.id_str});
       FriendsFollowersSem.leave();
       FriendsSem.leave();
     }
+    else
+    {
+      twitter.api.queryFriendsUsers(data,next_cursor_str, callback_query_twitter_friends);
+    }
 
-  });
 
-};
-
+}
 
 var queryFollowersList = [];
 engine.on('query_twitter_followers', function(data){
@@ -355,9 +408,11 @@ function query_twitter_followers(data)
   logger.debug('run query_twitter_followers %s', data.id_str);
 
   var id_str = data.id_str;
-  var expand_followers = docs[id_str].internal.expand_followers;
   //query followers
-  twitter.api.queryFollowers(data, function(err, results, finished)
+  twitter.api.queryFollowersUsers(data, callback_query_twitter_followers);
+}
+
+function callback_query_twitter_followers(err, results, finished, data, next_cursor_str)
   {
     //if there's an error, get out now
     // TODO add test for valid data
@@ -368,10 +423,53 @@ function query_twitter_followers(data)
     }
 
     //append set of followers to data's followers array
-    docs[data.id_str].followers = docs[data.id_str].followers.concat(results);
+    docs[data.id_str].followers = docs[data.id_str].followers.concat(
+        results.map(function(user){
+          return user.id_str;
+        })
+      );
+    results.forEach(function(user){
+      // TODO overwrite internal if values greater than current
+        if (blooms.haveQueried.test(user.id_str)){
+          //do nothing
+        }
+        else if (blooms.willQuery.test(user.id_str)){
+          //do nothing
+        }
+        else {
+          blooms.haveQueried.add(user.id_str);
+          blooms.willQuery.add(user.id_str);
+          //save user
+          //strip extra fields
+          delete user.status;
+
+          //add internal fields
+          user.internal = {
+            user_queried: new Date(),
+            query_user: 0,
+            query_followers: (docs[data.id_str].internal.expand_followers - 1 > 0),
+            query_friends: (docs[data.id_str].internal.expand_friends - 1 > 0),
+            expand_followers: docs[data.id_str].internal.expand_followers - 1,
+            expand_friends: docs[data.id_str].internal.expand_friends - 1,
+          };
+
+          //throw away anything we have.
+          user.friends = [];
+          user.followers = [];
+
+          //save user into memory
+          docs[user.id_str] = user;
+
+          //save results to database
+          engine.emit('accumulate_user_changes', {id_str: user.id_str});
+          if (user.internal.query_followers || user.internal.query_friends){
+            queryDBList.push(user);
+          }
+        }
+    });
 
     logger.debug('query_twitter_followers 2 %s, new: %d, accumulated: %d/%d',
-      id_str,
+      data.id_str,
       results.length,
       docs[data.id_str].followers.length,
       docs[data.id_str].followers_count);
@@ -379,12 +477,12 @@ function query_twitter_followers(data)
     //when finished
     if (finished){
 
-            logger.debug('query_twitter_followers %s total: %d', id_str, docs[data.id_str].followers.length);
+      logger.debug('query_twitter_followers %s total: %d', data.id_str, docs[data.id_str].followers.length);
 
       //enforce unique values
       docs[data.id_str].followers = util.uniqArray(docs[data.id_str].followers);
 
-      logger.debug('query_twitter_followers %s total: %d', id_str, docs[data.id_str].followers.length);
+      logger.debug('query_twitter_followers %s total: %d', data.id_str, docs[data.id_str].followers.length);
 
       //set that we're finishe dquerying followers
       docs[data.id_str].internal.query_followers--;
@@ -394,10 +492,13 @@ function query_twitter_followers(data)
       FriendsFollowersSem.leave();
       FollowersSem.leave();
     }
+    else
+    {
 
-  });
+      twitter.api.queryFollowersUsers(data,next_cursor_str, callback_query_twitter_followers);
+    }
 
-};
+  }
 
 function safeQuery(id_str)
 {
@@ -422,12 +523,12 @@ function safeQuery(id_str)
 
 engine.on('accumulate_user_changes', function(data){
   var id_str = data.id_str;
-  logger.debug('accumulate_user_changes %s, %d, %d, %d', data.id_str,
+  logger.trace('accumulate_user_changes %s, %d, %d, %d', data.id_str,
         docs[data.id_str].internal.query_user ,
         docs[data.id_str].internal.query_followers ,
         docs[data.id_str].internal.query_friends
   );
-  logger.info('current user stats: %s, followers: %d, friends: %d',
+  logger.trace('current user stats: %s, followers: %d, friends: %d',
         data.id_str,
         docs[data.id_str].followers.length,
         docs[data.id_str].friends.length);
@@ -453,7 +554,7 @@ engine.on('accumulate_user_changes', function(data){
       return;
     }
 
-    logger.debug('successfully saved user %s', data.id_str);
+    logger.trace('successfully saved user %s', data.id_str);
 
     // if we just queried the api, throw out the cached copy,
     // we'll query from the database when we need it again.
@@ -470,7 +571,7 @@ engine.on('accumulate_user_changes', function(data){
 
     blooms.purged.add(data.id_str);
 
-    logger.debug('accumulate_user_changes 2 %s', data.id_str);
+    logger.trace('accumulate_user_changes 2 %s', data.id_str);
 
     queryTemplate = {
       expand_friends: docs[data.id_str].internal.expand_friends - 1,
@@ -500,7 +601,7 @@ engine.on('accumulate_user_changes', function(data){
       delete docs[data.id_str];
     }, 10000);
 
-    logger.info('finished with user %s', data.id_str);
+    logger.debug('finished with user %s', data.id_str);
 
   });
 
