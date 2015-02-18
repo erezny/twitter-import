@@ -13,7 +13,7 @@ var FollowersSem = require('semaphore')(1);
 var FriendsSem = require('semaphore')(1);
 var BloomFilter = require('bloomfilter').BloomFilter;
 
-var logger = require('tracer').colorConsole(config.env.logLevel);
+var logger = require('tracer').colorConsole(config.env.logger);
 config.logger = logger;
 //logger.debug('hello %s',  'world', 123);
 
