@@ -313,15 +313,21 @@ function callback_query_twitter_friends(err, results, finished, data, next_curso
 
     results.forEach(function(user){
       // TODO overwrite internal if values greater than current
-        if (blooms.willQuery.test(user.id_str)){
-          //do nothing
-          return;
-        }
-        //else
-        twitter.controller.queryUserExists(user, function(err, results){
-          if (results){
-            return;
+          if (blooms.haveQueried.test(user.id_str)){
+            //do nothing
           }
+          else if (blooms.willQuery.test(user.id_str)){
+            //do nothing
+          }
+          //else
+
+        else {
+          twitter.controller.queryUserExists(user, function(err, results){
+            if (results){
+              return;
+            }
+            blooms.haveQueried.add(user.id_str);
+            blooms.willQuery.add(user.id_str);
           //save user
           //strip extra fields
           delete user.status;
@@ -349,7 +355,7 @@ function callback_query_twitter_friends(err, results, finished, data, next_curso
             queryDBList.push(user);
           }
         });
-
+      }
     });
 
     //finished no matter what right now
@@ -454,6 +460,10 @@ function callback_query_twitter_followers(err, results, finished, data, next_cur
           //do nothing
         }
         else {
+          twitter.controller.queryUserExists(user, function(err, results){
+            if (results){
+              return;
+            }
           blooms.haveQueried.add(user.id_str);
           blooms.willQuery.add(user.id_str);
           //save user
@@ -482,7 +492,8 @@ function callback_query_twitter_followers(err, results, finished, data, next_cur
           if (user.internal.query_followers || user.internal.query_friends){
             queryDBList.push(user);
           }
-        }
+        });
+      }
     });
 
     FriendsFollowersSem.leave();
