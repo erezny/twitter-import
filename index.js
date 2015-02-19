@@ -2,22 +2,28 @@
 // #refactor:10 pull in dependencies
 
 var assert = require('assert');
+
+// TODO can the init be removed by using a constructor?
 var config = require('./config/');
 config.init();
+
 var twitter = require('./lib/twitter/');
 var util = require('./lib/util.js');
+
 var events = require('events');
 var engine = new events.EventEmitter();
-var FriendsFollowersSem = require('semaphore')(2);
-var FollowersSem = require('semaphore')(2);
-var FriendsSem = require('semaphore')(2);
-var BloomFilter = require('bloomfilter').BloomFilter;
 
+var RSVP = require('rsvp');
+
+var querySem = require('semaphore')(1);
+
+// TODO change logger type based on config file
 var logger = require('tracer').colorConsole(config.env.logger);
 config.logger = logger;
-//logger.debug('hello %s',  'world', 123);
 
 var docs = {};
+
+// TODO: take seed from command line or API
 var seed = {
   screen_name: 'erezny',
   id: 16876313,
@@ -34,29 +40,14 @@ var seed = {
 };
 docs[seed.id_str] = seed;
 
-var blooms = {};
-blooms.willQuery = new BloomFilter(
-  4 * 1024 * 1024 * 256, // number of MB to allocate in  bits.
-  20        // number of hash functions.
-);
-
-blooms.haveQueried = new BloomFilter(
-  4 * 1024 * 1024 * 256, // number of bits to allocate.
-  20        // number of hash functions.
-);
-
-blooms.purged = new BloomFilter(
-  4 * 1024 * 1024 * 256, // number of bits to allocate.
-  20        // number of hash functions.
-);
-
-
 var openEvents = 0;
-engine.on('newEvent', function(){
+engine.on('newEvent', function()
+{
   openEvents++;
 });
 
-engine.on('finishedEvent', function(){
+engine.on('finishedEvent', function()
+{
   openEvents--;
   if ( ! openEvents ){
     console.log('closed db connection');
@@ -66,110 +57,109 @@ engine.on('finishedEvent', function(){
 
 engine.emit('newEvent');
 
-// #refactor:10 get arguments
-
+// this is the start button for the engine.
 twitter.init(config, function(){
-
+  engine.emit('newEvent');
   engine.emit('dbready');
 });
 
+// #refactor:10 can this get scoped into the engine?
+var workerCursor = null;
 
 engine.once('dbready', function(){
 
   twitter.logger.init(config, twitter.controller.db);
-  //query_mongo_user(seed);
-  engine.emit('get_next_user');
-});
 
-var queryDBList = [];
-
-engine.on('get_next_user', function () {
-  logger.debug("Fetching next user");
-  twitter.controller.collection.find(
+  workerCursor = twitter.controller.collection.find(
     {$or: [{'state.query_followers': true},
-          {'state.query_friends': true},
-          {'state.expand_followers': {$gt: 0}},
-          {'state.expand_friends': {$gt: 0}}]}).sort(
-            {followers_count: 1}
-          ).skip(3).next(function(err, results){
-    if (! results){
-      logger.error( "no more users to query, must be close to done");
-    }
-    engine.emit("query_mongo_user", results);
+    {'state.query_friends': true},
+    {'state.expand_followers': {$gt: 0}},
+    {'state.expand_friends': {$gt: 0}}]}).sort(
+      {followers_count: 1}
+    );
+
+
+    //query_mongo_user(seed);
+    engine.emit('get_next_user');
+
   });
-});
 
-engine.on('query_mongo_user', function(data){
-  logger.trace('engine.query_mongo_user received %j', data);
-  // twitter.controller.queryUser(user, callback);
-  query_mongo_user(data);
-});
+  var queryDBList = [];
 
+  engine.on('get_next_user', function(){
+    get_next_user();
+  });
 
-function query_mongo_user (data) {
-  if ( ! data ) return;
-  logger.info('db lookup for user %s', data.id_str);
-  twitter.controller.queryUser(data, function(err, results)
-  // query user from database
+  function get_next_user()
   {
-//    debugger;
-    logger.trace('%j', err);
-    logger.trace('%j', results);
+    logger.debug("Fetching next user");
 
-    var foundSomething = 1;
-    if( ! results){
-      assert(true, 'expected to find ' + data.id_str + ' in database');
-      foundSomething = 0 ;
-      logger.info('User not found in database, %s', data.id_str);
-      blooms.willQuery.add(data.id_str);
-      engine.emit('query_twitter_user', data);
-      return;
+    //next reconnects if necessary, wonder if it should auto disconnect
+    workerCursor.next(function(err, results){
+      if (! results){
+        logger.error( "no more users to query, must be close to done");
+      }
+      engine.emit("query_mongo_user", results);
+    });
+  }
+
+  engine.on('query_mongo_user', function(data)
+  {
+    logger.trace('engine.query_mongo_user received %j', data);
+    // twitter.controller.queryUser(user, callback);
+    query_mongo_user(data);
+  });
+
+
+  var seedTemplate = {
+    internal: {
+      query_followers: 1,
+      query_friends: 1,
+      expand_followers: 1,
+      expand_friends: 1,
     }
-    logger.info('queried user %s from database', results.id_str);
-    logger.debug('query date: %s, compare date %s, results',
+  };
+
+  function query_mongo_user (data)
+  {
+
+    logger.info('db lookup for user %s', data.id_str);
+    twitter.controller.queryUser(data, function(err, results)
+    // query user from database
+    {
+      logger.trace('%j', err);
+      logger.trace('%j', results);
+
+      docs[results.id_str] = results;
+
+      if( ! results)
+      {
+        logger.info('User not found in database, %s', data.id_str);
+        query_twitter_user(results);
+        return;
+      }
+
+      logger.info('queried user %s from database', results.id_str);
+      logger.debug('query date: %s, compare date %s, results',
       new Date(results.internal.user_queried),
       new Date(Date.now() - 24*60*60*1000),
       new Date(results.internal.user_queried) < (new Date(Date.now() - 24*60*60*1000)));
 
-    if (new Date(results.internal.user_queried) < (new Date(Date.now() - 24*60*60*1000))){
-      // too old, requery
-      engine.emit('query_twitter_user', data);
-
-    }
-
-
-      logger.trace('queried from database: %j', results);
-      docs[results.id_str] = results;
-
-//      FriendsFollowersSem.take(function(){
-      logger.info('expanding network of %s', results.id_str);
-      // query friends and followers if needed
-      //if we don't have the correct number of followers, query it
-//      debugger;
-      if (docs[results.id_str].state.query_friends || docs[results.id_str].state.expand_friends)
+      if (new Date(results.internal.user_queried) < (new Date(Date.now() - 24*60*60*1000)))
       {
-        if ( (docs[results.id_str].friends_count - docs[results.id_str].friends.length) > 0 &&
-              docs[results.id_str].friends_count < 5000){
-          docs[results.id_str].friends = [];
-          engine.emit('query_twitter_friends', results);
-        }
+        // too old, requery
+        query_twitter_user(results);
+        return;
       }
 
-      if (docs[results.id_str].state.query_followers || docs[results.id_str].state.expand_followers){
-        if ( (docs[results.id_str].followers_count - docs[results.id_str].followers.length) > 0 &&
-              docs[results.id_str].followers_count  < 20000 ){
-          docs[results.id_str].followers = [];
-          engine.emit('query_twitter_followers', results);
-        }
-      }
-//      });
+      runQueries(results);
 
-  });
-}
+    });
+  }
 
 
-// query_twitter_user
-// parameters:
+  // query_twitter_user
+  // parameters:
   // data: {
   //  id_str: id to query
   //  internal.expand_followers: how deep to continue searching for followers.
@@ -179,176 +169,203 @@ function query_mongo_user (data) {
   //  internal.expand_following: see above
   //  }
 
-var queryUserList = [];
-engine.on('query_twitter_user', function(data){
-  logger.trace('engine.query_twitter_user received %j', data);
-  query_twitter_user(data);
-});
+  function query_twitter_user(data){
+    logger.info('query_twitter_user received %s', data.id_str);
 
-function query_twitter_user(data){
-  logger.debug('fn query_twitter_user received %s', data.id_str);
+    var id_str = data.id_str;
+    var expand_followers = data.internal.expand_followers;
+    var expand_friends = data.internal.expand_friends;
 
-  var id_str = data.id_str;
-  var expand_followers = data.internal.expand_followers;
-  var expand_friends = data.internal.expand_friends;
+    //query user from twitter
+    twitter.api.queryUser(data, function(err, results)
+    {
 
-  logger.info('query_twitter_user %s, %d, %d', data.id_str, expand_followers, expand_friends);
+      //if there's an error, get out now
+      // TODO add test for valid data
+      if (err)
+      {
+        logger.error("twitter api error querying %s: %s", id_str, err);
+        engine.emit('get_next_user');
+        return;
+      }
 
-  //as close to the query as possible,
-  //don't query if we already have already queried the user
-  if (blooms.haveQueried.test(data.id_str)){
-    return;
+      scrapeUser(user, data, 0);
+
+      runQueries(user);
+
+    });
+
   }
 
-  //query user from twitter
-  twitter.api.queryUser(data, function(err, results)
-  {
+  // TODO exchange limit on being able to query for a limit on the number queried
 
-    //make sure this query doesn't happen again and either
-    //overwrite followers/following in the store or
-    //waste api calls regathering information
-    blooms.haveQueried.add(id_str);
+  //fans out into 4 functions
+  //twitter.api.queryFriends
+  //twitter.api.queryFollowers
+  //twitter.api.expandFriends
+  //twitter.api.expandFollowers
 
-    //if there's an error, get out now
-    // TODO add test for valid data
-    if (err){
-      logger.error("twitter api error querying %s, %s", id_str, err);
-      return;
-    }
+  function runQueries(user){
 
-    //strip extra fields
-    delete results.status;
-
-    //add internal fields
-    results.internal = {
-      user_queried: new Date(),
-      query_user: 0,
-      query_followers: (expand_followers > 0),
-      query_friends: (expand_friends > 0),
-      expand_followers: expand_followers,
-      expand_friends: expand_friends,
-    };
-
-    results.state = {
-      query_followers: (expand_followers > 0),
-      query_friends: (expand_friends > 0),
-      expand_followers: expand_followers,
-      expand_friends: expand_friends,
-    };
-
-    //throw away anything we have.
-    results.friends = [];
-    results.followers = [];
-
-    //save user into memory
-    docs[results.id_str] = results;
-    engine.emit('accumulate_user_changes', {id_str: results.id_str});
-
-
-    if (docs[results.id_str].internal.query_friends)
+    if (user.state.query_friends)
     {
-      if ( (docs[results.id_str].friends_count - docs[results.id_str].friends.length) > 5 &&
-            docs[results.id_str].friends_count < 5000){
-        docs[results.id_str].friends = [];
-        engine.emit('query_twitter_friends', results);
-      }
+      logger.trace('will query_friends: %s', user.id_str);
+      querySem.take(function()
+      {
+        twitter.api.queryFriends(user, callback_query_twitter_friends_ids);
+      });
+    }
+    else
+    {
+      logger.trace('will not query_friends: %s', user.id_str);
+      user.state.query_friends = 0;
     }
 
-    if (docs[results.id_str].internal.query_followers){
-      if ( (docs[results.id_str].followers_count - docs[results.id_str].followers.length) > 5 &&
-            docs[results.id_str].followers_count  < 20000 ){
-        docs[results.id_str].followers = [];
-        engine.emit('query_twitter_followers', results);
-      }
+
+    if ( user.state.expand_friends  && user.friends_count < 20000)
+    {
+      logger.trace('will expand_friends: %s', user.id_str);
+      querySem.take(function(){
+        twitter.api.queryFriendsUsers(user, callback_query_twitter_friends);
+      });
+    }
+    else
+    {
+      logger.trace('will not expand_friends: %s', user.id_str);
+      user.state.expand_friends = 0;
     }
 
-  });
 
-}
+    if ( user.state.query_followers )
+    {
+      logger.trace('will query_followers: %s', user.id_str);
+      querySem.take( function()
+      {
+        twitter.api.queryFollowersUsers(user, callback_query_twitter_followers_ids);
+      });
+    }
+    else
+    {
+      logger.trace('will not query_followers: %s', user.id_str);
+      user.state.query_followers = 0;
+    }
 
-var queryFriendsList = [];
+    if (user.state.expand_followers && user.followers_count < 20000)
+    {
+      logger.trace('will expand_followers: %s', user.id_str);
+      querySem.take( function()
+      {
+        twitter.api.queryFollowersUsers(user, callback_query_twitter_followers);
+      });
+    }
+    else
+    {
+      logger.trace('will not expand_followers: %s', user.id_str);
+      user.state.expand_followers = 0;
+    }
 
-engine.on('query_twitter_friends', function(data){
-  logger.debug('engine.query_twitter_friends received %j', data);
-  queryFriendsList.push(data);
-  FriendsSem.take(2, function(){
-    FriendsFollowersSem.take(2, function(){
-      logger.trace('spawned query_twitter_friends');
-      query_twitter_friends(queryFriendsList.shift());
-    });
-  });
-});
+  }
 
-function query_twitter_friends(data){
+  // scrapeUser(user, partent);
+  //
+  // If a user exists, update info and query parameters
+  // If one does not exist, create it
+  // purge may be null=0=false, or (true)
+  // needs the full object so that it can update the object.
 
-  logger.debug('run query_twitter_friends %s', data.id_str);
-  data.internal= docs[data.id_str].internal;
-  var id_str = data.id_str;
-  //query followers
-  twitter.api.queryFriendsUsers(data, callback_query_twitter_friends);
-  twitter.api.queryFriends(data, callback_query_twitter_friends_ids);
-
-}
-
-function callback_query_twitter_friends(err, results, finished, data, next_cursor_str)
+  function scrapeUser(user, parent, purge)
   {
+    if (! purge) {
+      purge = 0;
+    }
+    // TODO overwrite internal if values greater than current
+
+    twitter.controller.queryUserExists(user, function(err, results){
+
+      //strip extra fields
+      delete user.status;
+
+      if (results){
+        user.friends = results.friends;
+        user.followers = results.followers;
+      }
+      else {
+        user.friends = [];
+        user.followers = [];
+      }
+      if (user.id_str == parent.id_str) {
+        user.internal = {
+          user_queried: new Date(),
+          query_followers: (parent.internal.query_followers)? 1 : 0,
+          query_friends: (parent.internal.query_friends )? 1 : 0,
+          expand_followers: parent.internal.expand_followers,
+          expand_friends: parent.internal.expand_friends ,
+        };
+
+        user.state = {
+          query_followers: (parent.internal.expand_followers ) ? 1 : 0,
+          query_friends: (parent.internal.expand_friends ) ? 1 : 0,
+          expand_followers: parent.internal.expand_followers ,
+          expand_friends: parent.internal.expand_friends ,
+        };
+
+      }
+      else {
+        //add internal fields
+        user.internal = {
+          user_queried: new Date(),
+          query_user: 0,
+          query_followers: (parent.internal.expand_followers - 1 > 0)? 1 : 0,
+          query_friends: (parent.internal.expand_friends - 1 > 0)? 1 : 0,
+          expand_followers: parent.internal.expand_followers - 1,
+          expand_friends: parent.internal.expand_friends - 1,
+        };
+
+        user.state = {
+          query_followers: (parent.internal.expand_followers - 1 > 0)? 1 : 0,
+          query_friends: (parent.internal.expand_friends - 1 > 0)? 1 : 0,
+          expand_followers: parent.internal.expand_followers - 1,
+          expand_friends: parent.internal.expand_friends - 1,
+        };
+      }
+
+      //overwrite in-memory copy with current copy
+      docs[user.id_str] = user;
+
+      //save results to database
+      engine.emit('accumulate_user_changes', {id_str: user.id_str, purge: purge});
+    });
+
+  }
+
+  function callback_query_twitter_friends(err, results, finished, data, next_cursor_str)
+  {
+    logger.trace('last: %s', finished);
     //if there's an error, get out now
     // TODO add test for valid data
     if (err)
     {
       logger.error("twitter api error querying %s, %s", data.id_str, err);
+
+      // TODO retry api call on twitter error
+      docs[data.id_str].state.expand_friends = 0;
+      engine.emit('accumulate_user_changes', {id_str: data.id_str});
+      querySem.leave();
       return;
     }
 
-    results.forEach(function(user){
-      // TODO overwrite internal if values greater than current
-          twitter.controller.queryUserExists(user, function(err, results){
-            if (results){
-              return;
-            }
-          //save user
-          //strip extra fields
-          delete user.status;
-
-          //add internal fields
-          user.internal = {
-            user_queried: new Date(),
-            query_user: 0,
-            query_followers: (data.internal.expand_followers - 1 > 0)? 1 : 0,
-            query_friends: (data.internal.expand_friends - 1 > 0)? 1 : 0,
-            expand_followers: data.internal.expand_followers - 1,
-            expand_friends: data.internal.expand_friends - 1,
-          };
-
-              user.state = {
-              query_followers: (data.internal.expand_followers - 1 > 0)? 1 : 0,
-              query_friends: (data.internal.expand_friends - 1 > 0)? 1 : 0,
-              expand_followers: data.internal.expand_followers - 1,
-              expand_friends: data.internal.expand_friends - 1,
-              };
-
-
-          user.friends = [];
-          user.followers = [];
-          //save user into memory
-          docs[user.id_str] = user;
-
-
-          //save results to database
-          engine.emit('accumulate_user_changes', {id_str: user.id_str, purge: 1});
-
-        });
-
+    results.forEach(function(user) {
+      scrapeUser(user, data, 1);
     });
 
-    //finished no matter what right now
+    // TODO: include counter
+    logger.info("finished saving new friends of %s as users", data.id_str);
 
-    //when finished
-    if (finished){
-    FriendsFollowersSem.leave();
-    FriendsSem.leave();
-	  docs[data.id_str].state.expand_friends = 0;
-    engine.emit('accumulate_user_changes', {id_str: data.id_str});
+    if (finished)
+    {
+      docs[data.id_str].state.expand_friends = 0;
+      engine.emit('accumulate_user_changes', {id_str: data.id_str});
+      querySem.leave();
 
     }
     else
@@ -357,400 +374,165 @@ function callback_query_twitter_friends(err, results, finished, data, next_curso
     }
 
 
-}
+  }
 
-function callback_query_twitter_friends_ids(err, results, finished, data, next_cursor_str)
+  function callback_query_twitter_friends_ids(err, results, finished, data, next_cursor_str)
   {
+    logger.trace('last: %s', finished);
+
     //if there's an error, get out now
     // TODO add test for valid data
     if (err)
     {
-      logger.error("twitter api error querying %s, %s", data.id_str, err);
+      logger.error("twitter api error querying %s,\t%s", data.id_str, err);
+      docs[data.id_str].state.query_friends = 0;
+      engine.emit('accumulate_user_changes', {id_str: data.id_str});
+      querySem.leave();
       return;
     }
 
     //append set of friends to data's friends array
-    docs[data.id_str].friends = docs[data.id_str].friends.concat(
-        results
-      );
-    logger.debug('query_twitter_friends 2 %s, new: %d, accumulated: %d/%d',
-      data.id_str,
-      results.length,
-      docs[data.id_str].friends.length,
-      docs[data.id_str].friends_count);
+    docs[data.id_str].friends = docs[data.id_str].friends.concat(results );
+    logger.debug('query_twitter_friends_id %s\tnew: %d\taccumulated: %d\t/ %d',
+    data.id_str,
+    results.length,
+    docs[data.id_str].friends.length,
+    docs[data.id_str].friends_count);
 
     //when finished
-    if (finished){
-
-      //enforce unique values
+    if (finished)
+    {
       docs[data.id_str].friends = util.uniqArray(docs[data.id_str].friends);
-      logger.info('query_twitter_friends %s total: %d', data.id_str, docs[data.id_str].friends.length);
-
-      //set that we're finishe dquerying friends
+      logger.info('query_twitter_friends_id %s total: %d', data.id_str, docs[data.id_str].friends.length);
       docs[data.id_str].state.query_friends = 0;
-
-      //save results to database
       engine.emit('accumulate_user_changes', {id_str: data.id_str});
-      FriendsFollowersSem.leave();
-      FriendsSem.leave();
+      querySem.leave();
     }
     else
     {
       twitter.api.queryFriends(data,next_cursor_str, callback_query_twitter_friends_ids);
     }
 
+  }
 
-}
-
-var queryFollowersList = [];
-engine.on('query_twitter_followers', function(data){
-  logger.debug('engine.query_twitter_followers received %j', data);
-  queryFollowersList.push(data);
-  FollowersSem.take(2, function(){
-    FriendsFollowersSem.take(2, function() {
-      logger.trace('spawned query_twitter_followers');
-      query_twitter_followers(queryFollowersList.shift());
-    });
-  });
-});
-
-function query_twitter_followers(data)
-{
-
-  logger.debug('run query_twitter_followers %s', data.id_str);
-  data.internal= docs[data.id_str].internal;
-  var id_str = data.id_str;
-  //query followers
-  twitter.api.queryFollowersUsers(data, callback_query_twitter_followers);
-
-  twitter.api.queryFollowers(data, callback_query_twitter_followers_ids);
-}
-
-function callback_query_twitter_followers(err, results, finished, data, next_cursor_str)
+  function callback_query_twitter_followers(err, results, finished, data, next_cursor_str)
   {
+    logger.trace('last: %s', finished);
+
     //if there's an error, get out now
     // TODO add test for valid data
     if (err)
     {
-      logger.error("twitter api error querying %s, %s", id_str, err);
+      logger.error("twitter api error querying %s, %s", data.id_str, err);
+
+      // TODO retry api call on twitter error
+      docs[data.id_str].state.expand_followers = 0;
+      engine.emit('accumulate_user_changes', {id_str: data.id_str});
+      querySem.leave();
       return;
     }
 
     results.forEach(function(user){
-      // TODO overwrite internal if values greater than current
-          twitter.controller.queryUserExists(user, function(err, results){
-            if (results){
-              return;
-            }
-          //save user
-          //strip extra fields
-          delete user.status;
-
-          //add internal fields
-          user.internal = {
-            user_queried: new Date(),
-            query_user: 0,
-            query_followers: (data.internal.expand_followers - 1 > 0) ? 1 : 0,
-            query_friends: (data.internal.expand_friends - 1 > 0) ? 1: 0,
-            expand_followers: data.internal.expand_followers - 1,
-            expand_friends: data.internal.expand_friends - 1,
-          };
-
-              user.state = {
-              query_followers: (data.internal.expand_followers - 1 > 0)? 1 : 0,
-              query_friends: (data.internal.expand_friends - 1 > 0)? 1 : 0,
-              expand_followers: data.internal.expand_followers - 1,
-              expand_friends: data.internal.expand_friends - 1,
-              };
-          user.friends = [];
-          user.followers = [];
-
-          //save user into memory
-          docs[user.id_str] = user;
-
-          //save results to database and purge
-          engine.emit('accumulate_user_changes', {id_str: user.id_str, purge: 1});
-        });
+      scrapeUser(user, data, 1);
 
     });
 
+    logger.info("queried followers of %s as users", data.id_str);
 
-    //when finished
-    if (finished){
-      FriendsFollowersSem.leave();
-      FollowersSem.leave();
-      logger.info("finished saving new followers of %s as users", data.id_str);
+    if (finished)
+    {
       docs[data.id_str].state.expand_followers = 0;
       engine.emit('accumulate_user_changes', {id_str: data.id_str});
+      querySem.leave();
     }
     else
     {
-
-     twitter.api.queryFollowersUsers(data,next_cursor_str, callback_query_twitter_followers);
-      //I don't need that many of these yet.
+      twitter.api.queryFollowersUsers(data,next_cursor_str, callback_query_twitter_followers);
     }
 
   }
 
 
   function callback_query_twitter_followers_ids(err, results, finished, data, next_cursor_str)
-    {
-      //if there's an error, get out now
-      // TODO add test for valid data
-      if (err)
-      {
-        logger.error("twitter api error querying %s, %s", id_str, err);
-        return;
-      }
-
-      //append set of followers to data's followers array
-      docs[data.id_str].followers =
-        docs[data.id_str].followers.concat(results);
-
-      logger.debug('query_twitter_followers 2 %s, new: %d, accumulated: %d/%d',
-        data.id_str,
-        results.length,
-        docs[data.id_str].followers.length,
-        docs[data.id_str].followers_count);
-
-      //when finished
-      if (finished){
-        //enforce unique values
-        docs[data.id_str].followers = util.uniqArray(docs[data.id_str].followers);
-
-        logger.info('query_twitter_followers %s total: %d', data.id_str, docs[data.id_str].followers.length);
-
-        //set that we're finishe dquerying followers
-        docs[data.id_str].state.query_followers = 0;
-
-        //save results to database
-        engine.emit('accumulate_user_changes', {id_str: data.id_str});
-        FriendsFollowersSem.leave();
-        FollowersSem.leave();
-      }
-      else
-      {
-
-        twitter.api.queryFollowers(data,next_cursor_str, callback_query_twitter_followers);
-      }
-
-    }
-
-engine.on('check_remove_doc', function(data){
-  logger.debug('check for purge %s, %j', data.id_str, docs[data.id_str].state);
-  if (  data.purge ){
-
-      logger.debug("purging %s", data.id_str);
-       delete docs[data.id_str];
-  }
-  else if( ! ( docs[data.id_str].state.expand_followers ||
-      docs[data.id_str].state.expand_friends ||
-      docs[data.id_str].state.query_follwers ||
-      docs[data.id_str].state.query_friends ))
   {
-    logger.debug("purging %s", data.id_str);
-     delete docs[data.id_str];
-    engine.emit('get_next_user');
-  }
-});
-
-engine.on('accumulate_user_changes', function(data){
-  var id_str = data.id_str;
-  logger.trace('accumulate_user_changes %s', data.id_str );
-  //save user object
-  twitter.controller.updateUser(docs[data.id_str], function(err){
-
+    logger.trace('last: %s', finished);
+    //if there's an error, get out now
     // TODO add test for valid data
     if (err)
     {
-      logger.error("twitter api error querying %s, %s", id_str, err);
+      logger.error("twitter api error querying %s, %s", data.id_str, err);
+      docs[data.id_str].state.query_followers = 0;
+      engine.emit('accumulate_user_changes', {id_str: data.id_str});
+      querySem.leave();
       return;
     }
 
-    logger.trace('successfully saved user %s', data.id_str);
+    //append set of followers to data's followers array
+    docs[data.id_str].followers =
+    docs[data.id_str].followers.concat(results);
 
-    logger.trace('%j', docs[data.id_str]);
+    logger.info('query_twitter_followers_ids %s, new: %d, accumulated: %d/%d',
+    data.id_str,
+    results.length,
+    docs[data.id_str].followers.length,
+    docs[data.id_str].followers_count);
 
-    engine.emit('check_remove_doc', data);
-
-
-  });
-
-});
-
-setInterval(function() {
-  logger.info('Stats: store db/api followers/following :%d %d/%d %d/%d',
-    Object.keys(docs).length,
-    queryDBList.length,
-    queryUserList.length,
-    queryFriendsList.length,
-    queryFollowersList.length);
-}, 10*1000);
-
-/*
-engine.once('dbready', function(){
-
-  engine.emit('newEvent');
-  //debugger;
-  twitter.controller.queryUser(seed, function(err, user){
-      assert(err === null, 'query returned an error');
-      console.log(err);
-      //this should give us followers/following
-      console.log(user);
-      if (! user){
-        engine.emit('finishedEvent');
-        engine.emit('checkUser', user);
-        return;
-      }
-
-      if ( ! ("folowing" in user || "followers" in user) ){
-        engine.emit('checkUser', user);
-      }
-      for (var i in user.following){
-        if (user.following[i].id_str === null){
-          continue;
-        }
-        engine.emit('checkUser', user.following[i]);
-        engine.emit('newEvent');
-        console.log('emit checkUser'+ user.following[i].id_str);
-      }
-      for (var j in user.followers){
-        if (user.followers[j].id_str === null){
-          continue;
-        }
-        engine.emit('checkUser', user.followers[i]);
-        engine.emit('newEvent');
-        console.log('emit checkUser '+ user.followers[i].id_str);
-      }
-      engine.emit('finishedEvent');
-  });
-});
-
-engine.on('checkUser', function(user){
-
-  console.log('on checkUser ' + user.id_str);
-  getAllUserInfo(user);
-
-});
-
-var getAllUserInfo = function(user){
-
-  engine.emit('newEvent'); //query user event
-  twitter.controller.queryUser(user, function(err, user){
-    //console.log(err);
-    console.log(user);
-
-    if (! user){
-      engine.emit('finishedEvent');
-      return;
-    }
-
-    var alert_user;
-    if ("screen_name" in user){
-      alert_user = user.screen_name;
+    if (finished)
+    {
+      docs[data.id_str].followers = util.uniqArray(docs[data.id_str].followers);
+      docs[data.id_str].state.query_followers = 0;
+      engine.emit('accumulate_user_changes', {id_str: data.id_str});
+      querySem.leave();
     }
     else
-      alert_user = user.id_str;
-
-    console.log('queried from database ' + (user.screen_name || user.id_str));
-
-    if (! user.screen_name){
-
-      console.log(user.id_str + ' no screen name, look it up.');
-
-      engine.emit('newEvent');
-      engine.emit('queryUser', user);
-
-    }
-    else {
-      console.log(user.screen_name + " found in database. find followers");
-    }
-
-    if ( (! user.followers) || user.followers.length == 0 ||
-        ( user.followers_count - user.followers.length ) == -1)
     {
-      console.log(user.id_str + "need to query followers");
-      engine.emit('newEvent');
-      engine.emit('queryFollowers', user);
+      twitter.api.queryFollowers(data,next_cursor_str, callback_query_twitter_followers);
     }
 
-    if ( ( ! user.following) || user.following.length == 0 ||
-        (user.following_count - user.following.length ) == -1)
+  }
+
+  engine.on('check_remove_doc', function(data){
+    logger.trace('check for purge %s, %j', data.id_str, docs[data.id_str].state);
+
+    if (  data.purge )
     {
-      console.log(user.id_str + "need to query following");
-      engine.emit('newEvent');
-      engine.emit('queryFollowers', user);
+      logger.trace("purging %s", data.id_str);
+      delete docs[data.id_str];
     }
-
-    engine.emit('finishedEvent'); //query user event
-  });
-
-  engine.emit('finishedEvent');
-};
-
-// #refactor:10 run queries.
-
-engine.on('queryUser', function(user){
-  twitter.api.getUser(user, function(err, user_){
-
-    console.log(user_.screen_name + " queried from twitter");
-
-    engine.emit('newEvent');
-    twitter.controller.updateUser(user_, function(err, result){
-      console.log("saved " + user_.screen_name);
-      engine.emit('finishedEvent');
-    });
-
-    engine.emit('finishedEvent');
-  });
-});
-
-engine.on('queryFollowers', function(user)
-{
-  friendsSem.take(function(){
-    var followers = [];
-    twitter.api.getFollowers(user, function(results, finished){
-
-      followers.push.apply(followers, results);
-
-      if (finished){
-        //save
-        followers = util.uniqArray(followers);
-        twitter.controller.saveFollowers(user, followers, function(){
-
-          engine.emit('finishedEvent');
-          friendsSem.leave();
-        });
+    else if( ! ( docs[data.id_str].state.expand_followers ||
+      docs[data.id_str].state.expand_friends ||
+      docs[data.id_str].state.query_follwers ||
+      docs[data.id_str].state.query_friends ))
+      {
+        logger.info("purging %s", data.id_str);
+        delete docs[data.id_str];
+        engine.emit('get_next_user');
       }
-
-    });
-  });
-});
-
-engine.on('queryFollowing', function(user)
-{
-  friendsSem.take(function(){
-
-    var following = [];
-    twitter.api.getFollowing(user, function(results, finished){
-
-      following.push.apply(following, results);
-
-      if (finished){
-        //save
-          following = util.uniqArray(following);
-          twitter.controller.saveFollowing(user, following, function(){
-            engine.emit('finishedEvent');
-            friendsSem.leave();
-          });
+      else
+      {
+        logger.debug("not purging %s", data.id_str);
       }
+    });
+
+    engine.on('accumulate_user_changes', function(data){
+      var id_str = data.id_str;
+      logger.trace('accumulate_user_changes %s', data.id_str );
+      //save user object
+      twitter.controller.updateUser(docs[data.id_str], function(err){
+
+        // TODO add test for valid data
+        if (err)
+        {
+          logger.error("error updating user in db %s, %s", id_str, err);
+          //
+        }
+        else {
+          logger.trace('successfully saved user %s', data.id_str);
+        }
+        logger.trace('%j', docs[data.id_str]);
+
+        engine.emit('check_remove_doc', data);
+
+      });
 
     });
-  });
-
-});
-
-// #refactor:0 get all engine calls down here, call functions up there
-
-// #refactor:5 listen on api
-*/
