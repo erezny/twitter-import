@@ -241,7 +241,7 @@ engine.once('dbready', function(){
       logger.trace('will query_followers: %s', user.id_str);
       queryFollowersSem.take( function()
       {
-        twitter.api.queryFollowersUsers(user, callback_query_twitter_followers_ids);
+        twitter.api.queryFollowers(user, callback_query_twitter_followers_ids);
       });
     }
     else
