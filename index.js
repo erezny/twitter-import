@@ -279,9 +279,16 @@ engine.once('dbready', function(){
       purge = 0;
     }
     // TODO overwrite internal if values greater than current
+    logger.debug('scrape: %s', user.id_str);
+    logger.trace('scrape: %j', user);
 
     twitter.controller.queryUserExists(user, function(err, results){
-
+      // TODO add test for valid data
+      if (err)
+      {
+        logger.error("error querying user from db %s, %s", user.id_str, err);
+        //
+      }
       //strip extra fields
       delete user.status;
 
