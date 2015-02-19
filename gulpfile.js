@@ -28,3 +28,5 @@ gulp.task('style', function () {
     return gulp.src(['lib/**/*.js', 'lib/*.js', 'index.js'])
         .pipe(jscs());
 });
+
+//TODO add watch task
