@@ -55,3 +55,8 @@ branch refactor:config {
 
 #environmentalCleanup:10
   0 build test environment on heroku
+
+
+Bugs:
+Hangs on 0 friend/follower count objects
+Hangs on twitter 503
