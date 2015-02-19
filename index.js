@@ -515,7 +515,7 @@ engine.once('dbready', function(){
 
     engine.on('accumulate_user_changes', function(data){
       var id_str = data.id_str;
-      logger.trace('accumulate_user_changes %s', data.id_str );
+      logger.debug('accumulate_user_changes %s', data.id_str );
       //save user object
       twitter.controller.updateUser(docs[data.id_str], function(err){
 
