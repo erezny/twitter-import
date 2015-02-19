@@ -207,7 +207,7 @@ engine.once('dbready', function(){
 
   function runQueries(user){
 
-    if (user.state.query_friends)
+    if (user.state.query_friends && user.friends_count > 0)
     {
       logger.trace('will query_friends: %s', user.id_str);
       querySem.take(function()
@@ -221,8 +221,7 @@ engine.once('dbready', function(){
       user.state.query_friends = 0;
     }
 
-
-    if ( user.state.expand_friends  && user.friends_count < 20000)
+    if ( user.state.expand_friends  && user.friends_count < 20000 && user.friends_count > 0)
     {
       logger.trace('will expand_friends: %s', user.id_str);
       querySem.take(function(){
@@ -236,7 +235,7 @@ engine.once('dbready', function(){
     }
 
 
-    if ( user.state.query_followers )
+    if ( user.state.query_followers  && user.followers_count > 0)
     {
       logger.trace('will query_followers: %s', user.id_str);
       querySem.take( function()
@@ -250,7 +249,7 @@ engine.once('dbready', function(){
       user.state.query_followers = 0;
     }
 
-    if (user.state.expand_followers && user.followers_count < 20000)
+    if (user.state.expand_followers && user.followers_count < 20000  && user.followers_count > 0)
     {
       logger.trace('will expand_followers: %s', user.id_str);
       querySem.take( function()
@@ -302,6 +301,7 @@ engine.once('dbready', function(){
           expand_friends: parent.internal.expand_friends ,
         };
 
+        // TODO add estimated number of users remainingto query
         user.state = {
           query_followers: (parent.internal.expand_followers ) ? 1 : 0,
           query_friends: (parent.internal.expand_friends ) ? 1 : 0,
@@ -393,7 +393,7 @@ engine.once('dbready', function(){
 
     //append set of friends to data's friends array
     docs[data.id_str].friends = docs[data.id_str].friends.concat(results );
-    logger.debug('query_twitter_friends_id %s\tnew: %d\taccumulated: %d\t/ %d',
+    logger.debug(' %s\tnew: %d\taccumulated: %d\t/ %d',
     data.id_str,
     results.length,
     docs[data.id_str].friends.length,
@@ -403,7 +403,6 @@ engine.once('dbready', function(){
     if (finished)
     {
       docs[data.id_str].friends = util.uniqArray(docs[data.id_str].friends);
-      logger.info('query_twitter_friends_id %s total: %d', data.id_str, docs[data.id_str].friends.length);
       docs[data.id_str].state.query_friends = 0;
       engine.emit('accumulate_user_changes', {id_str: data.id_str});
       querySem.leave();
@@ -468,8 +467,7 @@ engine.once('dbready', function(){
     }
 
     //append set of followers to data's followers array
-    docs[data.id_str].followers =
-    docs[data.id_str].followers.concat(results);
+    docs[data.id_str].followers = docs[data.id_str].followers.concat(results);
 
     logger.info('query_twitter_followers_ids %s, new: %d, accumulated: %d/%d',
     data.id_str,
