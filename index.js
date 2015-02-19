@@ -15,7 +15,8 @@ var engine = new events.EventEmitter();
 
 var RSVP = require('rsvp');
 
-var querySem = require('semaphore')(1);
+var queryFriendsSem = require('semaphore')(1);
+var queryFollowersSem = require('semaphore')(1);
 
 // TODO change logger type based on config file
 var logger = require('tracer').colorConsole(config.env.logger);
@@ -189,9 +190,9 @@ engine.once('dbready', function(){
         return;
       }
 
-      scrapeUser(user, data, 0);
+      scrapeUser(data, data, 0);
 
-      runQueries(user);
+      runQueries(data);
 
     });
 
@@ -210,7 +211,7 @@ engine.once('dbready', function(){
     if (user.state.query_friends && user.friends_count > 0)
     {
       logger.trace('will query_friends: %s', user.id_str);
-      querySem.take(function()
+      queryFriendsSem.take(function()
       {
         twitter.api.queryFriends(user, callback_query_twitter_friends_ids);
       });
@@ -224,7 +225,7 @@ engine.once('dbready', function(){
     if ( user.state.expand_friends  && user.friends_count < 20000 && user.friends_count > 0)
     {
       logger.trace('will expand_friends: %s', user.id_str);
-      querySem.take(function(){
+      queryFriendsSem.take(function(){
         twitter.api.queryFriendsUsers(user, callback_query_twitter_friends);
       });
     }
@@ -238,7 +239,7 @@ engine.once('dbready', function(){
     if ( user.state.query_followers  && user.followers_count > 0)
     {
       logger.trace('will query_followers: %s', user.id_str);
-      querySem.take( function()
+      queryFollowersSem.take( function()
       {
         twitter.api.queryFollowersUsers(user, callback_query_twitter_followers_ids);
       });
@@ -252,7 +253,7 @@ engine.once('dbready', function(){
     if (user.state.expand_followers && user.followers_count < 20000  && user.followers_count > 0)
     {
       logger.trace('will expand_followers: %s', user.id_str);
-      querySem.take( function()
+      queryFollowersSem.take( function()
       {
         twitter.api.queryFollowersUsers(user, callback_query_twitter_followers);
       });
@@ -284,7 +285,7 @@ engine.once('dbready', function(){
       //strip extra fields
       delete user.status;
 
-      if (results){
+      if (results && typeof(results.friends) == 'array' && typeof(results.followers) == 'array'){
         user.friends = results.friends;
         user.followers = results.followers;
       }
@@ -365,7 +366,7 @@ engine.once('dbready', function(){
     {
       docs[data.id_str].state.expand_friends = 0;
       engine.emit('accumulate_user_changes', {id_str: data.id_str});
-      querySem.leave();
+      queryFriendsSem.leave();
 
     }
     else
@@ -405,7 +406,7 @@ engine.once('dbready', function(){
       docs[data.id_str].friends = util.uniqArray(docs[data.id_str].friends);
       docs[data.id_str].state.query_friends = 0;
       engine.emit('accumulate_user_changes', {id_str: data.id_str});
-      querySem.leave();
+      queryFriendsSem.leave();
     }
     else
     {
@@ -442,7 +443,7 @@ engine.once('dbready', function(){
     {
       docs[data.id_str].state.expand_followers = 0;
       engine.emit('accumulate_user_changes', {id_str: data.id_str});
-      querySem.leave();
+      queryFollowersSem.leave();
     }
     else
     {
@@ -480,7 +481,7 @@ engine.once('dbready', function(){
       docs[data.id_str].followers = util.uniqArray(docs[data.id_str].followers);
       docs[data.id_str].state.query_followers = 0;
       engine.emit('accumulate_user_changes', {id_str: data.id_str});
-      querySem.leave();
+      queryFollowersSem.leave();
     }
     else
     {
