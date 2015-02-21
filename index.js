@@ -279,10 +279,10 @@ engine.once('dbready', function(){
     if (user.state.expand_followers && user.followers_count < 20000  && user.followers_count > 0)
     {
       logger.trace('will expand_followers: %s', user.screen_name);
-      twitter.controller.countExistingUsers(user.friends, function(count, query){
-        logger.info("%d\tof\t%d\tfriends loaded",count, user.friends_count);
+      twitter.controller.countExistingUsers(user.followers, function(count, query){
+        logger.info("%d\tof\t%d\tfollowers loaded",count, user.followers_count);
 
-        if (count <= (user.friends_count * 0.90)){
+        if (count <= (user.followers_count * 0.90)){
           queryFollowersSem.take(function(){
             twitter.api.queryFollowersUsers(user, callback_query_twitter_followers);
           });
