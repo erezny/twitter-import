@@ -344,11 +344,11 @@ function logSemStatus(){
           user_queried: new Date(),
           query_user: 0,
           query_followers:
-            (parent.internal.expand_followers - 1 > 0 ||
+            (parent.internal.expand_followers ||
               result.internal.expand_folowers) ?
             1 : 0,
           query_friends:
-            (parent.internal.expand_friends - 1 > 0 ||
+            (parent.internal.expand_friends ||
               result.internal.expand_friends) ?
             1 : 0,
           expand_followers:
