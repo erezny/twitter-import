@@ -24,6 +24,9 @@ config.logger = logger;
 
 var docs = {};
 
+// TODO styleguide:
+// Friends before followers, query before expand.
+
 // TODO: take seed from command line or API
 var seed = {
   screen_name: 'erezny',
@@ -208,7 +211,19 @@ engine.once('dbready', function(){
 
   function runQueries(user){
 
-    if (user.state.query_friends && user.friends_count > 0)
+/*  //// In lieu of this, I'm going to force the database to query everyone.
+    //todo add some fuzzyness to the friends count
+    if (user.internal.query_friends > 1 && user.friends_count > user.friends.length)
+    {
+      user.state.query_friends = 1;
+    }
+    if (user.internal.query_followers > 1 && user.followers_count > user.followers.length)
+    {
+      user.state.query_followers = 1;
+    }
+*/
+
+    if (user.state.query_friends && user.friends_count > 0 )
     {
       logger.trace('will query_friends: %s', user.screen_name);
       queryFriendsSem.take(function()
@@ -229,7 +244,7 @@ engine.once('dbready', function(){
       twitter.controller.countExistingUsers(user.friends, function(count, query){
         logger.info("%d\tof\t%d\tfriends loaded",count, user.friends_count);
 
-        if (count !== user.friends_count){
+        if (count <= (user.friends_count * 0.90)){
           queryFriendsSem.take(function(){
             twitter.api.queryFriendsUsers(user, callback_query_twitter_friends);
           });
@@ -267,7 +282,7 @@ engine.once('dbready', function(){
       twitter.controller.countExistingUsers(user.friends, function(count, query){
         logger.info("%d\tof\t%d\tfriends loaded",count, user.friends_count);
 
-        if (count !== user.friends_count){
+        if (count <= (user.friends_count * 0.90)){
           queryFollowersSem.take(function(){
             twitter.api.queryFollowersUsers(user, callback_query_twitter_followers);
           });
@@ -310,7 +325,7 @@ function logSemStatus(){
     logger.debug('scrape: %s', user.screen_name);
     logger.trace('scrape: %j', user);
 
-    twitter.controller.queryUserExists(user, function(err, results){
+    twitter.controller.queryUser(user, function(err, result){
       // TODO add test for valid data
       if (err)
       {
@@ -319,47 +334,54 @@ function logSemStatus(){
       }
       //strip extra fields
       delete user.status;
+    //  logger.info('%j', result);
+      if (result)
+      {
+        user.friends = result.friends;
+        user.followers = result.followers;
 
-      if (results && typeof(results.friends) == 'array' && typeof(results.followers) == 'array'){
-        user.friends = results.friends;
-        user.followers = results.followers;
-      }
-      else {
-        user.friends = [];
-        user.followers = [];
-      }
-      if (user.id_str == parent.id_str) {
-        user.internal = {
-          user_queried: new Date(),
-          query_followers: (parent.internal.query_followers)? 1 : 0,
-          query_friends: (parent.internal.query_friends )? 1 : 0,
-          expand_followers: parent.internal.expand_followers,
-          expand_friends: parent.internal.expand_friends ,
-        };
-
-        // TODO add estimated number of users remainingto query
-        user.state = {
-          query_followers: (parent.internal.expand_followers ) ? 1 : 0,
-          query_friends: (parent.internal.expand_friends ) ? 1 : 0,
-          expand_followers: parent.internal.expand_followers ,
-          expand_friends: parent.internal.expand_friends ,
-        };
-
-      }
-      else {
-        //add internal fields
         user.internal = {
           user_queried: new Date(),
           query_user: 0,
-          query_followers: (parent.internal.expand_followers - 1 > 0)? 1 : 0,
-          query_friends: (parent.internal.expand_friends - 1 > 0)? 1 : 0,
+          query_followers:
+            (parent.internal.expand_followers - 1 > 0 ||
+              result.internal.expand_folowers) ?
+            1 : 0,
+          query_friends:
+            (parent.internal.expand_friends - 1 > 0 ||
+              result.internal.expand_friends) ?
+            1 : 0,
+          expand_followers:
+            ( parent.internal.expand_followers - 1 > result.internal.expand_followers)?
+            parent.internal.expand_followers - 1 : result.internal.expand_followers,
+          expand_friends:
+            ( parent.internal.expand_friends - 1 > result.internal.expand_friends)?
+            parent.internal.expand_friends - 1 : result.internal.expand_friends,
+        };
+
+        user.state = {
+          query_followers: result.internal.query_followers,
+          query_friends: result.internal.query_friends,
+          expand_followers: result.internal.expand_followers,
+          expand_friends: result.internal.expand_friends,
+        };
+      }
+      else
+      {
+        user.friends = [];
+        user.followers = [];
+        user.internal = {
+          user_queried: new Date(),
+          query_user: 0,
+          query_followers: (parent.internal.expand_followers > 0)? 1 : 0,
+          query_friends: (parent.internal.expand_friends > 0)? 1 : 0,
           expand_followers: parent.internal.expand_followers - 1,
           expand_friends: parent.internal.expand_friends - 1,
         };
 
         user.state = {
-          query_followers: (parent.internal.expand_followers - 1 > 0)? 1 : 0,
-          query_friends: (parent.internal.expand_friends - 1 > 0)? 1 : 0,
+          query_followers: (parent.internal.expand_followers > 0)? 1 : 0,
+          query_friends: (parent.internal.expand_friends > 0)? 1 : 0,
           expand_followers: parent.internal.expand_followers - 1,
           expand_friends: parent.internal.expand_friends - 1,
         };
