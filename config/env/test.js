@@ -7,7 +7,7 @@ module.exports = {
       access_token_secret:  ''
     },
     controller: {
-      url: 'mongodb://localhost:27017/viewer-dev',
+      url: 'mongodb://localhost:27017/twitter-users',
     },
   },
 
