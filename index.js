@@ -7,7 +7,7 @@ var twitter = require('./lib/twitter/');
 var util = require('./lib/util.js');
 
 // devOps:20 change logger type based on config file
-var logger = require('tracer').colorConsole(config.env.logger);
+var logger = require('tracer').dailyfile(config.env.logger);
 config.logger = logger;
 
 twitter.init(config, function()
