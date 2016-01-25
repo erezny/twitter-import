@@ -4,7 +4,7 @@ stages:
   - build
   - deploy
 
-jscomplexity:
+complexity:
   stage: test
   script:
     - source ~/.nvm/nvm.sh || echo OK
@@ -15,7 +15,7 @@ jscomplexity:
     - npm config set strict-ssl false
     - rm -rf node_modules dist tmp
     - npm install
-    - npm run jscomplexity
+    - npm run complexity
   tags:
     - local
 

@@ -27,6 +27,8 @@
     "gulp-mocha": "^2.0.0",
     "gulp-jscs": "*",
     "jscs": "^1.11.3",
-    "mocha": "^2.1.0"
+    "mocha": "^2.1.0",
+    "jscomplexity": "^1.1.1",
+    "cli-table": "^0.3.1"
   }
 }
