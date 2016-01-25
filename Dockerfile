@@ -3,10 +3,6 @@ FROM node:5.2-slim
 
 MAINTAINER Elliott Rezny <erezny@gmail.com>
 
-ENV NPM_PROXY=
-ENV NPM_HTTPS-PROXY=
-ENV NPM_STRICT-SSL=
-
 ENV user node
 RUN groupadd --system $user && useradd --system --create-home --gid $user $user
 
@@ -14,8 +10,6 @@ RUN groupadd --system $user && useradd --system --create-home --gid $user $user
 RUN mkdir /home/$user/app /home/$user/server
 ADD ./ /home/$user/app
 RUN chown -R $user:$user /home/$user/*
-
-# RUN sh /home/$user/app/tasks/set_npm_proxy.sh
 
 USER $user
 
@@ -25,18 +19,8 @@ VOLUME ["/home/$user/server"]
 # Define working directory.
 WORKDIR /home/$user/server
 
-ENV TWITTER_CONSUMER_KEY
-ENV TWITTER_CONSUMER_SECRET
-ENV TWITTER_ACCESS_TOKEN
-ENV TWITTER_ACCESS_TOKEN_SECRET
-ENV MONGO_ENV_TUTUM_SERVICE_HOSTNAME
-ENV MONGO_ENV_PORT_27017_TCP_PORT
-ENV MONGO_COLLECTION
-ENV MONGO_USER
-ENV MONGO_PASSWD
-
 # Expose ports.
-EXPOSE 8080
+EXPOSE 80
 
 ENTRYPOINT ["node", "/home/node/app/app.js"]
 CMD ["--prod"]

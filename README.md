@@ -27,3 +27,18 @@ Integrates with:
   - user/friends/{list|ids}
   - (planned) user/lists/ownership
   - (planned) user/lists/subscribed
+
+Dockerfile
+----------
+
+Required variables:
+
+  - TWITTER_CONSUMER_KEY
+  - TWITTER_CONSUMER_SECRET
+  - TWITTER_ACCESS_TOKEN
+  - TWITTER_ACCESS_TOKEN_SECRET
+  - MONGO_ENV_TUTUM_SERVICE_HOSTNAME
+  - MONGO_ENV_PORT_27017_TCP_PORT
+  - MONGO_COLLECTION=twitter
+  - MONGO_USER
+  - MONGO_PASSWD
