@@ -1,13 +1,17 @@
 module.exports = {
   twitter: {
     api: {
-      consumer_key:         'nqcvYQFZRHRqgerM9F5I7ycft',
-      consumer_secret:      'jOCoMqvwdqLm035ObYXgwLAG6icSPgMe4m6o63vxn9E0kTKHjR',
-      access_token:         '16876313-GnG6mx61biAP35pkSZPeUffPB9h1rBhNm0wMzMFOh',
-      access_token_secret:  'TVYwy47RkyrA2aa4hpVBX39cTyfeHGgXFRCeytnhIaC1Y'
+      consumer_key:         process.env.TWITTER_CONSUMER_KEY,
+      consumer_secret:      process.env.TWITTER_CONSUMER_SECRET,
+      access_token:         process.env.TWITTER_ACCESS_TOKEN,
+      access_token_secret:  process.env.TWITTER_ACCESS_TOKEN_SECRET
     },
     controller: {
-      url: 'mongodb://localhost:27017/twitter',
+      url: util.format('mongodb://%s:%d/%s',
+        process.env.MONGO_TUTUM_SERVICE_HOSTNAME,
+        process.env.MONGO_PORT_27017_TCP_PORT,
+        process.env.MONGO_COLLECTION
+      ),
     },
   },
 

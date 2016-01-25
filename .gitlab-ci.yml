@@ -1,0 +1,93 @@
+
+stages:
+  - test
+  - build
+  - deploy
+
+test-dev:
+  stage: test
+  script:
+    - source ~/.nvm/nvm.sh || echo OK
+    - env | sort
+    - npm cache clean
+    - npm config set proxy http://192.168.1.100:19465
+    - npm config set https-proxy http://192.168.1.100:19465
+    - npm config set strict-ssl false
+    - rm -rf node_modules dist tmp
+    - npm install
+    - npm test || echo OK
+  except:
+    - master
+  tags:
+    - local
+
+build-dev:
+  stage: build
+  script:
+    - source ~/.nvm/nvm.sh || echo OK
+    - env | sort
+    - npm cache clean
+    - npm config set proxy http://192.168.1.100:19465
+    - npm config set https-proxy http://192.168.1.100:19465
+    - npm config set strict-ssl false
+    - rm -rf node_modules dist tmp
+    - npm install
+    - docker build -t "corpus:test" .
+  except:
+    - master
+  tags:
+    - local
+
+deploy-dev:
+  stage: deploy
+  script:
+    - docker tag -f "corpus:test" tutum.co/erezny/corpus:test
+    - docker push tutum.co/erezny/corpus:test
+  except:
+    - master
+  tags:
+    - local
+
+test-prod:
+  stage: test
+  script:
+    - source ~/.nvm/nvm.sh || echo OK
+    - env | sort
+    - npm cache clean
+    - npm config set proxy http://192.168.1.100:19465
+    - npm config set https-proxy http://192.168.1.100:19465
+    - npm config set strict-ssl false
+    - rm -rf node_modules dist tmp
+    - npm install
+    - npm test || echo OK
+  only:
+    - master
+  tags:
+    - local
+
+build-prod:
+  stage: build
+  script:
+    - source ~/.nvm/nvm.sh || echo OK
+    - export NPM_CONFIG_LOGLEVEL=warn
+    - npm cache clean
+    - npm config set proxy http://192.168.1.100:19465
+    - npm config set https-proxy http://192.168.1.100:19465
+    - npm config set strict-ssl false
+    - rm -rf node_modules dist tmp
+    - npm install --production
+    - docker build -t "corpus:latest" .
+  only:
+    - master
+  tags:
+    - local
+
+deploy-prod:
+  stage: deploy
+  script:
+    - docker tag -f "corpus:latest" tutum.co/erezny/corpus:latest
+    - docker push tutum.co/erezny/corpus:latest
+  only:
+    - master
+  tags:
+    - local

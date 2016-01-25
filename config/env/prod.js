@@ -1,3 +1,5 @@
+var util = require('util');
+
 module.exports = {
   twitter: {
     api: {
@@ -7,7 +9,11 @@ module.exports = {
       access_token_secret:  ''
     },
     controller: {
-      url: 'mongodb://localhost:27017/twitter',
+      url: util.format('mongodb://%s:%d/%s',
+        process.env.MONGO_TUTUM_SERVICE_HOSTNAME,
+        process.env.MONGO_PORT_27017_TCP_PORT,
+        process.env.MONGO_COLLECTION
+      ),
     },
   },
 
