@@ -9,9 +9,11 @@ module.exports = {
       access_token_secret:  process.env.TWITTER_ACCESS_TOKEN_SECRET
     },
     controller: {
-      url: util.format('mongodb://%s:%d/%s',
-        process.env.MONGO_TUTUM_SERVICE_HOSTNAME,
-        process.env.MONGO_PORT_27017_TCP_PORT,
+      url: util.format('mongodb://%s:%s@%s:%d/%s?authMechanism=SCRAM-SHA-1&authSource=admin',
+        process.env.MONGO_USER,
+        process.env.MONGO_PASSWD,
+        process.env.MONGO_ENV_TUTUM_SERVICE_HOSTNAME,
+        process.env.MONGO_ENV_PORT_27017_TCP_PORT,
         process.env.MONGO_COLLECTION
       ),
     },
