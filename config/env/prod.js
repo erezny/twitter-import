@@ -21,13 +21,4 @@ module.exports = {
     level: 'debug',
     root: './',
   },
-  keen: {
-    projectId: '',
-    writeKey: '',
-    readKey: '',
-    masterKey: '',
-    protocol: 'https',              // String (optional: https | http | auto)
-    host: 'api.keen.io/3.0',        // String (optional)
-    requestType: 'jsonp'            // String (optional: jsonp, xhr, beacon)
-  },
 };
