@@ -4,6 +4,21 @@ stages:
   - build
   - deploy
 
+jscomplexity:
+  stage: test
+  script:
+    - source ~/.nvm/nvm.sh || echo OK
+    - env | sort
+    - npm cache clean
+    - npm config set proxy http://192.168.1.100:19465
+    - npm config set https-proxy http://192.168.1.100:19465
+    - npm config set strict-ssl false
+    - rm -rf node_modules dist tmp
+    - npm install
+    - npm run jscomplexity
+  tags:
+    - local
+
 test-dev:
   stage: test
   script:
