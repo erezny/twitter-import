@@ -1,3 +1,5 @@
+var util = require('util');
+
 module.exports = {
   twitter: {
     api: {

@@ -32,7 +32,7 @@ build-dev:
     - npm config set strict-ssl false
     - rm -rf node_modules dist tmp
     - npm install
-    - docker build -t "corpus:test" .
+    - docker build -t "twitter-import:test" .
   except:
     - master
   tags:
@@ -41,8 +41,8 @@ build-dev:
 deploy-dev:
   stage: deploy
   script:
-    - docker tag -f "corpus:test" tutum.co/erezny/corpus:test
-    - docker push tutum.co/erezny/corpus:test
+    - docker tag -f "twitter-import:test" tutum.co/erezny/twitter-import:test
+    - docker push tutum.co/erezny/twitter-import:test
   except:
     - master
   tags:
@@ -76,7 +76,7 @@ build-prod:
     - npm config set strict-ssl false
     - rm -rf node_modules dist tmp
     - npm install --production
-    - docker build -t "corpus:latest" .
+    - docker build -t "twitter-import:latest" .
   only:
     - master
   tags:
@@ -85,8 +85,8 @@ build-prod:
 deploy-prod:
   stage: deploy
   script:
-    - docker tag -f "corpus:latest" tutum.co/erezny/corpus:latest
-    - docker push tutum.co/erezny/corpus:latest
+    - docker tag -f "twitter-import:latest" tutum.co/erezny/twitter-import:latest
+    - docker push tutum.co/erezny/twitter-import:latest
   only:
     - master
   tags:
