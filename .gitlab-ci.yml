@@ -8,7 +8,7 @@ complexity:
   stage: test
   script:
     - source ~/.nvm/nvm.sh || echo OK
-    - env | sort
+    - export NPM_CONFIG_LOGLEVEL=error
     - npm cache clean
     - npm config set proxy http://192.168.1.100:19465
     - npm config set https-proxy http://192.168.1.100:19465
@@ -23,7 +23,7 @@ test-dev:
   stage: test
   script:
     - source ~/.nvm/nvm.sh || echo OK
-    - env | sort
+    - export NPM_CONFIG_LOGLEVEL=warn
     - npm cache clean
     - npm config set proxy http://192.168.1.100:19465
     - npm config set https-proxy http://192.168.1.100:19465
@@ -40,7 +40,7 @@ build-dev:
   stage: build
   script:
     - source ~/.nvm/nvm.sh || echo OK
-    - env | sort
+    - export NPM_CONFIG_LOGLEVEL=warn
     - npm cache clean
     - npm config set proxy http://192.168.1.100:19465
     - npm config set https-proxy http://192.168.1.100:19465
@@ -67,8 +67,8 @@ test-prod:
   stage: test
   script:
     - source ~/.nvm/nvm.sh || echo OK
-    - env | sort
     - npm cache clean
+    - export NPM_CONFIG_LOGLEVEL=warn
     - npm config set proxy http://192.168.1.100:19465
     - npm config set https-proxy http://192.168.1.100:19465
     - npm config set strict-ssl false
