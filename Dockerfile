@@ -16,7 +16,7 @@ WORKDIR /home/$user/server
 EXPOSE 80
 
 # Run npm install before building docker image
-RUN mkdir /home/$user/app /home/$user/server
+RUN mkdir /home/$user/app
 ADD ./ /home/$user/app
 RUN chown -R $user:$user /home/$user/*
 
