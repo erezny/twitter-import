@@ -11,8 +11,6 @@ module.exports = {
     },
     controller: {
       url: util.format('mongodb://%s:%d/%s',
-        process.env.MONGO_USER,
-        process.env.MONGO_PASSWD,
         process.env.MONGO_HOST,
         process.env.MONGO_PORT,
         process.env.MONGO_COLLECTION
