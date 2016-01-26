@@ -7,6 +7,7 @@ module.exports = {
       consumer_secret:      process.env.TWITTER_CONSUMER_SECRET,
       //access_token:         process.env.TWITTER_ACCESS_TOKEN,
       //access_token_secret:  process.env.TWITTER_ACCESS_TOKEN_SECRET
+      app_only_auth:        true
     },
     controller: {
       url: util.format('mongodb://%s:%s@%s:%d/%s?authMechanism=DEFAULT?authMechanism=SCRAM-SHA-1&authSource=admin',
