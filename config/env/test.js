@@ -20,7 +20,7 @@ module.exports = {
   },
 
   logger:{
-    level: 'debug',
+    level: 'info',
     root: './',
   },
 };
