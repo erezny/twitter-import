@@ -14,7 +14,7 @@ complexity:
     - npm config set https-proxy http://192.168.1.100:19465
     - npm config set strict-ssl false
     - rm -rf node_modules dist tmp
-    - npm install
+    - npm install -s
     - npm run complexity
   tags:
     - local
