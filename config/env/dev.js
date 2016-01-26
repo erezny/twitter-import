@@ -10,11 +10,11 @@ module.exports = {
       app_only_auth:        true
     },
     controller: {
-      url: util.format('mongodb://%s:%s@%s:%d/%s?authMechanism=SCRAM-SHA-1&authSource=admin',
+      url: util.format('mongodb://%s:%d/%s',
         process.env.MONGO_USER,
         process.env.MONGO_PASSWD,
-        process.env.MONGO_PORT_27017_TCP_ADDR,
-        process.env.MONGO_PORT_27017_TCP_PORT,
+        process.env.MONGO_HOST,
+        process.env.MONGO_PORT,
         process.env.MONGO_COLLECTION
       ),
     },
