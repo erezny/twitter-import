@@ -13,8 +13,8 @@ module.exports = {
       url: util.format('mongodb://%s:%s@%s:%d/%s?authMechanism=SCRAM-SHA-1&authSource=admin',
         process.env.MONGO_USER,
         process.env.MONGO_PASSWD,
-        process.env.MONGO_ENV_TUTUM_SERVICE_HOSTNAME,
-        process.env.MONGO_ENV_PORT_27017_TCP_PORT,
+        process.env.MONGO_HOST,
+        process.env.MONGO_PORT,
         process.env.MONGO_COLLECTION
       ),
     },
