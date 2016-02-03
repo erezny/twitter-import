@@ -12,6 +12,7 @@
   "license": "MIT",
   "dependencies": {
     "bloomfilter": "0.0.14",
+    "bull": "^0.7.0",
     "influx": "^4.1.0",
     "limiter": "^1.0.5",
     "mongodb": "^2.1.4",
