@@ -1,10 +1,10 @@
 
 // clarity:20 remove init by using a constructor
-var config = require('./config/');
+var config = require('../../config/');
 config.init();
-var twitter = require('./lib/twitter/');
+var twitter = require('../../lib/twitter/');
 
-var util = require('./lib/util.js');
+var util = require('../../lib/util.js');
 
 // devOps:20 change logger type based on config file
 var logger = require('tracer').colorConsole(config.env.logger);

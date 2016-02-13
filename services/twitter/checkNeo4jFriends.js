@@ -69,6 +69,11 @@ MongoClient.connect(util.format('mongodb://%s:%s@%s:%d/%s?authMechanism=SCRAM-SH
   var total = 0;
   var finished = 0;
 
+  metrics.setGauge( "openQueries", function () { return openQueries; });
+  metrics.setGauge( "queryLimit", function () { return queryLimit; });
+  metrics.setGauge( "total", function () { return total; });
+  metrics.setGauge( "finished", function () { return finished; });
+
   logger.trace("connected to mongo");
 
   var cursor = db.collection("twitterUsers")
@@ -90,7 +95,7 @@ MongoClient.connect(util.format('mongodb://%s:%s@%s:%d/%s?authMechanism=SCRAM-SH
   });
 
   cursor.count(function(err, count) {
-    logger.info("Number of users %d", count);
+    logger.debug("Number of users %d", count);
     total = count;
   });
 
@@ -140,7 +145,7 @@ MongoClient.connect(util.format('mongodb://%s:%s@%s:%d/%s?authMechanism=SCRAM-SH
       stream.resume();
     }
     if (finished % 10 == 0){
-      logger.info("completed %d / %d", finished, total);
+      logger.debug("completed %d / %d", finished, total);
     }
   }
 
