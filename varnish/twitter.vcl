@@ -29,7 +29,17 @@ sub vcl_fetch {
    set beresp.grace = 1h;
 }
 
+# outgoing oauth example
+
+sub vcl_hash {
+  if (req.url ~ "access_token"){
+    set req.url = regsub(req.url, "^https?://(.*)\?access_token=.*$","\1");
+  }
+  hash_data(req.url);
+}
+
 # code taken from https://adayinthelifeof.nl/2012/07/06/using-varnish-to-offload-and-cache-your-oauth-requests/
+# https://gist.github.com/jaytaph/3062338
 # originally meant to authenticate clients before sending to internal app
 # change to set authentication header on request before being sent upstream
 sub vcl_hash {
