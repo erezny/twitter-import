@@ -38,7 +38,11 @@ var report = reportAggregator();
 
 var complexityTasks = [
   jscomplexity( 'lib/**/**.js' )
-    .then( report.pushReport )
+    .then( report.pushReport ),
+  jscomplexity( 'services/**/**.js' )
+    .then( report.pushReport ),
+  jscomplexity( 'scripts/**/**.js' )
+    .then( report.pushReport ),
 ];
 
 // instantiate
