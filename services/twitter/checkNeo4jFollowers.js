@@ -3,7 +3,6 @@ var util = require('util');
 var RSVP = require('rsvp');
 var test = require('assert');
 var RateLimiter = require('limiter').RateLimiter;
-var Queue = require('bull');
 var assert = require('assert');
 const crow = require("crow-metrics");
 const request = require("request");
