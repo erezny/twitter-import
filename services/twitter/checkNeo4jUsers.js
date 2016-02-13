@@ -142,7 +142,7 @@ MongoClient.connect(util.format('mongodb://%s:%s@%s:%d/%s?authMechanism=SCRAM-SH
 
 });
 
-var sem = require('semaphore')(1);
+var sem = require('semaphore')(4);
 
 function upsertNodeToNeo4j(node) {
   delete node.id;
