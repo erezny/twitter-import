@@ -194,7 +194,7 @@ function upsertFollowerIfExists(user, follower){
   });
 }
 
-var sem = require('semaphore')(4);
+var sem = require('semaphore')(1);
 
 function upsertRelationship(node, friend) {
   assert( typeof(node.id) == "string" );
