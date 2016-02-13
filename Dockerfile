@@ -17,4 +17,4 @@ RUN mkdir /data/app
 ADD ./ /data/app
 RUN NPM_CONFIG_LOGLEVEL=warn npm install -g forever
 
-ENTRYPOINT ["forever", "/data/app/app.js"]
+ENTRYPOINT ["node", "/data/app/services.js"]
