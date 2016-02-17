@@ -66,7 +66,7 @@ MongoClient.connect(util.format('mongodb://%s:%s@%s:%d/%s?authMechanism=SCRAM-SH
   logger.trace("connected to mongo");
 
   var cursor = db.collection("twitterUsers")
-  .find( {})
+  .find( )
   .project({
       id_str: 1,
       screen_name: 1,
@@ -77,7 +77,7 @@ MongoClient.connect(util.format('mongodb://%s:%s@%s:%d/%s?authMechanism=SCRAM-SH
       description: 1,
       location: 1,
       statuses_count: 1
-  }).sortby().limit(100000)
+  })
 
   var stream = cursor.stream();
 
