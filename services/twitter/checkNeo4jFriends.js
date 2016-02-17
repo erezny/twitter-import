@@ -82,7 +82,8 @@ MongoClient.connect(util.format('mongodb://%s:%s@%s:%d/%s?authMechanism=SCRAM-SH
       screen_name: 1,
       friends: 1,
       'identifiers.neo4jID': 1,
-  });
+      friends_count: 1
+  }).sort({ friends_count: 1 });
 
   var stream = cursor.stream();
 
