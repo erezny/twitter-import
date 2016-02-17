@@ -108,26 +108,20 @@ MongoClient.connect(util.format('mongodb://%s:%s@%s:%d/%s?authMechanism=SCRAM-SH
     metrics.counter("users_loaded").increment();
 
     redis.hgetall(util.format("twitter:%s",user.id_str), function(err, obj) {
-      if ((obj && obj.neo4jID) || user.identifiers.neo4j){
-        var neo4jID;
-        if (obj && obj.neo4jID){
-          neo4jID = obj.neo4jID;
-        } else {
-          neo4jID = user.identifiers.neo4j;
-        }
-          updateFriends({ id_str: user.id_str, screen_name: user.screen_name, neo4jID: neo4jID, friends: user.friends })
+      if (obj && obj.neo4jID && typeof(obj.neo4jID) == 'string' && obj.neo4jID.match("[0-9]+")){
+        updateFriends({ id_str: user.id_str, screen_name: user.screen_name, neo4jID: neo4jID, friends: user.friends })
           .then(function(results) {
             logger.trace("relationship Results: %j", results);
             db.collection("twitterUsers").findOneAndUpdate(
               { id_str: user.id_str },
-              { $set: { friends: results, "identifiers.neo4j": neo4jID },
+              { $set: { friends: results, "identifiers.neo4j": obj.neo4jID },
                 $inc: { 'import.neo4j.friends': 1 } },
               { projection: { id_str: 1, screen_name: 1 } } ).then(function(result) {
                 logger.info("completed %s", user.screen_name);
                 metrics.counter("users_saved").increment();
                 restartQueries();
               }, function(err) {
-                  logger.err("mongo error saving %s", user.screen_name);
+                  logger.error("mongo error saving %s", user.screen_name);
                   restartQueries();
               });
           }, function(err) {
