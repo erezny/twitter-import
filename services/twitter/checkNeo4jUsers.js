@@ -112,7 +112,7 @@ MongoClient.connect(util.format('mongodb://%s:%s@%s:%d/%s?authMechanism=SCRAM-SH
 
     redis.hgetall(util.format("twitter:%s",user.id_str), function(err, obj) {
 
-        if (obj && obj.neo4jID){
+        if (obj && obj.neo4jID && typeof(obj.neo4jID) == 'string' && obj.neo4jID.match("[0-9]+")){
           metrics.counter("user_exists").increment();
           restartQueries();
         } else {
