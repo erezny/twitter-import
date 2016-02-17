@@ -66,7 +66,7 @@ MongoClient.connect(util.format('mongodb://%s:%s@%s:%d/%s?authMechanism=SCRAM-SH
   logger.trace("connected to mongo");
 
   var cursor = db.collection("twitterUsers")
-  .find( )
+  .find( { $not: { $exists: { 'identifiers.neo4jID': 1 } } } )
   .project({
       id_str: 1,
       screen_name: 1,

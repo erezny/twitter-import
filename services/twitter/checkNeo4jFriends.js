@@ -161,7 +161,7 @@ function updateFriends(user){
     for (otherUser of user.friends){
       friendsTasks.push(upsertFriendIfExists(user, otherUser));
     }
-    logger.info("updateFriends %s: %d", user.screen_name, friendsTasks.length);
+    logger.debug("updateFriends %s: %d", user.screen_name, friendsTasks.length);
     RSVP.allSettled(friendsTasks).then(function(results) {
       logger.debug("updateFriends all settled %s", user.screen_name);
       var friendsNotFound = [];
@@ -170,7 +170,7 @@ function updateFriends(user){
           friendsNotFound.push(result.reason);
         }
       }
-      logger.info("updateFriends %s Remaining: %d", user.screen_name, friendsNotFound.length);
+      logger.debug("updateFriends %s Remaining: %d", user.screen_name, friendsNotFound.length);
       resolve(friendsNotFound);
     })
   });

@@ -161,7 +161,7 @@ function updateFollowers(user){
     for (otherUser of user.followers){
       followersTasks.push(upsertFollowerIfExists(user, otherUser));
     }
-    logger.info("updateFollowers %s: %d", user.screen_name, followersTasks.length);
+    logger.debug("updateFollowers %s: %d", user.screen_name, followersTasks.length);
     RSVP.allSettled(followersTasks).then(function(results) {
       logger.debug("updateFollowers all settled %s", user.screen_name);
       var followersNotFound = [];
@@ -170,7 +170,7 @@ function updateFollowers(user){
           followersNotFound.push(result.reason);
         }
       }
-      logger.info("updateFollowers %s Remaining: %d", user.screen_name, followersNotFound.length);
+      logger.debug("updateFollowers %s Remaining: %d", user.screen_name, followersNotFound.length);
       resolve(followersNotFound);
     })
   });
