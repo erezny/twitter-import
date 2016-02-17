@@ -122,10 +122,12 @@ MongoClient.connect(util.format('mongodb://%s:%s@%s:%d/%s?authMechanism=SCRAM-SH
                 logger.debug('next user');
                 metrics.counter("user_saved").increment();
                 restartQueries()
+                sem.leave();
               }, function(err) {
                 logger.error('userByIDQueue err %j', err);
                 metrics.counter("user_error").increment();
                 restartQueries()
+                sem.leave();
             });
           });
         }
@@ -156,7 +158,6 @@ function upsertNodeToNeo4j(node) {
         logger.error("neo4j find %s %j",node.screen_name, err);
         metrics.counter("neo4j_find_error").increment();
         reject(err);
-        sem.leave();
         return;
       }
 
@@ -166,7 +167,6 @@ function upsertNodeToNeo4j(node) {
         redis.hset(util.format("twitter:%s",node.id_str), "neo4jID", results.id, function(err, res) { });
         metrics.counter("neo4j_exists").increment();
         resolve(node);
-        sem.leave();
         return;
       }
 
@@ -175,13 +175,11 @@ function upsertNodeToNeo4j(node) {
           logger.error("neo4j save %s %j", node.screen_name, err);
           metrics.counter("neo4j_save_error").increment();
           reject(err);
-          sem.leave();
           return;
         }
         redis.hset(util.format("twitter:%s",node.id_str), "neo4jID", savedNode.id, function(err, res) { });
         logger.debug('inserted user %s', savedNode.screen_name);
         metrics.counter("neo4j_inserted").increment();
-        sem.leave();
         resolve(savedNode);
       });
     });
