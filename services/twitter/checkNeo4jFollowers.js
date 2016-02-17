@@ -107,7 +107,7 @@ MongoClient.connect(util.format('mongodb://%s:%s@%s:%d/%s?authMechanism=SCRAM-SH
     metrics.counter("users_loaded").increment();
 
     redis.hgetall(util.format("twitter:%s",user.id_str), function(err, obj) {
-        if ((obj && obj.neo4jID) || user.identifiers.neo4j){
+        if ((obj && obj.neo4jID) || user.identifiers.neo4j !== "undefinded" ){
           var neo4jID;
           if (obj && obj.neo4jID){
             neo4jID = obj.neo4jID;
