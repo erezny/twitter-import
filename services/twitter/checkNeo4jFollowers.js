@@ -81,7 +81,8 @@ MongoClient.connect(util.format('mongodb://%s:%s@%s:%d/%s?authMechanism=SCRAM-SH
       id_str: 1,
       screen_name: 1,
       followers: 1,
-  })
+      'import.neo4j.followers': 1,
+  }).sort( { 'import.neo4j.followers': 1 } );
 
   var stream = cursor.stream();
 
@@ -107,13 +108,19 @@ MongoClient.connect(util.format('mongodb://%s:%s@%s:%d/%s?authMechanism=SCRAM-SH
     metrics.counter("users_loaded").increment();
 
     redis.hgetall(util.format("twitter:%s",user.id_str), function(err, obj) {
-        if (obj && obj.neo4jID){
+        if ((obj && obj.neo4jID) || user.identifiers.neo4j){
+          var neo4jID;
+          if (obj && obj.neo4jID){
+            neo4jID = obj.neo4jID;
+          } else {
+            neo4jID = obj.neo4jID;
+          }
           updateFollowers({ id_str: user.id_str, screen_name: user.screen_name, neo4jID: obj.neo4jID, followers: user.followers })
           .then(function(results) {
             logger.trace("relationship Results: %j", results);
             db.collection("twitterUsers").findOneAndUpdate(
               { id_str: user.id_str },
-              { $set: { followers: results, "identifiers.neo4j": obj.neo4jID },
+              { $set: { followers: results, "identifiers.neo4j": neo4jID },
                 $inc: { 'import.neo4j.friends': 1 } },
               { projection: { id_str: 1, screen_name: 1 } } ).then(function(result) {
                 logger.info("completed %s", user.screen_name);

@@ -66,7 +66,7 @@ MongoClient.connect(util.format('mongodb://%s:%s@%s:%d/%s?authMechanism=SCRAM-SH
   logger.trace("connected to mongo");
 
   var cursor = db.collection("twitterUsers")
-  .find( { "identifiers.neo4j": { $exists: false } })
+  .find( {})
   .project({
       id_str: 1,
       screen_name: 1,
@@ -77,7 +77,7 @@ MongoClient.connect(util.format('mongodb://%s:%s@%s:%d/%s?authMechanism=SCRAM-SH
       description: 1,
       location: 1,
       statuses_count: 1
-  })
+  }).sortby().limit(100000)
 
   var stream = cursor.stream();
 
@@ -101,6 +101,8 @@ MongoClient.connect(util.format('mongodb://%s:%s@%s:%d/%s?authMechanism=SCRAM-SH
     total = count;
   });
 
+  var sem = require('semaphore')(10);
+
   stream.on('data', function(user) {
     openQueries++;
     if ( openQueries > queryLimit) {
@@ -111,18 +113,20 @@ MongoClient.connect(util.format('mongodb://%s:%s@%s:%d/%s?authMechanism=SCRAM-SH
     redis.hgetall(util.format("twitter:%s",user.id_str), function(err, obj) {
 
         if (obj && obj.neo4jID){
-        metrics.counter("user_exists").increment();
-        restartQueries();
+          metrics.counter("user_exists").increment();
+          restartQueries();
         } else {
-          upsertNodeToNeo4j(user)
-            .then( function(user) {
-              logger.debug('next user');
-              metrics.counter("user_saved").increment();
-              restartQueries()
-            }, function(err) {
-              logger.error('userByIDQueue err %j', err);
-              metrics.counter("user_error").increment();
-              restartQueries()
+          sem.take(function() {
+            upsertNodeToNeo4j(user)
+              .then( function(user) {
+                logger.debug('next user');
+                metrics.counter("user_saved").increment();
+                restartQueries()
+              }, function(err) {
+                logger.error('userByIDQueue err %j', err);
+                metrics.counter("user_error").increment();
+                restartQueries()
+            });
           });
         }
     });
@@ -135,20 +139,17 @@ MongoClient.connect(util.format('mongodb://%s:%s@%s:%d/%s?authMechanism=SCRAM-SH
     if (openQueries < queryLimit ) {
       stream.resume();
     }
-    if (finished % 100 == 0){
+    if ( finished % 1000 == 0 ){
       logger.debug("completed %d / %d", finished, total);
     }
   }
 
 });
 
-var sem = require('semaphore')(4);
-
 function upsertNodeToNeo4j(node) {
   delete node.id;
   return new RSVP.Promise( function (resolve, reject) {
     logger.trace('upserting %s %s', node.screen_name, node.id_str);
-    sem.take(function() {
     neo4j.find( { id_str: node.id_str }, false, "twitterUser" ,
         function(err, results) {
       if (err){
@@ -184,6 +185,5 @@ function upsertNodeToNeo4j(node) {
         resolve(savedNode);
       });
     });
-  });
   });
 }
