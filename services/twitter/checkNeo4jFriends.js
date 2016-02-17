@@ -213,16 +213,12 @@ function upsertRelationship(node, friend) {
           return;
         }
         if (rels.length > 0) {
-          for (rel of rels){
-            if (rel.end == friend.id){
-              //TODO search for duplicates and remove duplicates
-              logger.trace("relationship found %j", rel);
-              metrics.counter("rel_already_exists").increment();
-              resolve(rel);
-              sem.leave();
-              return;
-            }
-          }
+          //TODO search for duplicates and remove duplicates
+          logger.trace("relationship found %j", rel);
+          metrics.counter("rel_already_exists").increment();
+          resolve(rel);
+          sem.leave();
+          return;
         }
         neo4j.relate(node.id, 'follows', friend.id, function(err, rel) {
           if (err){
