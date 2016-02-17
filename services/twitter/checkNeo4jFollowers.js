@@ -109,7 +109,7 @@ MongoClient.connect(util.format('mongodb://%s:%s@%s:%d/%s?authMechanism=SCRAM-SH
 
     redis.hgetall(util.format("twitter:%s",user.id_str), function(err, obj) {
       if (obj && obj.neo4jID && typeof(obj.neo4jID) == 'string' && obj.neo4jID.match("[0-9]+")){
-        updateFollowers({ id_str: user.id_str, screen_name: user.screen_name, neo4jID: neo4jID, followers: user.followers })
+        updateFollowers({ id_str: user.id_str, screen_name: user.screen_name, neo4jID: obj.neo4jID, followers: user.followers })
           .then(function(results) {
             logger.trace("relationship Results: %j", results);
             db.collection("twitterUsers").findOneAndUpdate(
