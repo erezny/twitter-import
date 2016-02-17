@@ -164,7 +164,7 @@ function upsertNodeToNeo4j(node) {
       if (results.length > 0){
         logger.debug("found %j", results);
         //if results.length > 1, flag as error
-        redis.hset(util.format("twitter:%s",node.id_str), "neo4jID", results.id, function(err, res) { });
+        redis.hset(util.format("twitter:%s",node.id_str), "neo4jID", results[0].id, function(err, res) { });
         metrics.counter("neo4j_exists").increment();
         resolve(node);
         return;
