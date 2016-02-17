@@ -230,7 +230,7 @@ function upsertRelationship(node, friend) {
         }
         neo4j.relate(node.id, 'follows', friend.id, function(err, rel) {
           if (err){
-            logger.error("neo4j save error %j",err);
+            logger.error("neo4j save error %j %j",{node: node, friend: friend}, err);
             metrics.counter("rel_save_error").increment();
             reject("error");
             sem.leave();
