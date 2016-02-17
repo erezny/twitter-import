@@ -81,8 +81,7 @@ MongoClient.connect(util.format('mongodb://%s:%s@%s:%d/%s?authMechanism=SCRAM-SH
       id_str: 1,
       screen_name: 1,
       followers: 1,
-      'import.neo4j.followers': 1,
-  }).sort( { 'import.neo4j.followers': 1 } );
+  });
 
   var stream = cursor.stream();
 
