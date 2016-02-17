@@ -186,7 +186,7 @@ function upsertFollowerIfExists(user, follower){
   assert( typeof(follower) == "string" );
   return new RSVP.Promise( function (resolve, reject) {
     redis.hgetall(util.format("twitter:%s",follower), function(err, obj) {
-      if (obj && obj.neo4jID){
+      if (obj && obj.neo4jID && obj.neo4jID != "undefined"){
         upsertRelationship({ id: obj.neo4jID }, { id: user.neo4jID }).then(function(rel) {
           resolve(follower);
         }, function(err) {

@@ -186,7 +186,7 @@ function upsertFriendIfExists(user, friend){
   assert( typeof(friend) == "string" );
   return new RSVP.Promise( function (resolve, reject) {
     redis.hgetall(util.format("twitter:%s",friend), function(err, obj) {
-      if (obj && obj.neo4jID){
+      if (obj && obj.neo4jID && obj.neo4jID != "undefined"){
         upsertRelationship({ id: user.neo4jID }, { id: obj.neo4jID }).then(function(rel) {
           resolve(friend);
         }, function(err) {
@@ -230,7 +230,7 @@ function upsertRelationship(node, friend) {
         }
         neo4j.relate(node.id, 'follows', friend.id, function(err, rel) {
           if (err){
-            logger.error("neo4j save error %j %j",{node: node, friend: friend}, err);
+            logger.error("neo4j save error %j %j", { node: node, friend: friend }, err);
             metrics.counter("rel_save_error").increment();
             reject("error");
             sem.leave();
