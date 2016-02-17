@@ -112,9 +112,9 @@ MongoClient.connect(util.format('mongodb://%s:%s@%s:%d/%s?authMechanism=SCRAM-SH
           if (obj && obj.neo4jID){
             neo4jID = obj.neo4jID;
           } else {
-            neo4jID = obj.neo4jID;
+            neo4jID = user.identifiers.neo4j;
           }
-          updateFollowers({ id_str: user.id_str, screen_name: user.screen_name, neo4jID: obj.neo4jID, followers: user.followers })
+          updateFollowers({ id_str: user.id_str, screen_name: user.screen_name, neo4jID: neo4jID, followers: user.followers })
           .then(function(results) {
             logger.trace("relationship Results: %j", results);
             db.collection("twitterUsers").findOneAndUpdate(
