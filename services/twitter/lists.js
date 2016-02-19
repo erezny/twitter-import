@@ -50,21 +50,16 @@ function queryUserListOwnership(user, cursor, callback) {
         {
           logger.debug("queryUserListOwnership twitter api callback");
           if (err) {
+            logger.error("twitter api error %j", err);
             reject(err);
             return;
           }
           queue.create('receiveUserListOwnership', { lists: data.lists } ).save();
           if (data.next_cursor_str != 0){
-          queue.create('queryUserListOnwership', { user: job.data.user, cursor: data.next_cursor_str }).save();
-
+            queue.create('queryUserListOnwership', { user: job.data.user, cursor: data.next_cursor_str }).save();
           }
-          cursor = data.next_cursor_str;
           resolve(data.lists);
         });
       });
     });
   };
-
-queue.create('queryUserListOwnership', {
-  user: { id_str: "16876313" }, cursor: "-1"
-}).save();
