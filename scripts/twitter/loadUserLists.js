@@ -105,28 +105,11 @@ MongoClient.connect(util.format('mongodb://%s:%s@%s:%d/%s?authMechanism=SCRAM-SH
     total = count;
   });
 
-  var sem = require('semaphore')(10);
-
   stream.on('data', function(user) {
-    openQueries++;
-    if ( openQueries > queryLimit) {
-      stream.pause();
-    }
     queue.create('queryUserListOwnership', {
       user: { id_str: user.id_str }, cursor: "-1"
     }).removeOnComplete( true ).save();
 
   });
-
-  function restartQueries(){
-    finished++;
-    openQueries--;
-    if (openQueries < queryLimit ) {
-      stream.resume();
-    }
-    if ( finished % 1000 == 0 ){
-      logger.debug("completed %d / %d", finished, total);
-    }
-  }
 
 });
