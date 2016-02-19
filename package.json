@@ -13,9 +13,11 @@
   "dependencies": {
     "bloomfilter": "0.0.14",
     "cache-manager": "^1.4.0",
+    "co": "^4.6.0",
     "crow-metrics": "^2.3.7",
     "forever-monitor": "^1.7.0",
     "influx": "^4.1.0",
+    "kue": "^0.10.5",
     "limiter": "^1.0.5",
     "mongodb": "^2.1.4",
     "redis": "^2.4.2",
