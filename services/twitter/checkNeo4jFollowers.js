@@ -112,6 +112,7 @@ MongoClient.connect(util.format('mongodb://%s:%s@%s:%d/%s?authMechanism=SCRAM-SH
       if (obj && obj.neo4jID && typeof(obj.neo4jID) == 'string' && obj.neo4jID.match("[0-9]+")){
         updateFollowers({ id_str: user.id_str, screen_name: user.screen_name, neo4jID: obj.neo4jID, followers: user.followers })
           .then(function(results) {
+          //TODO push results to redis priority queue to import users
             logger.trace("relationship Results: %j", results);
             db.collection("twitterUsers").findOneAndUpdate(
               { id_str: user.id_str },
@@ -203,8 +204,8 @@ function upsertRelationship(node, friend) {
   assert( typeof(friend.id) == "string" );
   return new RSVP.Promise( function (resolve, reject) {
     sem.take(function() {
-      neo4j.query("start x=node({idx}), n=node({idn}) MATCH (x)-[r:follows]->(n) RETURN r",
-        { idx: node.id, idn: friend.id }, function(err, rels) {
+      neo4j.queryRaw("start x=node({idx}), n=node({idn}) MATCH (x)-[r:follows]->(n) RETURN r",
+        { idx: node.id, idn: friend.id }, function(err, results) {
         if (err){
           logger.error("neo4j find error %j",err);
           metrics.counter("rel_find_error").increment();
@@ -212,12 +213,19 @@ function upsertRelationship(node, friend) {
           sem.leave();
           return;
         }
-        if (rels.length > 0) {
+        logger.trace("neo4j found %j", results);
+        if (results.data.length > 0) {
           //TODO search for duplicates and remove duplicates
-          logger.trace("relationship found %j", rel);
+          logger.debug("relationship found %j", results.data[0][1]);
           metrics.counter("rel_already_exists").increment();
-          resolve(rel);
-          sem.leave();
+          resolve(results.data[0][1]);
+          if (results.data.length > 1){
+            for (var i = 1; i < results.data.length; i++){
+              neo4j.rel.delete(results.data[i][1].metadata.id, function(err) {
+                if (!err) logger.debug("deleted duplicate relationship");
+              });
+            }
+          }
           return;
         }
         neo4j.relate(node.id, 'follows', friend.id, function(err, rel) {
