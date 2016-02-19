@@ -65,6 +65,6 @@ function queryUserListOwnership(user, cursor, callback) {
     });
   };
 
-queue.create('twitter.queryUserListOwnership', {
+queue.create('queryUserListOwnership', {
   user: { id_str: "16876313" }, cursor: "-1"
 });
