@@ -82,7 +82,7 @@ MongoClient.connect(util.format('mongodb://%s:%s@%s:%d/%s?authMechanism=SCRAM-SH
   .project({
       id_str: 1,
       'internal.expand_friends': 1
-  }).sort( { 'internal.expand_friends': -1 });
+  });
 
   var stream = cursor.stream();
 
