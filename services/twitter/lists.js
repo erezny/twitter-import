@@ -19,9 +19,23 @@ var logger = require('tracer').colorConsole( {
   level: 'trace'
 } );
 var kue = require('kue');
-var queue = kue.createQueue();
+var queue = kue.createQueue({
+  prefix: 'twitter',
+  redis: {
+    port: process.env.REDIS_PORT,
+    host: process.env.REDIS_HOST,
+    db: 1, // if provided select a non-default redis db
+  }
+});
 
-queue.process('twitter.queryUserListOwnership', function(job, done) {
+process.once( 'SIGTERM', function ( sig ) {
+  queue.shutdown( 5000, function(err) {
+    console.log( 'Kue shutdown: ', err||'' );
+    process.exit( 0 );
+  });
+});
+
+queue.process('queryUserListOwnership', function(job, done) {
   logger.info("received job");
   queryUserListOwnership(job.data.user, job.data.cursor)
   .then(done);
@@ -39,9 +53,9 @@ function queryUserListOwnership(user, cursor, callback) {
             reject(err);
             return;
           }
-          queue.create('twitter.receiveUserListOwnership', { lists: data.lists } ).save();
+          queue.create('receiveUserListOwnership', { lists: data.lists } ).save();
           if (data.next_cursor_str != 0){
-          queue.create('twitter.queryUserListOnwership', { user: job.data.user, cursor: data.next_cursor_str }).save();
+          queue.create('queryUserListOnwership', { user: job.data.user, cursor: data.next_cursor_str }).save();
 
           }
           cursor = data.next_cursor_str;
