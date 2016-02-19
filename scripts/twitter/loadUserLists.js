@@ -106,6 +106,7 @@ MongoClient.connect(util.format('mongodb://%s:%s@%s:%d/%s?authMechanism=SCRAM-SH
   });
 
   stream.on('data', function(user) {
+    logger.debug("adding %j", user);
     queue.create('queryUserListOwnership', {
       user: { id_str: user.id_str }, cursor: "-1"
     }).removeOnComplete( true ).save();
