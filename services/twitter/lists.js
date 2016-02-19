@@ -51,8 +51,8 @@ function queryUserListOwnership(user, cursor, callback) {
           logger.trace("Data %j", data);
           logger.debug("queryUserListOwnership twitter api callback");
           queue.create('receiveUserListOwnership', { lists: data.lists } ).save();
-          if (data.next_cursor_str !== 0){
-            queue.create('queryUserListOnwership', { user: job.data.user, cursor: data.next_cursor_str }).save();
+          if (data.next_cursor_str !== '0'){
+            queue.create('queryUserListOnwership', { user: user, cursor: data.next_cursor_str }).save();
           }
           resolve(data.lists);
         }, function (err) {
