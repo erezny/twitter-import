@@ -52,7 +52,7 @@ function queryUserListOwnership(user, cursor, callback) {
           logger.debug("queryUserListOwnership twitter api callback");
           queue.create('receiveUserListOwnership', { lists: data.lists } ).save();
           if (data.next_cursor_str !== '0'){
-            queue.create('queryUserListOnwership', { user: user, cursor: data.next_cursor_str }).save();
+            queue.create('queryUserListOwnership', { user: user, cursor: data.next_cursor_str }).save();
           }
           resolve(data.lists);
         }, function (err) {
