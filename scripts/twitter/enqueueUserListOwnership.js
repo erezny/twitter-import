@@ -14,4 +14,4 @@ var queue = kue.createQueue({
 
 queue.create('queryUserListOwnership', {
   user: { id_str: "16876313" }, cursor: "-1"
-}).save();
+}).removeOnComplete( true ).save();
