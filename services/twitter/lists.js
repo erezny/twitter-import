@@ -18,7 +18,6 @@ var RSVP = require('rsvp');
 var logger = require('tracer').colorConsole( {
   level: 'trace'
 } );
-var co = require('co');
 var kue = require('kue');
 var queue = kue.createQueue();
 
