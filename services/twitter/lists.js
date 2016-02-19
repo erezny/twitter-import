@@ -36,7 +36,8 @@ process.once( 'SIGTERM', function ( sig ) {
 });
 
 queue.process('queryUserListOwnership', function(job, done) {
-  logger.info("received job");
+//  logger.info("received job");
+  logger.trace("received job %j");
   queryUserListOwnership(job.data.user, job.data.cursor)
   .then(done);
 });
