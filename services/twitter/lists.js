@@ -46,20 +46,18 @@ function queryUserListOwnership(user, cursor, callback) {
       logger.info("queryUserListOwnership");
       limiter.removeTokens(1, function(err, remainingRequests) {
        T.get('lists/ownerships', { user_id: user.id_str, cursor: cursor, count: 1 })
-        .then( function (err, data, response)
+        .then( function (data)
         {
           logger.trace("Response %j", response);
           logger.debug("queryUserListOwnership twitter api callback");
-          if (err) {
-            logger.error("twitter api error %j", err);
-            reject(err);
-            return;
-          }
           queue.create('receiveUserListOwnership', { lists: data.lists } ).save();
           if (data.next_cursor_str !== 0){
             queue.create('queryUserListOnwership', { user: job.data.user, cursor: data.next_cursor_str }).save();
           }
           resolve(data.lists);
+        }, function (err) {
+          logger.error("twitter api error %j", err);
+          reject(err);
         });
       });
     });
