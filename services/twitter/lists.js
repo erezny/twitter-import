@@ -48,7 +48,7 @@ function queryUserListOwnership(user, cursor, callback) {
        T.get('lists/ownerships', { user_id: user.id_str, cursor: cursor, count: 1 })
         .then( function (data)
         {
-          logger.trace("Response %j", response);
+          logger.trace("Data %j", data);
           logger.debug("queryUserListOwnership twitter api callback");
           queue.create('receiveUserListOwnership', { lists: data.lists } ).save();
           if (data.next_cursor_str !== 0){
