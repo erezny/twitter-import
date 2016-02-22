@@ -95,6 +95,7 @@ function(err, db_) {
           if (obj && obj.neo4jID && obj.neo4jID != "undefined"){
             setListOwnership({ id: parseInt(obj.neo4jID) }, savedList).then(resolve,reject);
           } else {
+            queue.create('queryUser', { user: { id_str: job.data.list.owner } } ).removeOnComplete( true ).save();
             metrics.counter("rel_user_not_exist").increment();
             reject({ reason: "user.neo4jID not in redis", list: savedList });
           }
@@ -311,6 +312,7 @@ queue.process('receiveListMembers', function(job, done) {
         }
       });
     } else {
+      queue.create('queryUser', { user: job.data.user } ).removeOnComplete( true ).save();
       metrics.counter("rel_user_not_exist").increment();
         logger.error("neo4j user not in redis %j",err);
       done();
