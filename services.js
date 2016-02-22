@@ -14,10 +14,12 @@ var childOpts =  {
 
 var childs = {
   twitter: {
-    apiToMongo: (new (forever.Monitor)('./services/twitter/apiToMongo.js', childOpts)).start(),
+  //  apiToMongo: (new (forever.Monitor)('./services/twitter/apiToMongo.js', childOpts)).start(),
     checkNeo4jFollowers: new (forever.Monitor)('./services/twitter/checkNeo4jFollowers.js', childOpts).start(),
     checkNeo4jFriends: new (forever.Monitor)('./services/twitter/checkNeo4jFriends.js', childOpts).start(),
     checkNeo4jUsers: new (forever.Monitor)('./services/twitter/checkNeo4jUsers.js', childOpts).start(),
+    lists: new (forever.Monitor)('./services/twitter/lists.js', childOpts).start(),
+  //  users: new (forever.Monitor)('./services/twitter/users.js', childOpts).start(),
   }
 };
 function addEvents(child) {
