@@ -95,7 +95,7 @@ function(err, db_) {
           if (obj && obj.neo4jID && obj.neo4jID != "undefined"){
             setListOwnership({ id: parseInt(obj.neo4jID) }, savedList).then(resolve,reject);
           } else {
-            queue.create('queryUser', { user: { id_str: job.data.list.owner } } ).removeOnComplete( true ).save();
+            queue.create('queryUser', { user: { id_str: job.data.list.owner } } ).attempts(5).removeOnComplete( true ).save();
             metrics.counter("rel_user_not_exist").increment();
             reject({ reason: "user.neo4jID not in redis", list: savedList });
           }
@@ -104,7 +104,7 @@ function(err, db_) {
     })
     .then(function() {
       return new RSVP.Promise(function(resolve) {
-        queue.create('queryListMembers', { list: { id_str: job.data.list.id_str } } ).removeOnComplete( true ).save();
+        queue.create('queryListMembers', { list: { id_str: job.data.list.id_str } } ).attempts(5).removeOnComplete( true ).save();
         resolve();
       });
     })
@@ -154,10 +154,10 @@ function queryUserListOwnership(user, cursor) {
             created_at: list.created_at,
             owner: list.user.id_str
           }
-          queue.create('receiveUserListOwnership', { list: filteredList } ).removeOnComplete( true ).save();
+          queue.create('receiveUserListOwnership', { list: filteredList } ).attempts(5).removeOnComplete( true ).save();
         }
         if (data.next_cursor_str !== '0'){
-          queue.create('queryUserListOwnership', { user: user, cursor: data.next_cursor_str }).removeOnComplete( true ).save();
+          queue.create('queryUserListOwnership', { user: user, cursor: data.next_cursor_str }).attempts(5).removeOnComplete( true ).save();
         }
         resolve(data.lists);
       });
@@ -284,10 +284,10 @@ function queryListMembers(list, cursor) {
         logger.trace("Data %j", data);
         logger.debug("queryListMembers twitter api callback");
         for (user of data.users){
-          queue.create('receiveListMembers', { list: list, user: { id_str: user.id_str } } ).removeOnComplete( true ).save();
+          queue.create('receiveListMembers', { list: list, user: { id_str: user.id_str } } ).attempts(5).removeOnComplete( true ).save();
         }
         if (data.next_cursor_str !== '0'){
-          queue.create('queryListMembers', { list: list, cursor: data.next_cursor_str }).removeOnComplete( true ).save();
+          queue.create('queryListMembers', { list: list, cursor: data.next_cursor_str }).attempts(5).removeOnComplete( true ).save();
         }
         resolve(data.lists);
       });
@@ -307,14 +307,14 @@ queue.process('receiveListMembers', function(job, done) {
           setListMember({ id: parseInt(member.neo4jID) }, { id: parseInt(list.neo4jID) }).then(done);
         } else {
           metrics.counter("rel_list_not_exist").increment();
-            logger.error("neo4j list not in redis %j",err);
+          logger.error("neo4j list not in redis %j",err);
           done();
         }
       });
     } else {
-      queue.create('queryUser', { user: job.data.user } ).removeOnComplete( true ).save();
+      queue.create('queryUser', { user: job.data.user } ).attempts(5).removeOnComplete( true ).save();
       metrics.counter("rel_user_not_exist").increment();
-        logger.error("neo4j user not in redis %j",err);
+      logger.error("neo4j user not in redis %j",err);
       done();
     }
   });
