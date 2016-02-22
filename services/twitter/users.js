@@ -92,15 +92,11 @@ function(err, db_) {
     upsertUserToNeo4j(job.data.user)
     .then(function(savedUser) {
       logger.trace("savedUser: %j", savedUser);
-      return new RSVP.Promise( function (resolve, reject) {
         queue.create('queryUserFriends', { user: { id_str: job.data.user.id_str } } ).removeOnComplete( true ).save();
         queue.create('queryUserFollowers', { user: { id_str: job.data.user.id_str } } ).removeOnComplete( true ).save();
         metrics.counter("processFinished").increment();
-        resolve();
-      });
-    })
-    .then(done)
-    .catch(function(err) {
+      done();
+    }, function(err) {
       logger.error("receiveUser error on %j\n%j\n--", job, err);
       metrics.counter("processError").increment();
       done(err);
