@@ -120,7 +120,7 @@ function queryUser(user) {
     limiter.removeTokens(1, function(err, remainingRequests) {
       T.get('users/show', { user_id: user.id_str }, function(err, data)
       {
-        if (err){
+        if (Object.keys(err).length != 0){
           logger.error("twitter api error %j %j", user, err);
           reject({ user: user, err: err });
           return;
@@ -128,18 +128,18 @@ function queryUser(user) {
         logger.trace("Data %j", data);
         logger.debug("queryUser twitter api callback");
         var user = {
-              id_str: data.id_str,
-              screen_name: data.screen_name,
-              name: data.name,
-              followers_count: data.followers_count,
-              friends_count: data.friends_count,
-              favourites_count: data.favourites_count,
-              description: data.description,
-              location: data.location,
-              statuses_count: data.statuses_count,
-              protected: data.protected
-          }
-          queue.create('receiveUser', { user: user } ).removeOnComplete( true ).save();
+          id_str: data.id_str,
+          screen_name: data.screen_name,
+          name: data.name,
+          followers_count: data.followers_count,
+          friends_count: data.friends_count,
+          favourites_count: data.favourites_count,
+          description: data.description,
+          location: data.location,
+          statuses_count: data.statuses_count,
+          protected: data.protected
+        }
+        queue.create('receiveUser', { user: user } ).removeOnComplete( true ).save();
         resolve(user);
       });
     });
