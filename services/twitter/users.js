@@ -120,7 +120,7 @@ function queryUser(user) {
     limiter.removeTokens(1, function(err, remainingRequests) {
       T.get('users/show', { user_id: user.id_str }, function(err, data)
       {
-        if (Object.keys(err).length != 0){
+        if (err){
           logger.error("twitter api error %j %j", user, err);
           reject({ user: user, err: err, reason: "twitter api error" });
           return;
