@@ -163,7 +163,7 @@ function upsertUserToNeo4j(user) {
       if (err){
         logger.error("neo4j find %s %j",user.screen_name, err);
         metrics.counter("neo4j_find_error").increment();
-        reject(err);
+        reject({ err:err, reason:"neo4j find user error" });
         return;
       }
 
@@ -180,7 +180,7 @@ function upsertUserToNeo4j(user) {
         if (err){
           logger.error("neo4j save %s %j", user.screen_name, err);
           metrics.counter("neo4j_save_error").increment();
-          reject(err);
+          reject({ err:err, reason:"neo4j save user error" });
           return;
         }
         redis.hset(util.format("twitter:%s",user.id_str), "neo4jID", savedUser.id, function(err, res) { });
