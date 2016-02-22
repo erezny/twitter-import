@@ -119,12 +119,12 @@
                 { $set: { friends: results, "identifiers.neo4j": obj.neo4jID },
                   $inc: { 'import.neo4j.friends': 1 } },
                 { projection: { id_str: 1, screen_name: 1 } } ).then(function(result) {
-                  logger.info("completed %s", user.screen_name);
+                  logger.debug("completed %s", user.screen_name);
                   metrics.counter("users_saved").increment();
                   restartQueries();
                 }, function(err) {
                     logger.error("mongo error saving %s", user.screen_name);
-                    restartQueries();
+                    restartQueries();d
                 });
             }, function(err) {
               logger.error("relationship error: %j", err);
