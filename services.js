@@ -19,7 +19,7 @@ var childs = {
     checkNeo4jFriends: new (forever.Monitor)('./services/twitter/checkNeo4jFriends.js', childOpts).start(),
     checkNeo4jUsers: new (forever.Monitor)('./services/twitter/checkNeo4jUsers.js', childOpts).start(),
     lists: new (forever.Monitor)('./services/twitter/lists.js', childOpts).start(),
-  //  users: new (forever.Monitor)('./services/twitter/users.js', childOpts).start(),
+    users: new (forever.Monitor)('./services/twitter/users.js', childOpts).start(),
   }
 };
 function addEvents(child) {
