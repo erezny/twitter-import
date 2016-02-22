@@ -86,6 +86,13 @@ function(err, db_) {
   }
   db = db_;
 
+
+  setInterval( function() {
+  queue.inactiveCount( 'receiveUserListOwnership', function( err, total ) { // others are activeCount, completeCount, failedCount, delayedCount
+    metrics.setGauge("ownership.receive.inactive", total);
+  });
+  }, 15 * 1000 );
+
   queue.process('receiveUserListOwnership', function(job, done) {
     //  logger.info("received job");
     logger.trace("received job %j", job);
