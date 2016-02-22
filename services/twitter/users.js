@@ -15,7 +15,7 @@ assert = require('assert');
 
 const crow = require("crow-metrics");
 const request = require("request");
-const metrics = new crow.MetricsRegistry({ period: 15000, separator: "." }).withPrefix("twitter.users");
+const metrics = new crow.MetricsRegistry({ period: 15000, separator: "." }).withPrefix("twitter.users.query");
 
 crow.exportInflux(metrics, request, { url: util.format("%s://%s:%s@%s:%d/write?db=%s",
 process.env.INFLUX_PROTOCOL, process.env.INFLUX_USERNAME, process.env.INFLUX_PASSWORD,
@@ -95,12 +95,14 @@ function(err, db_) {
       return new RSVP.Promise( function (resolve, reject) {
         queue.create('queryUserFriends', { user: { id_str: job.data.user.id_str } } ).removeOnComplete( true ).save();
         queue.create('queryUserFollowers', { user: { id_str: job.data.user.id_str } } ).removeOnComplete( true ).save();
+        metrics.counter("processFinished").increment();
         resolve();
       });
     })
     .then(done)
     .catch(function(err) {
       logger.error("receiveUser error on %j\n%j\n--", job, err);
+      metrics.counter("processError").increment();
       done(err);
     });
   });
@@ -114,6 +116,7 @@ queue.process('queryUser', function(job, done) {
   .then(done)
   .catch(function(err) {
     logger.error("queryUser error %j: %j", job.data, err);
+    metrics.counter("queryError").increment();
     done(err);
   });
 });
@@ -127,6 +130,7 @@ function queryUser(user) {
         if (err){
           logger.error("twitter api error %j %j", user, err);
           reject({ user: user, err: err, reason: "twitter api error" });
+          metrics.counter("apiError").increment();
           return;
         }
         logger.trace("Data %j", data);
@@ -144,6 +148,7 @@ function queryUser(user) {
           protected: data.protected
         }
         queue.create('receiveUser', { user: user } ).removeOnComplete( true ).save();
+        metrics.counter("queryFinished").increment();
         resolve();
       });
     });

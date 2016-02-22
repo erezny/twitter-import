@@ -100,7 +100,7 @@ function(err, db_) {
             setListOwnership({ id: parseInt(obj.neo4jID) }, savedList).then(resolve,reject);
           } else {
             queue.create('queryUser', { user: { id_str: job.data.list.owner } } ).attempts(5).removeOnComplete( true ).save();
-            metrics.counter("rel_user_not_exist").increment();
+            metrics.counter("ownership.rel_user_not_exist").increment();
             reject({ reason: "user.neo4jID not in redis", list: savedList });
           }
         });
@@ -109,6 +109,7 @@ function(err, db_) {
     .then(function() {
       return new RSVP.Promise(function(resolve) {
         queue.create('queryListMembers', { list: { id_str: job.data.list.id_str } } ).attempts(5).removeOnComplete( true ).save();
+        metrics.counter("ownership.usertError").increment();
         resolve();
       });
     })
@@ -128,6 +129,7 @@ queue.process('queryUserListOwnership', function(job, done) {
   .then(done)
   .catch(function(err) {
     logger.error("queryUserListOwnership error %j: %j", job.data, err);
+    metrics.counter("ownership.queryError").increment();
   });
 });
 
@@ -140,6 +142,7 @@ function queryUserListOwnership(user, cursor) {
         if (err){
           logger.error("twitter api error %j %j", user, err);
           reject(err);
+          metrics.counter("ownership.apiError").increment();
           return;
         }
         logger.trace("Data %j", data);
@@ -163,6 +166,7 @@ function queryUserListOwnership(user, cursor) {
         if (data.next_cursor_str !== '0'){
           queue.create('queryUserListOwnership', { user: user, cursor: data.next_cursor_str }).attempts(5).removeOnComplete( true ).save();
         }
+        metrics.counter("ownership.apiFinished").increment();
         resolve(data.lists);
       });
     });
@@ -190,7 +194,7 @@ function upsertListToNeo4j(node) {
     function(err, results) {
       if (err){
         logger.error("neo4j find %s %j",node.name, err);
-        metrics.counter("neo4j_find_error").increment();
+        metrics.counter("list.neo4j_find_error").increment();
         reject(err);
         return;
       }
@@ -199,7 +203,7 @@ function upsertListToNeo4j(node) {
         logger.debug("found %j", results);
         //if results.length > 1, flag as error
         redis.hset(util.format("twitterList:%s",node.id_str), "neo4jID", results[0].id, function(err, res) { });
-        metrics.counter("neo4j_exists").increment();
+        metrics.counter("list.neo4j_exists").increment();
         resolve(results[0]);
         return;
       }
@@ -207,13 +211,13 @@ function upsertListToNeo4j(node) {
       neo4j.save(node, "twitterList", function(err, savedNode) {
         if (err){
           logger.error("neo4j save %s %j", node.name, err);
-          metrics.counter("neo4j_save_error").increment();
+          metrics.counter("list.neo4j_save_error").increment();
           reject(err);
           return;
         }
         redis.hset(util.format("twitterList:%s",node.id_str), "neo4jID", savedNode.id, function(err, res) { });
         logger.debug('inserted list %s', savedNode.name);
-        metrics.counter("neo4j_inserted").increment();
+        metrics.counter("list.neo4j_inserted").increment();
         resolve(savedNode);
       });
     });
@@ -229,7 +233,7 @@ function setListOwnership(user, list) {
     { idx: user.id, idn: list.id }, function(err, results) {
       if (err){
         logger.error("neo4j find error %j",err);
-        metrics.counter("rel_find_error").increment();
+        metrics.counter("ownership.rel_find_error").increment();
         reject("error");
         return;
       }
@@ -237,7 +241,7 @@ function setListOwnership(user, list) {
       if (results.data.length > 0) {
         //TODO search for duplicates and remove duplicates
         logger.debug("relationship found %j", results.data[0][1]);
-        metrics.counter("rel_already_exists").increment();
+        metrics.counter("ownership.rel_already_exists").increment();
         resolve(results.data[0][1]);
         if (results.data.length > 1){
           for (var i = 1; i < results.data.length; i++){
@@ -252,12 +256,12 @@ function setListOwnership(user, list) {
       neo4j.relate(user.id, 'owns', list.id, function(err, rel) {
         if (err){
           logger.error("neo4j save error %j %j", { user: user, list: list }, err);
-          metrics.counter("rel_save_error").increment();
+          metrics.counter("ownership.rel_save_error").increment();
           reject("error");
           return;
         }
         logger.debug("saved relationship %j", rel);
-        metrics.counter("rel_saved").increment();
+        metrics.counter("ownership.rel_saved").increment();
         resolve(rel);
       });
     })
@@ -271,6 +275,7 @@ queue.process('queryListMembers', function(job, done) {
   .then(done)
   .catch(function(err) {
     logger.error("queryListMembers error: %j", err);
+    metrics.counter("members.queryError").increment();
   });
 });
 
@@ -282,6 +287,7 @@ function queryListMembers(list, cursor) {
       {
         if (err){
           logger.error("twitter api error %j", err);
+          metrics.counter("members.apiError").increment();
           reject(err);
           return;
         }
@@ -293,6 +299,7 @@ function queryListMembers(list, cursor) {
         if (data.next_cursor_str !== '0'){
           queue.create('queryListMembers', { list: list, cursor: data.next_cursor_str }).attempts(5).removeOnComplete( true ).save();
         }
+        metrics.counter("members.apiFinished").increment();
         resolve(data.lists);
       });
     });
@@ -310,14 +317,14 @@ queue.process('receiveListMembers', function(job, done) {
         if (list && list.neo4jID && list.neo4jID != "undefined"){
           setListMember({ id: parseInt(member.neo4jID) }, { id: parseInt(list.neo4jID) }).then(done);
         } else {
-          metrics.counter("rel_list_not_exist").increment();
+          metrics.counter("members.rel_list_not_exist").increment();
           logger.error("neo4j list not in redis %j",err);
           done();
         }
       });
     } else {
       queue.create('queryUser', { user: job.data.user } ).attempts(5).removeOnComplete( true ).save();
-      metrics.counter("rel_user_not_exist").increment();
+      metrics.counter("members.rel_user_not_exist").increment();
       logger.error("neo4j user not in redis %j",err);
       done();
     }
@@ -332,7 +339,7 @@ function setListMember(user, list) {
     { idx: list.id, idn: user.id }, function(err, results) {
       if (err){
         logger.error("neo4j find error %j",err);
-        metrics.counter("rel_find_error").increment();
+        metrics.counter("members.rel_find_error").increment();
         reject("error");
         return;
       }
@@ -340,7 +347,7 @@ function setListMember(user, list) {
       if (results.data.length > 0) {
         //TODO search for duplicates and remove duplicates
         logger.debug("relationship found %j", results.data[0][1]);
-        metrics.counter("rel_already_exists").increment();
+        metrics.counter("members.rel_already_exists").increment();
         resolve(results.data[0][1]);
         if (results.data.length > 1){
           for (var i = 1; i < results.data.length; i++){
@@ -354,12 +361,12 @@ function setListMember(user, list) {
       neo4j.relate(list.id, 'includes', user.id, function(err, rel) {
         if (err){
           logger.error("neo4j save error %j %j", { user: user, list: list }, err);
-          metrics.counter("rel_save_error").increment();
+          metrics.counter("members.rel_save_error").increment();
           reject("error");
           return;
         }
         logger.debug("saved relationship %j", rel);
-        metrics.counter("rel_saved").increment();
+        metrics.counter("members.rel_saved").increment();
         resolve(rel);
       });
     })
