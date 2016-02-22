@@ -32,7 +32,7 @@ var limiter = new RateLimiter(1, (1 / 180) * 15 * 60 * 1000);
 
 var RSVP = require('rsvp');
 var logger = require('tracer').colorConsole( {
-  level: 'info'
+  level: 'trace'
 } );
 var kue = require('kue');
 var queue = kue.createQueue({
