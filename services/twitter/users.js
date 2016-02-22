@@ -110,6 +110,7 @@ queue.process('queryUser', function(job, done) {
   .then(done)
   .catch(function(err) {
     logger.error("queryUser error %j: %j", job.data, err);
+    done(err);
   });
 });
 
