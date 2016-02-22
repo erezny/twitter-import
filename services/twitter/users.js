@@ -109,8 +109,6 @@ function(err, db_) {
 
 });
 
-var queueInactive = 0;
-
 setInterval( function() {
 queue.inactiveCount( 'queryUser', function( err, total ) { // others are activeCount, completeCount, failedCount, delayedCount
   metrics.setGauge("query.queue.inactive", total);
@@ -121,8 +119,10 @@ queue.process('queryUser', function(job, done) {
   //  logger.info("received job");
   logger.trace("received job %j", job);
   queryUser(job.data.user)
-  .then(done, function(err) {
-    logger.error("queryUser error %j: %j", job.data, err);
+  .then(function() {
+    done();
+  }, function(err) {
+    logger.debug("queryUser error %j: %j", job.data, err);
     metrics.counter("queryError").increment();
     done(err);
   });
