@@ -128,7 +128,7 @@ queue.process('queryUserListOwnership', function(job, done) {
 
 function queryUserListOwnership(user, cursor) {
   return new Promise(function(resolve, reject) {
-    logger.info("queryUserListOwnership");
+    logger.info("queryUserListOwnership %s", user.id_str);
     limiter.removeTokens(1, function(err, remainingRequests) {
       T.get('lists/ownerships', { user_id: user.id_str, cursor: cursor, count: 1000 }, function(err, data)
       {
