@@ -205,17 +205,26 @@ function upsertUserToNeo4j(user) {
         return;
       }
 
-      neo4j.save(user, "twitterUser", function(err, savedUser) {
+      neo4j.save(user, function(err, savedUser) {
         if (err){
           logger.error("neo4j save %s %j", user.screen_name, err);
           metrics.counter("neo4j_save_error").increment();
           reject({ err:err, reason:"neo4j save user error" });
           return;
         }
-        redis.hset(util.format("twitter:%s",user.id_str), "neo4jID", savedUser.id, function(err, res) { });
-        logger.debug('inserted user %s', savedUser.screen_name);
-        metrics.counter("neo4j_inserted").increment();
-        resolve(savedUser);
+        neo4j.label(user, "twitterUser", function(err, savedUser) {
+          if (err){
+            logger.error("neo4j save %s %j", user.screen_name, err);
+            metrics.counter("neo4j_save_error").increment();
+            reject({ err:err, reason:"neo4j save user error" });
+            return;
+          }
+          redis.hset(util.format("twitter:%s",user.id_str), "neo4jID", savedUser.id, function(err, res) { });
+          logger.debug('inserted user %s', savedUser.screen_name);
+          metrics.counter("neo4j_inserted").increment();
+          resolve(savedUser);
+
+        });
       });
     });
   });
