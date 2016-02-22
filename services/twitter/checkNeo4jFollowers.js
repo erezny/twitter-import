@@ -200,7 +200,6 @@ function upsertFollowerIfExists(user, follower){
           reject(follower);
         });
       } else {
-        queue.create('queryUser', { user: job.data.user } ).removeOnComplete( true ).save();
         metrics.counter("rel_user_not_exist").increment();
         reject(follower);
       }
