@@ -95,6 +95,25 @@ function(err, db_) {
     { upsert: true });
   };
 
+  queue.process('receiveUser', function(job, done) {
+    //  logger.info("received job");
+    logger.trace("received job %j", job);
+    metrics.counter("processStarted").increment();
+    saveUserToMongo(job.data.user);
+    upsertUserToNeo4j(job.data.user)
+    .then(function(savedUser) {
+      logger.trace("savedUser: %j", savedUser);
+        queue.create('queryUserFriends', { user: { id_str: job.data.user.id_str } } ).removeOnComplete( true ).save();
+        queue.create('queryUserFollowers', { user: { id_str: job.data.user.id_str } } ).removeOnComplete( true ).save();
+        metrics.counter("processFinished").increment();
+      done();
+    }, function(err) {
+      logger.error("receiveUser error on %j\n%j\n--", job, err);
+      metrics.counter("processError").increment();
+      done(err);
+    });
+  });
+
 });
 
 setInterval( function() {
@@ -102,25 +121,6 @@ queue.inactiveCount( 'receiveUser', function( err, total ) { // others are activ
   metrics.setGauge("query.process.inactive", total);
 });
 }, 15 * 1000 );
-
-queue.process('receiveUser', function(job, done) {
-  //  logger.info("received job");
-  logger.trace("received job %j", job);
-  metrics.counter("processStarted").increment();
-  saveUserToMongo(job.data.user);
-  upsertUserToNeo4j(job.data.user)
-  .then(function(savedUser) {
-    logger.trace("savedUser: %j", savedUser);
-      queue.create('queryUserFriends', { user: { id_str: job.data.user.id_str } } ).removeOnComplete( true ).save();
-      queue.create('queryUserFollowers', { user: { id_str: job.data.user.id_str } } ).removeOnComplete( true ).save();
-      metrics.counter("processFinished").increment();
-    done();
-  }, function(err) {
-    logger.error("receiveUser error on %j\n%j\n--", job, err);
-    metrics.counter("processError").increment();
-    done(err);
-  });
-});
 
 setInterval( function() {
 queue.inactiveCount( 'queryUser', function( err, total ) { // others are activeCount, completeCount, failedCount, delayedCount
@@ -173,15 +173,6 @@ function queryUser(user) {
       });
     });
   });
-};
-
-function saveUserToMongo(user) {
-  return db.collection("twitterUsers").update(
-    { 'id_str': user.id_str },
-    { $set: user ,
-    $currentDate: { 'timestamps.updated': { $type: "timestamp" } }
-  },
-  { upsert: true });
 };
 
 function upsertUserToNeo4j(user) {
