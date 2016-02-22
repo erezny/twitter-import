@@ -123,6 +123,12 @@ function(err, db_) {
 
 });
 
+setInterval( function() {
+queue.inactiveCount( 'queryUserListOwnership', function( err, total ) { // others are activeCount, completeCount, failedCount, delayedCount
+  metrics.setGauge("ownership.queue.inactive", total);
+});
+}, 15 * 1000 );
+
 queue.process('queryUserListOwnership', function(job, done) {
   //  logger.info("received job");
   logger.trace("received job %j", job);
@@ -268,6 +274,12 @@ function setListOwnership(user, list) {
     })
   });
 }
+
+setInterval( function() {
+queue.inactiveCount( 'queryListMembers', function( err, total ) { // others are activeCount, completeCount, failedCount, delayedCount
+  metrics.setGauge("members.queue.inactive", total);
+});
+}, 15 * 1000 );
 
 queue.process('queryListMembers', function(job, done) {
   //  logger.info("received job");

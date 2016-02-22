@@ -32,7 +32,7 @@ var limiter = new RateLimiter(1, (1 / 180) * 15 * 60 * 1000);
 
 var RSVP = require('rsvp');
 var logger = require('tracer').colorConsole( {
-  level: 'trace'
+  level: 'info'
 } );
 var kue = require('kue');
 var queue = kue.createQueue({
@@ -108,6 +108,14 @@ function(err, db_) {
   });
 
 });
+
+var queueInactive = 0;
+
+setInterval( function() {
+queue.inactiveCount( 'queryUser', function( err, total ) { // others are activeCount, completeCount, failedCount, delayedCount
+  metrics.setGauge("query.queue.inactive", total);
+});
+}, 15 * 1000 );
 
 queue.process('queryUser', function(job, done) {
   //  logger.info("received job");
