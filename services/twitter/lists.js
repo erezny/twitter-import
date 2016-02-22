@@ -109,7 +109,7 @@ function(err, db_) {
     })
     .then(done)
     .catch(function(err) {
-      logger.error("receiveUserListOwnership error: %j", err);
+      logger.error("receiveUserListOwnership error on %j\n%j\n--", job.data.list, err);
     });
   });
 
