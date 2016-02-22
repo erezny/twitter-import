@@ -212,7 +212,7 @@ function upsertUserToNeo4j(user) {
           reject({ err:err, reason:"neo4j save user error" });
           return;
         }
-        neo4j.label(user, "twitterUser", function(err, savedUser) {
+        neo4j.label(savedUser, "twitterUser", function(err, labeledUser) {
           if (err){
             logger.error("neo4j save %s %j", user.screen_name, err);
             metrics.counter("neo4j_save_error").increment();
@@ -222,7 +222,7 @@ function upsertUserToNeo4j(user) {
           redis.hset(util.format("twitter:%s",user.id_str), "neo4jID", savedUser.id, function(err, res) { });
           logger.debug('inserted user %s', savedUser.screen_name);
           metrics.counter("neo4j_inserted").increment();
-          resolve(savedUser);
+          resolve(savelabeledUserdUser);
 
         });
       });
