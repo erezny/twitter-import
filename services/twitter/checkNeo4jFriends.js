@@ -201,7 +201,7 @@
             reject(friend);
           });
         } else {
-          queue.create('queryUser', { 'user.id_str': friend } ).removeOnComplete( true ).save();
+          queue.create('queryUser', { user: { id_str: friend } } ).removeOnComplete( true ).save();
           metrics.counter("rel_user_not_exist").increment();
           reject(friend);
         }
