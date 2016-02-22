@@ -122,7 +122,7 @@ function queryUser(user) {
       {
         if (Object.keys(err).length != 0){
           logger.error("twitter api error %j %j", user, err);
-          reject({ user: user, err: err });
+          reject({ user: user, err: err, reason: "twitter api error" });
           return;
         }
         logger.trace("Data %j", data);
