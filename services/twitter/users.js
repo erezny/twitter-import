@@ -55,7 +55,13 @@ process.once( 'SIGTERM', function ( sig ) {
     process.exit( 0 );
   });
 });
-var saveUserToMongo;
+
+process.once( 'SIGINT', function ( sig ) {
+  queue.shutdown( 5000, function(err) {
+    console.log( 'Kue shutdown: ', err||'' );
+    process.exit( 0 );
+  });
+});
 
 var neo4j = require('seraph')( {
   server: util.format("%s://%s:%s",
@@ -87,7 +93,8 @@ function(err, db_) {
   db = db_;
   logger.info("connected to database");
 
-  saveUserToMongo = function(user) {
+  function saveUserToMongo(user) {
+    logger.debug("save user to mongo %s", user.screen_name);
     return db.collection("twitterUsers").update(
       { 'id_str': user.id_str },
       { $set: user ,
@@ -99,7 +106,6 @@ function(err, db_) {
   queue.process('receiveUser', function(job, done) {
     logger.trace("received job %j", job);
     metrics.counter("processStarted").increment();
-
     var user = job.data.user;
     if ( !user.screen_name) {
       done({ reason: "incomplete user data" });
@@ -120,6 +126,7 @@ function(err, db_) {
       metrics.counter("processError").increment();
       done(err);
     });
+
   });
 
   setInterval( function() {
@@ -221,10 +228,11 @@ function upsertUserToNeo4j(user) {
             reject({ err:err, reason:"neo4j label user error" });
             return;
           }
-          redis.hset(util.format("twitter:%s",savedUser.id_str), "neo4jID", savedUser.id, function(err, res) { });
-          logger.debug('labeled user %s', savedUser.screen_name);
-          metrics.counter("neo4j_inserted").increment();
-          resolve(savelabeledUserdUser);
+          redis.hset(util.format("twitter:%s",savedUser.id_str), "neo4jID", savedUser.id, function(err, res) {
+            logger.debug('labeled user %s', savedUser.screen_name);
+            metrics.counter("neo4j_inserted").increment();
+            resolve(savedUser);
+          });
 
         });
       });
