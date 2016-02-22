@@ -107,12 +107,12 @@ function(err, db_) {
     }
     logger.info("receivedUser %s", user.screen_name);
 
-    saveUserToMongo(job.data.user);
-    upsertUserToNeo4j(job.data.user)
+    var mongo = saveUserToMongo(user);
+    upsertUserToNeo4j(user)
     .then(function(savedUser) {
       logger.trace("savedUser: %j", savedUser);
-        queue.create('queryUserFriends', { user: { id_str: job.data.user.id_str } } ).removeOnComplete( true ).save();
-        queue.create('queryUserFollowers', { user: { id_str: job.data.user.id_str } } ).removeOnComplete( true ).save();
+        //queue.create('queryUserFriends', { user: { id_str: user.id_str } } ).removeOnComplete( true ).save();
+        //queue.create('queryUserFollowers', { user: { id_str: user.id_str } } ).removeOnComplete( true ).save();
         metrics.counter("processFinished").increment();
       done();
     }, function(err) {
