@@ -122,7 +122,7 @@ queue.process('queryUserListOwnership', function(job, done) {
   queryUserListOwnership(job.data.user, job.data.cursor)
   .then(done)
   .catch(function(err) {
-    logger.error("queryUserListOwnership error: %j", err);
+    logger.error("queryUserListOwnership error %j: %j", job.data, err);
   });
 });
 
@@ -133,7 +133,7 @@ function queryUserListOwnership(user, cursor) {
       T.get('lists/ownerships', { user_id: user.id_str, cursor: cursor, count: 1000 }, function(err, data)
       {
         if (err){
-          logger.error("twitter api error %j", err);
+          logger.error("twitter api error %j %j", user, err);
           reject(err);
           return;
         }
@@ -243,6 +243,7 @@ function setListOwnership(user, list) {
         }
         return;
       }
+      //set this to cypher create unique
       neo4j.relate(user.id, 'owns', list.id, function(err, rel) {
         if (err){
           logger.error("neo4j save error %j %j", { user: user, list: list }, err);
