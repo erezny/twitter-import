@@ -144,7 +144,7 @@ function queryUser(user) {
           protected: data.protected
         }
         queue.create('receiveUser', { user: user } ).removeOnComplete( true ).save();
-        resolve(user);
+        resolve();
       });
     });
   });
