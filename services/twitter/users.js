@@ -97,7 +97,6 @@ function(err, db_) {
   };
 
   queue.process('receiveUser', function(job, done) {
-    //  logger.info("received job");
     logger.trace("received job %j", job);
     metrics.counter("processStarted").increment();
 
@@ -106,6 +105,7 @@ function(err, db_) {
       done({ reason: "incomplete user data" });
       return;
     }
+    logger.info("receivedUser %s", user.screen_name);
 
     saveUserToMongo(job.data.user);
     upsertUserToNeo4j(job.data.user)
