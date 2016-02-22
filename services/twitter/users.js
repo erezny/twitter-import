@@ -100,6 +100,13 @@ function(err, db_) {
     //  logger.info("received job");
     logger.trace("received job %j", job);
     metrics.counter("processStarted").increment();
+
+    var user = job.data.user;
+    if ( !user.screen_name) {
+      done({ reason: "incomplete user data" });
+      return;
+    }
+
     saveUserToMongo(job.data.user);
     upsertUserToNeo4j(job.data.user)
     .then(function(savedUser) {
@@ -168,7 +175,7 @@ function queryUser(user) {
           statuses_count: data.statuses_count,
           protected: data.protected
         }
-        queue.create('receiveUser', { user: user } ).removeOnComplete( true ).save();
+        queue.create('receiveUser', { user: queriedUser } ).removeOnComplete( true ).save();
         metrics.counter("queryFinished").increment();
         resolve(queriedUser);
       });
