@@ -19,6 +19,16 @@ crow.exportInflux(metrics, request, { url: util.format("%s://%s:%s@%s:%d/write?d
   process.env.INFLUX_HOST, parseInt(process.env.INFLUX_PORT), process.env.INFLUX_DATABASE)
 });
 
+var kue = require('kue');
+var queue = kue.createQueue({
+  prefix: 'twitter',
+  redis: {
+    port: process.env.REDIS_PORT,
+    host: process.env.REDIS_HOST,
+    db: 1, // if provided select a non-default redis db
+  }
+});
+
 metrics.setGauge("heap_used", function () { return process.memoryUsage().heapUsed; });
 metrics.setGauge("heap_total", function () { return process.memoryUsage().heapTotal; });
 metrics.counter("app_started").increment();
@@ -190,6 +200,7 @@ function upsertFollowerIfExists(user, follower){
           reject(follower);
         });
       } else {
+        queue.create('queryUser', { user: job.data.user } ).removeOnComplete( true ).save();
         metrics.counter("rel_user_not_exist").increment();
         reject(follower);
       }

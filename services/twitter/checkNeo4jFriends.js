@@ -12,6 +12,16 @@
     port: parseInt(process.env.REDIS_PORT),
   });
 
+  var kue = require('kue');
+  var queue = kue.createQueue({
+    prefix: 'twitter',
+    redis: {
+      port: process.env.REDIS_PORT,
+      host: process.env.REDIS_HOST,
+      db: 1, // if provided select a non-default redis db
+    }
+  });
+
   const metrics = new crow.MetricsRegistry({ period: 15000, separator: "." }).withPrefix("mongoToNeo4j.friends");
 
   crow.exportInflux(metrics, request, { url: util.format("%s://%s:%s@%s:%d/write?db=%s",
@@ -132,6 +142,7 @@
             });
           } else {
             logger.debug("user not in neo4j yet %s", user.screen_name);
+            queue.create('queryUser', { user: user } ).removeOnComplete( true ).save();
             metrics.counter("users_not_exist").increment();
             restartQueries();
           }
@@ -190,6 +201,7 @@
             reject(friend);
           });
         } else {
+          queue.create('queryUser', { 'user.id_str': friend } ).removeOnComplete( true ).save();
           metrics.counter("rel_user_not_exist").increment();
           reject(friend);
         }
