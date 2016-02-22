@@ -148,7 +148,7 @@ function queryUser(user) {
 
 function saveUserToMongo(user) {
   return db.collection("twitterUsers").update(
-    { 'id_str': list.id_str },
+    { 'id_str': user.id_str },
     { $set: user ,
     $currentDate: { 'timestamps.updated': { $type: "timestamp" } }
   },
