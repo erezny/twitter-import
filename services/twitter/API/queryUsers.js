@@ -14,7 +14,7 @@ var assert = require('assert');
 
 const crow = require("crow-metrics");
 const request = require("request");
-const metrics = new crow.MetricsRegistry({ period: 15000, separator: "." }).withPrefix("twitter.users.query");
+const metrics = new crow.MetricsRegistry({ period: 15000, separator: "." }).withPrefix("twitter.users.api.show");
 
 crow.exportInflux(metrics, request, { url: util.format("%s://%s:%s@%s:%d/write?db=%s",
 process.env.INFLUX_PROTOCOL, process.env.INFLUX_USERNAME, process.env.INFLUX_PASSWORD,
@@ -64,7 +64,7 @@ process.once( 'SIGINT', function ( sig ) {
 
   setInterval( function() {
   queue.inactiveCount( 'queryUser', function( err, total ) { // others are activeCount, completeCount, failedCount, delayedCount
-    metrics.setGauge("query.queue.inactive", total);
+    metrics.setGauge("queue.inactive", total);
   });
   }, 15 * 1000 );
 

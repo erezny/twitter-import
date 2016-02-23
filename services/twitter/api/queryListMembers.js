@@ -59,14 +59,14 @@ process.once( 'SIGTERM', function ( sig ) {
 
 setInterval( function() {
 queue.inactiveCount( 'queryListMembers', function( err, total ) { // others are activeCount, completeCount, failedCount, delayedCount
-  metrics.setGauge("members.queue.inactive", total);
+  metrics.setGauge("queue.inactive", total);
 });
 }, 15 * 1000 );
 
 queue.process('queryListMembers', function(job, done) {
   //  logger.info("received job");
   logger.trace("queryListMembers received job %j", job);
-  queryListMembers(job.data.list)
+  queryListMembers(job.data.list, job.data.cursor)
   .then(done)
   .catch(function(err) {
     logger.error("queryListMembers error: %j", err);
