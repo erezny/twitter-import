@@ -74,6 +74,7 @@ queue.process('queryListMembers', function(job, done) {
   }, function(err) {
     logger.error("queryListMembers error: %j", err);
     metrics.counter("members.queryError").increment();
+    done(err);
   });
 });
 //put into use

@@ -74,6 +74,7 @@ queue.process('queryUserListOwnership', function(job, done) {
   }, function(err) {
     logger.error("queryUserListOwnership error %j: %j", job.data, err);
     metrics.counter("ownership.queryError").increment();
+    done(err);
   });
 });
 
