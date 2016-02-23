@@ -73,13 +73,20 @@ queue.process('queryUser', function(job, done) {
   logger.trace("received job %j", job);
   queryUser(job.data.user)
   .then(function() {
+    updateUserQueryTime(job.data.user);
     done();
   }, function(err) {
     logger.debug("queryUser error %j: %j", job.data, err);
-    metrics.counter("queryError").increment();
+    metrics.counter("queryError").increment(count = 1, tags = { apiError: err.code, apiMessage: err.message });
     done(err);
   });
 });
+
+function updateUserQueryTime(user){
+  var key = util.format("twitter:user:%s", job.user.id_str);
+  var currentTimestamp = new Date().getTime();
+  redis.hset(key, "queryTimestamp", currentTimestamp);
+}
 
 function queryUser(user) {
   return new Promise(function(resolve, reject) {
