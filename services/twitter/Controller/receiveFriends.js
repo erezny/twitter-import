@@ -71,12 +71,16 @@ queue.process('receiveFriend', function(job, done) {
   logger.trace("received job %j", job);
   var user = job.data.user;
   var friend = job.data.friend;
+  metrics.counter("start").increment();
 
   redis.hgetall(util.format("twitter:%s", user.id_str), function(err, redisUser) {
     if (redisUser && redisUser.neo4jID && redisUser.neo4jID != "undefined"){
       redis.hgetall(util.format("twitter:%s", friend.id_str), function(err, redisFriend) {
         if (redisFriend && redisFriend.neo4jID && redisFriend.neo4jID != "undefined"){
-          upsertRelationship({ id: parseInt(redisUser.neo4jID) }, { id: parseInt(redisFriend.neo4jID) }).then(done, done);
+          upsertRelationship({ id: parseInt(redisUser.neo4jID) }, { id: parseInt(redisFriend.neo4jID) }).then(function() {
+            metrics.counter("finish").increment();
+            done();
+          }, done);
         } else {
           logger.debug("friend not in redis %j",err);
           metrics.counter("friend_not_exist").increment();
@@ -85,7 +89,7 @@ queue.process('receiveFriend', function(job, done) {
       });
     } else {
       metrics.counter("user_not_exist").increment();
-      logger.error("neo4j user not in redis %j",err);
+      logger.debug("neo4j user not in redis %j",err);
       done({ message: "user not in redis" });
     }
   });
