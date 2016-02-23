@@ -85,7 +85,7 @@ queue.process('receiveListMembers', function(job, done) {
     } else {
       queue.create('queryUser', { user: job.data.user } ).attempts(5).removeOnComplete( true ).save();
       metrics.counter("members.rel_user_not_exist").increment();
-      logger.error("neo4j user not in redis %j",err);
+      logger.debug("neo4j user not in redis %j",err);
       done();
     }
   });
