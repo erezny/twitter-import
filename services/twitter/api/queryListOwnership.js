@@ -66,6 +66,7 @@ queue.inactiveCount( 'queryUserListOwnership', function( err, total ) { // other
 queue.process('queryUserListOwnership', function(job, done) {
   //  logger.info("received job");
   logger.trace("received job %j", job);
+  metrics.counter("start").increment();
   queryUserListOwnership(job.data.user, job.data.cursor)
   .then(function(list) {
     metrics.counter("finish").increment();

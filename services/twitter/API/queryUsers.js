@@ -71,6 +71,7 @@ process.once( 'SIGINT', function ( sig ) {
 queue.process('queryUser', function(job, done) {
   //  logger.info("received job");
   logger.trace("received job %j", job);
+  metrics.counter("start").increment();
 
   checkUserQueryTime(job.data.user)
   .then(queryUser)

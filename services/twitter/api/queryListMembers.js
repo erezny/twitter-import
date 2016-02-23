@@ -66,6 +66,7 @@ queue.inactiveCount( 'queryListMembers', function( err, total ) { // others are 
 queue.process('queryListMembers', function(job, done) {
   //  logger.info("received job");
   logger.trace("queryListMembers received job %j", job);
+  metrics.counter("start").increment();
   queryListMembers(job.data.list, job.data.cursor)
   .then(function(list) {
     metrics.counter("finish").increment();

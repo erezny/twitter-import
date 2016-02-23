@@ -65,6 +65,7 @@ queue.inactiveCount( 'queryFriendsIDs', function( err, total ) { // others are a
 queue.process('queryFriendsIDs', function(job, done) {
   //  logger.info("received job");
   logger.trace("queryFriendsIDs received job %j", job);
+  metrics.counter("start").increment();
   var user = job.data.user;
   var cursor = job.data.cursor || "-1";
   queryFriendsIDs(user, cursor)
