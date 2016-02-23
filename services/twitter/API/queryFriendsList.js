@@ -65,11 +65,14 @@ queue.inactiveCount( 'queryFriendsList', function( err, total ) { // others are 
 queue.process('queryFriendsList', function(job, done) {
   //  logger.info("received job");
   logger.trace("queryFriendsList received job %j", job);
+  metrics.counter("start").increment();
   var user = job.data.user;
   var cursor = job.data.cursor || "-1";
   queryFriendsList(user, cursor)
-  .then(done)
-  .catch(function(err) {
+  .then(function(list) {
+    metrics.counter("finish").increment();
+    done();
+  }, function(err) {
     logger.error("queryFriendsList error: %j %j", job, err);
     metrics.counter("queryError").increment();
     if (err.message == "Not authorized."){
