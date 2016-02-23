@@ -71,9 +71,11 @@ process.once( 'SIGINT', function ( sig ) {
 queue.process('queryUser', function(job, done) {
   //  logger.info("received job");
   logger.trace("received job %j", job);
-  queryUser(job.data.user)
+
+  checkUserQueryTime(job.data.user)
+  .then(queryUser)
+  .then(updateUserQueryTime)
   .then(function() {
-    updateUserQueryTime(job.data.user);
     done();
   }, function(err) {
     logger.debug("queryUser error %j: %j", job.data, err);
@@ -82,10 +84,28 @@ queue.process('queryUser', function(job, done) {
   });
 });
 
+function checkUserQueryTime(user){
+  return new Promise(function(resolve, reject) {
+    var key = util.format("twitter:%s", user.id_str);
+    var currentTimestamp = new Date().getTime();
+    redis.hgetall(key, function(err, obj) {
+      if ( !obj || !obj.queryTimestamp || obj.queryTimestamp > parseInt((+new Date) / 1000) - (60 * 60 * 24) ) {
+        resolve(user);
+      } else {
+        reject( { message: "user recently queried" } );
+      }
+    });
+  });
+}
+
 function updateUserQueryTime(user){
-  var key = util.format("twitter:user:%s", job.user.id_str);
-  var currentTimestamp = new Date().getTime();
-  redis.hset(key, "queryTimestamp", currentTimestamp);
+  return new Promise(function(resolve, reject) {
+    var key = util.format("twitter:%s", user.id_str);
+    var currentTimestamp = new Date().getTime();
+    redis.hset(key, "queryTimestamp", parseInt((+new Date) / 1000), function() {
+      resolve()
+    });
+  });
 }
 
 function queryUser(user) {

@@ -15,7 +15,7 @@ assert = require('assert');
 
 const crow = require("crow-metrics");
 const request = require("request");
-const metrics = new crow.MetricsRegistry({ period: 15000, separator: "." }).withPrefix("twitter.lists");
+const metrics = new crow.MetricsRegistry({ period: 15000, separator: "." }).withPrefix("twitter.lists.controller.ownership");
 
 crow.exportInflux(metrics, request, { url: util.format("%s://%s:%s@%s:%d/write?db=%s",
 process.env.INFLUX_PROTOCOL, process.env.INFLUX_USERNAME, process.env.INFLUX_PASSWORD,
@@ -86,7 +86,6 @@ function(err, db_) {
   }
   db = db_;
 
-
   setInterval( function() {
   queue.inactiveCount( 'receiveUserListOwnership', function( err, total ) { // others are activeCount, completeCount, failedCount, delayedCount
     metrics.setGauge("ownership.receive.inactive", total);
@@ -129,63 +128,6 @@ function(err, db_) {
   });
 
 });
-
-setInterval( function() {
-queue.inactiveCount( 'queryUserListOwnership', function( err, total ) { // others are activeCount, completeCount, failedCount, delayedCount
-  metrics.setGauge("ownership.queue.inactive", total);
-});
-}, 15 * 1000 );
-
-queue.process('queryUserListOwnership', function(job, done) {
-  //  logger.info("received job");
-  logger.trace("received job %j", job);
-  queryUserListOwnership(job.data.user, job.data.cursor)
-  .then(done)
-  .catch(function(err) {
-    logger.error("queryUserListOwnership error %j: %j", job.data, err);
-    metrics.counter("ownership.queryError").increment();
-  });
-});
-
-function queryUserListOwnership(user, cursor) {
-  return new Promise(function(resolve, reject) {
-    logger.info("queryUserListOwnership %s", user.id_str);
-    limiter.removeTokens(1, function(err, remainingRequests) {
-      T.get('lists/ownerships', { user_id: user.id_str, cursor: cursor, count: 1000 }, function(err, data)
-      {
-        if (err){
-          logger.error("twitter api error %j %j", user, err);
-          reject(err);
-          metrics.counter("ownership.apiError").increment();
-          return;
-        }
-        logger.trace("Data %j", data);
-        logger.debug("queryUserListOwnership twitter api callback");
-        for (list of data.lists){
-          var filteredList = {
-            id_str: list.id_str,
-            name: list.name,
-            uri: list.uri,
-            subscriber_count: list.subscriber_count,
-            member_count: list.member_count,
-            mode: list.mode,
-            description: list.description,
-            slug: list.slug,
-            full_name: list.full_name,
-            created_at: list.created_at,
-            owner: list.user.id_str
-          }
-          queue.create('receiveUserListOwnership', { list: filteredList } ).attempts(5).removeOnComplete( true ).save();
-        }
-        if (data.next_cursor_str !== '0'){
-          queue.create('queryUserListOwnership', { user: user, cursor: data.next_cursor_str }).attempts(5).removeOnComplete( true ).save();
-        }
-        metrics.counter("ownership.apiFinished").increment();
-        resolve(data.lists);
-      });
-    });
-  });
-};
 
 function saveListToMongo(list) {
   return db.collection("twitterLists").update(
@@ -276,117 +218,6 @@ function setListOwnership(user, list) {
         }
         logger.debug("saved relationship %j", rel);
         metrics.counter("ownership.rel_saved").increment();
-        resolve(rel);
-      });
-    })
-  });
-}
-
-setInterval( function() {
-queue.inactiveCount( 'queryListMembers', function( err, total ) { // others are activeCount, completeCount, failedCount, delayedCount
-  metrics.setGauge("members.queue.inactive", total);
-});
-}, 15 * 1000 );
-
-queue.process('queryListMembers', function(job, done) {
-  //  logger.info("received job");
-  logger.trace("queryListMembers received job %j", job);
-  queryListMembers(job.data.list)
-  .then(done)
-  .catch(function(err) {
-    logger.error("queryListMembers error: %j", err);
-    metrics.counter("members.queryError").increment();
-  });
-});
-
-function queryListMembers(list, cursor) {
-  return new Promise(function(resolve, reject) {
-    logger.info("queryListMembers");
-    limiterMembers.removeTokens(1, function(err, remainingRequests) {
-      T.get('lists/members', { list_id: list.id_str, cursor: cursor, count: 5000 }, function (err, data)
-      {
-        if (err){
-          logger.error("twitter api error %j", err);
-          metrics.counter("members.apiError").increment();
-          reject(err);
-          return;
-        }
-        logger.trace("Data %j", data);
-        logger.debug("queryListMembers twitter api callback");
-        for (user of data.users){
-          queue.create('receiveListMembers', { list: list, user: { id_str: user.id_str } } ).attempts(5).removeOnComplete( true ).save();
-        }
-        if (data.next_cursor_str !== '0'){
-          queue.create('queryListMembers', { list: list, cursor: data.next_cursor_str }).attempts(5).removeOnComplete( true ).save();
-        }
-        metrics.counter("members.apiFinished").increment();
-        resolve(data.lists);
-      });
-    });
-  });
-};
-
-queue.process('receiveListMembers', function(job, done) {
-  //  logger.info("received job");
-  logger.trace("received job %j", job);
-
-  redis.hgetall(util.format("twitter:%s", job.data.user.id_str), function(err, member) {
-    if (member && member.neo4jID && member.neo4jID != "undefined"){
-
-      redis.hgetall(util.format("twitterList:%s",job.data.list.id_str), function(err, list) {
-        if (list && list.neo4jID && list.neo4jID != "undefined"){
-          setListMember({ id: parseInt(member.neo4jID) }, { id: parseInt(list.neo4jID) }).then(done);
-        } else {
-          metrics.counter("members.rel_list_not_exist").increment();
-          logger.error("neo4j list not in redis %j",err);
-          done();
-        }
-      });
-    } else {
-      queue.create('queryUser', { user: job.data.user } ).attempts(5).removeOnComplete( true ).save();
-      metrics.counter("members.rel_user_not_exist").increment();
-      logger.error("neo4j user not in redis %j",err);
-      done();
-    }
-  });
-});
-
-function setListMember(user, list) {
-  assert( typeof(user.id) == "number");
-  assert( typeof(list.id) == "number");
-  return new RSVP.Promise( function (resolve, reject) {
-    neo4j.queryRaw("start x=node({idx}), n=node({idn}) MATCH (x)-[r:includes]->(n) RETURN x,r,n",
-    { idx: list.id, idn: user.id }, function(err, results) {
-      if (err){
-        logger.error("neo4j find error %j",err);
-        metrics.counter("members.rel_find_error").increment();
-        reject("error");
-        return;
-      }
-      logger.trace("neo4j found %j", results);
-      if (results.data.length > 0) {
-        //TODO search for duplicates and remove duplicates
-        logger.debug("relationship found %j", results.data[0][1]);
-        metrics.counter("members.rel_already_exists").increment();
-        resolve(results.data[0][1]);
-        if (results.data.length > 1){
-          for (var i = 1; i < results.data.length; i++){
-            neo4j.rel.delete(results.data[i][1].metadata.id, function(err) {
-              if (!err) logger.debug("deleted duplicate relationship");
-            });
-          }
-        }
-        return;
-      }
-      neo4j.relate(list.id, 'includes', user.id, function(err, rel) {
-        if (err){
-          logger.error("neo4j save error %j %j", { user: user, list: list }, err);
-          metrics.counter("members.rel_save_error").increment();
-          reject("error");
-          return;
-        }
-        logger.debug("saved relationship %j", rel);
-        metrics.counter("members.rel_saved").increment();
         resolve(rel);
       });
     })

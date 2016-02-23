@@ -15,12 +15,15 @@ var childOpts =  {
 var childs = {
   twitter: {
   //  apiToMongo: (new (forever.Monitor)('./services/twitter/apiToMongo.js', childOpts)).start(),
-    checkNeo4jFollowers: new (forever.Monitor)('./services/twitter/checkNeo4jFollowers.js', childOpts).start(),
-    checkNeo4jFriends: new (forever.Monitor)('./services/twitter/checkNeo4jFriends.js', childOpts).start(),
-    checkNeo4jUsers: new (forever.Monitor)('./services/twitter/checkNeo4jUsers.js', childOpts).start(),
-    lists: new (forever.Monitor)('./services/twitter/lists.js', childOpts).start(),
+//    checkNeo4jFollowers: new (forever.Monitor)('./services/twitter/checkNeo4jFollowers.js', childOpts).start(),
+//    checkNeo4jFriends: new (forever.Monitor)('./services/twitter/checkNeo4jFriends.js', childOpts).start(),
+//    checkNeo4jUsers: new (forever.Monitor)('./services/twitter/checkNeo4jUsers.js', childOpts).start(),
     queryUsers: new (forever.Monitor)('./services/twitter/API/queryUsers.js', childOpts).start(),
     receiveUsers: new (forever.Monitor)('./services/twitter/Controller/receiveUsers.js', childOpts).start(),
+    queryListMembers: new (forever.Monitor)('./services/twitter/API/queryListMembers.js', childOpts).start(),
+    queryListOwnership: new (forever.Monitor)('./services/twitter/API/queryListOwnership.js', childOpts).start(),
+    listMembers: new (forever.Monitor)('./services/twitter/Controller/listMembers.js', childOpts).start(),
+    listOwnership: new (forever.Monitor)('./services/twitter/Controller/listOwnership.js', childOpts).start(),
   }
 };
 function addEvents(child) {

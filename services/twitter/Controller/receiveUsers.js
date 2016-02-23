@@ -106,7 +106,19 @@ function(err, db_) {
   queue.process('receiveUser', function(job, done) {
     logger.trace("received job %j", job);
     metrics.counter("processStarted").increment();
-    var user = job.data.user;
+    var user = {
+      id_str: job.data.user.id_str,
+      screen_name: job.data.user.screen_name,
+      name: job.data.user.name,
+      followers_count: job.data.user.followers_count,
+      friends_count: job.data.user.friends_count,
+      favourites_count: job.data.user.favourites_count,
+      description: job.data.user.description,
+      location: job.data.user.location,
+      statuses_count: job.data.user.statuses_count,
+      protected: job.data.user.protected
+    }
+
     if ( !user.screen_name) {
       done({ reason: "incomplete user data" });
       return;
@@ -115,6 +127,7 @@ function(err, db_) {
 
     var mongo = saveUserToMongo(user);
     upsertUserToNeo4j(user)
+    .then(updateUserSaveTime)
     .then(function(savedUser) {
       logger.trace("savedUser: %j", savedUser);
         //queue.create('queryUserFriends', { user: { id_str: user.id_str } } ).removeOnComplete( true ).save();
@@ -136,6 +149,16 @@ function(err, db_) {
   }, 15 * 1000 );
 
 });
+
+function updateUserSaveTime(user){
+  return new Promise(function(resolve, reject) {
+    var key = util.format("twitter:%s", user.id_str);
+    var currentTimestamp = new Date().getTime();
+    redis.hset(key, "saveTimestamp", parseInt((+new Date) / 1000), function() {
+      resolve(user)
+    });
+  });
+}
 
 function upsertUserToNeo4j(user) {
   delete user.id;
