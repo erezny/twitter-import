@@ -110,7 +110,7 @@ function updateUserQueryTime(user){
 
 function queryUser(user) {
   return new Promise(function(resolve, reject) {
-    logger.info("queryUser %s", user.id_str);
+    logger.debug("queryUser %s", user.id_str);
     limiter.removeTokens(1, function(err, remainingRequests) {
       T.get('users/show', { user_id: user.id_str }, function(err, data)
       {
