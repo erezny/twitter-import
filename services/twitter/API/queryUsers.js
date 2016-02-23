@@ -90,7 +90,7 @@ function queryUser(user) {
         if (err){
           logger.error("twitter api error %j %j", user, err);
           reject({ user: user, err: err, reason: "twitter api error" });
-          metrics.counter("apiError").increment();
+          metrics.counter("apiError").increment(count = 1, tags = { apiError: err.code, apiMessage: err.message });
           return;
         }
         logger.trace("Data %j", data);
