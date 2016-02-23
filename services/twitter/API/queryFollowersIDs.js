@@ -68,8 +68,10 @@ queue.process('queryFollowersIDs', function(job, done) {
   var user = job.data.user;
   var cursor = job.data.cursor || "-1";
   queryFollowersIDs(user, cursor)
-  .then(done)
-  .catch(function(err) {
+  .then(function(list) {
+    metrics.counter("finish").increment();
+    done();
+  }, function(err) {
     logger.error("queryFollowersIDs error: %j %j", job, err);
     metrics.counter("queryError").increment();
     if (err.message == "Not authorized."){

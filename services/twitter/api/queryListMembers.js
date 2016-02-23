@@ -67,12 +67,38 @@ queue.process('queryListMembers', function(job, done) {
   //  logger.info("received job");
   logger.trace("queryListMembers received job %j", job);
   queryListMembers(job.data.list, job.data.cursor)
-  .then(done)
-  .catch(function(err) {
+  .then(function(list) {
+    metrics.counter("finish").increment();
+    done();
+  }, function(err) {
     logger.error("queryListMembers error: %j", err);
     metrics.counter("members.queryError").increment();
   });
 });
+//put into use
+function checkListQueryTime(list){
+  return new Promise(function(resolve, reject) {
+    var key = util.format("twitterList:%s", list.id_str);
+    var currentTimestamp = new Date().getTime();
+    redis.hgetall(key, function(err, obj) {
+      if ( !obj || !obj.queryTimestamp || obj.queryTimestamp > parseInt((+new Date) / 1000) - (60 * 60 * 24) ) {
+        resolve(list);
+      } else {
+        reject( { message: "list recently queried" } );
+      }
+    });
+  });
+}
+
+function updateListQueryTime(list){
+  return new Promise(function(resolve, reject) {
+    var key = util.format("twitterList:%s", list.id_str);
+    var currentTimestamp = new Date().getTime();
+    redis.hset(key, "queryTimestamp", parseInt((+new Date) / 1000), function() {
+      resolve()
+    });
+  });
+}
 
 function queryListMembers(list, cursor) {
   return new Promise(function(resolve, reject) {

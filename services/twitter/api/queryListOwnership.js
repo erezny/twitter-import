@@ -67,8 +67,10 @@ queue.process('queryUserListOwnership', function(job, done) {
   //  logger.info("received job");
   logger.trace("received job %j", job);
   queryUserListOwnership(job.data.user, job.data.cursor)
-  .then(done)
-  .catch(function(err) {
+  .then(function(list) {
+    metrics.counter("finish").increment();
+    done();
+  }, function(err) {
     logger.error("queryUserListOwnership error %j: %j", job.data, err);
     metrics.counter("ownership.queryError").increment();
   });

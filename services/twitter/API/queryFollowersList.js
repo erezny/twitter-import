@@ -65,11 +65,14 @@ queue.inactiveCount( 'queryFollowersList', function( err, total ) { // others ar
 queue.process('queryFollowersList', function(job, done) {
   //  logger.info("received job");
   logger.trace("queryFollowersList received job %j", job);
+  metrics.counter("start").increment();
   var user = job.data.user;
   var cursor = job.data.cursor || "-1";
   queryFollowersList(user, cursor)
-  .then(done)
-  .catch(function(err) {
+  .then(function(list) {
+    metrics.counter("finish").increment();
+    done();
+  }, function(err) {
     logger.error("queryFollowersList error: %j %j", job, err);
     metrics.counter("queryError").increment();
     if (err.message == "Not authorized."){

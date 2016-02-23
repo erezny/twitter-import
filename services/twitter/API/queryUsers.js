@@ -75,7 +75,8 @@ queue.process('queryUser', function(job, done) {
   checkUserQueryTime(job.data.user)
   .then(queryUser)
   .then(updateUserQueryTime)
-  .then(function() {
+  .then(function(user) {
+    metrics.counter("finish").increment();
     done();
   }, function(err) {
     logger.debug("queryUser error %j: %j", job.data, err);
