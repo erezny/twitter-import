@@ -88,7 +88,7 @@ function(err, db_) {
 
   setInterval( function() {
   queue.inactiveCount( 'receiveUserListOwnership', function( err, total ) { // others are activeCount, completeCount, failedCount, delayedCount
-    metrics.setGauge("ownership.receive.inactive", total);
+    metrics.setGauge("queue.inactive", total);
   });
   }, 15 * 1000 );
 

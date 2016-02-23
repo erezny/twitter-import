@@ -66,6 +66,12 @@ var neo4j = require('seraph')( {
   user: process.env.NEO4J_USERNAME,
   pass: process.env.NEO4J_PASSWORD });
 
+  setInterval( function() {
+  queue.inactiveCount( 'receiveFriend', function( err, total ) { // others are activeCount, completeCount, failedCount, delayedCount
+    metrics.setGauge("queue.inactive", total);
+  });
+  }, 15 * 1000 );
+
 queue.process('receiveFriend', function(job, done) {
   //  logger.info("received job");
   logger.trace("received job %j", job);
