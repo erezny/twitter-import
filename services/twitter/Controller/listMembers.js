@@ -75,6 +75,7 @@ queue.inactiveCount( 'receiveListMembers', function( err, total ) { // others ar
 queue.process('receiveListMembers', function(job, done) {
   //  logger.info("received job");
   logger.trace("received job %j", job);
+  metrics.counter("start").increment();
 
   redis.hgetall(util.format("twitter:%s", job.data.user.id_str), function(err, member) {
     if (member && member.neo4jID && member.neo4jID != "undefined"){

@@ -95,6 +95,7 @@ function(err, db_) {
   queue.process('receiveUserListOwnership', function(job, done) {
     //  logger.info("received job");
     logger.trace("received job %j", job);
+    metrics.counter("start").increment();
     saveListToMongo(job.data.list);
     upsertListToNeo4j(job.data.list)
     .then(function(savedList) {
