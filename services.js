@@ -19,7 +19,8 @@ var childs = {
     checkNeo4jFriends: new (forever.Monitor)('./services/twitter/checkNeo4jFriends.js', childOpts).start(),
     checkNeo4jUsers: new (forever.Monitor)('./services/twitter/checkNeo4jUsers.js', childOpts).start(),
     lists: new (forever.Monitor)('./services/twitter/lists.js', childOpts).start(),
-    users: new (forever.Monitor)('./services/twitter/users.js', childOpts).start(),
+    queryUsers: new (forever.Monitor)('./services/twitter/API/queryUsers.js', childOpts).start(),
+    receiveUsers: new (forever.Monitor)('./services/twitter/Controller/receiveUsers.js', childOpts).start(),
   }
 };
 function addEvents(child) {
