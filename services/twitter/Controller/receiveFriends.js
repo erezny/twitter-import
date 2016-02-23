@@ -101,7 +101,6 @@ function upsertRelationship(node, friend) {
           logger.error("neo4j find error %j",err);
           metrics.counter("rel_find_error").increment();
           reject("error");
-          sem.leave();
           return;
         }
         logger.trace("neo4j found %j", results);
@@ -124,13 +123,11 @@ function upsertRelationship(node, friend) {
             logger.error("neo4j save error %j %j", { node: node, friend: friend }, err);
             metrics.counter("rel_save_error").increment();
             reject("error");
-            sem.leave();
             return;
           }
           logger.debug("saved relationship %j", rel);
           metrics.counter("rel_saved").increment();
           resolve();
-          sem.leave();
         });
       });
   });
