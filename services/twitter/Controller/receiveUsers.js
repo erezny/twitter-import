@@ -123,7 +123,7 @@ function(err, db_) {
       done({ reason: "incomplete user data" });
       return;
     }
-    logger.info("receivedUser %s", user.screen_name);
+    logger.debug("receivedUser %s", user.screen_name);
 
     var mongo = saveUserToMongo(user);
     upsertUserToNeo4j(user)
