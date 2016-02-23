@@ -78,7 +78,7 @@ queue.process('receiveFriend', function(job, done) {
         if (redisFriend && redisFriend.neo4jID && redisFriend.neo4jID != "undefined"){
           upsertRelationship({ id: parseInt(redisUser.neo4jID) }, { id: parseInt(redisFriend.neo4jID) }).then(done, done);
         } else {
-          logger.error("friend not in redis %j",err);
+          logger.debug("friend not in redis %j",err);
           metrics.counter("friend_not_exist").increment();
           done({ message: "friend not in redis" } );
         }
