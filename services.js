@@ -27,6 +27,7 @@ var childs = {
     queryFriendsList: new (forever.Monitor)('./services/twitter/API/queryFriendsList.js', childOpts).start(),
     receiveFriends: new (forever.Monitor)('./services/twitter/Controller/receiveFriends.js', childOpts).start(),
     queryFriendsIDs: new (forever.Monitor)('./services/twitter/API/queryFriendsIDs.js', childOpts).start(),
+    queryFriendsIDs: new (forever.Monitor)('./services/twitter/API/queryFollowersIDs.js', childOpts).start(),
   }
 };
 function addEvents(child) {
