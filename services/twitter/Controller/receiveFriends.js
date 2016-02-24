@@ -128,7 +128,7 @@ function lookupNeo4jID(user){
   });
 }
 
-queue.process('receiveFriend', 5, receiveFriend );
+queue.process('receiveFriend', 40, receiveFriend );
 
 var metricRelFindError = metrics.counter("rel_find_error");
 var metricRelAlreadyExists = metrics.counter("rel_already_exists");
