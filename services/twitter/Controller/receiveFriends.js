@@ -138,6 +138,7 @@ var sem = require('semaphore')(2);
 function upsertRelationship(node, friend) {
   assert( typeof(node.id) == "number" );
   assert( typeof(friend.id) == "number" );
+  sem.take(function() {
   return new RSVP.Promise( function (resolve, reject) {
     neo4j.queryRaw("start x=node({idx}), n=node({idn}) create unique (x)-[r:follows]->(n) RETURN r",
       { idx: node.id, idn: friend.id }, function(err, results) {
@@ -153,4 +154,5 @@ function upsertRelationship(node, friend) {
       resolve();
     });
   });
+});
 }
