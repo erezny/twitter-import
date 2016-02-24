@@ -119,7 +119,6 @@ function lookupNeo4jID(user){
       logger.trace("finished querying redis");
       if (redisUser && redisUser.neo4jID && redisUser.neo4jID != "undefined"){
     //    redisCache.push([ user.id_str, { id: parseInt(redisUser.neo4jID) }, 0 ])
-        logger.trace("resolve %d", redisCache.length);
         resolve({ id: parseInt(redisUser.neo4jID) });
       } else {
         logger.trace("reject");
