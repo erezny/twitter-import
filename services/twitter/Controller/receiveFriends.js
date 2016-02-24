@@ -134,13 +134,16 @@ var metricRelFindError = metrics.counter("rel_find_error");
 var metricRelAlreadyExists = metrics.counter("rel_already_exists");
 var metricRelSaveError = metrics.counter("rel_save_error");
 var metricRelSaved = metrics.counter("rel_saved");
+var sem = require('semaphore')(2);
 function upsertRelationship(node, friend) {
   return function() {
   assert( typeof(node.id) == "number" );
   assert( typeof(friend.id) == "number" );
   return new RSVP.Promise( function (resolve, reject) {
+    sem.take( function(){
     neo4j.queryRaw("start x=node({idx}), n=node({idn}) create unique (x)-[r:follows]->(n) RETURN r",
       { idx: node.id, idn: friend.id }, function(err, results) {
+        sem.leave();
         if (err){
           logger.error("neo4j save error %j %j", { node: node, friend: friend }, err);
           metricRelSaveError.increment();
@@ -151,6 +154,7 @@ function upsertRelationship(node, friend) {
         metricRelSaved.increment();
         resolve();
       });
+      }
   });
 }
 }

@@ -55,6 +55,7 @@ queue.inactiveCount( 'queryFollowersList', function( err, total ) { // others ar
 });
 }, 15 * 1000 );
 
+var metricNeo4jTimeMsec = metrics.distribution("neo4j_time_msec");
 queue.process('queryFollowersList', function(job, done) {
   //  logger.info("received job");
   logger.trace("queryFollowersList received job %j", job);
@@ -93,7 +94,7 @@ function queryFollowersList(user, cursor) {
         logger.info("queryFollowersList %s found %d followers", user.screen_name, data.users.length);
         for (follower of data.users){
           queue.create('receiveUser', { user: follower } ).removeOnComplete(true).save();
-          queue.create('receiveFriend', { user: { id_str: follower.id_str }, friend: { id_str: user.id_str } } ).attempts(5).removeOnComplete( true ).save();
+          queue.create('receiveFriend', { user: { id_str: follower.id_str }, friend: { id_str: user.id_str } } ).removeOnComplete( true ).save();
         }
         if (data.next_cursor_str !== '0'){
           queue.create('queryFollowersList', { user: user, cursor: data.next_cursor_str }).attempts(5).removeOnComplete( true ).save();
