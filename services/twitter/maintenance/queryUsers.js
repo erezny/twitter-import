@@ -65,7 +65,7 @@ function scan() {
     kueRedis.scan(
         cursor,
         'MATCH', 'twitter:job:*',
-        'COUNT', '10000',
+        'COUNT', '1000',
         function(err, res) {
             if (err) throw err;
 
@@ -80,11 +80,12 @@ function scan() {
             // See http://redis.io/commands/scan#scan-guarantees
             // Additionally, you should always have the code that uses the keys
             // before the code checking the cursor.
+            var jobs = [];
             if (keys.length > 0) {
               //  console.log('Array of matching keys', keys);
                 for (key of keys){
                   if (!key.match("log")){
-                    scanJob(key);
+                    jobs.push(scanJob(key));
                   }
                 }
                 count = count + keys.length;
@@ -110,7 +111,7 @@ function scan() {
               lastCount = count;
             }
 
-            return scan();
+            RSVP.allSettled(jobs).then(scan);
         }
     );
 }
@@ -121,37 +122,49 @@ kueRedis.select(1, function() {
 
 var found = 0;
 function scanJob(id){
-  kueRedis.hgetall(id, function (err, obj) {
-    var jobID = id.replace("twitter:job:", "");
-    var id_str;
-    try {
-      obj.data = JSON.parse(obj.data);
-      id_str = obj.data.user.id_str;
-    } catch (err) {
-      return;
-    }
-
-    if (obj.type == 'queryUser' && obj.state == 'inactive'){
-
-      if (bloom.test(id_str) ) {
-        removeJob(jobID);
+  return new RSVP.Promise( function (resolve, reject) {
+    kueRedis.hgetall(id, function (err, obj) {
+      var jobID = id.replace("twitter:job:", "");
+      var id_str;
+      try {
+        obj.data = JSON.parse(obj.data);
+        id_str = obj.data.user.id_str;
+      } catch (err) {
+        resolve();
         return;
-      } else {
-        bloom.add(id_str);
-        found++;
       }
-    }
+
+      if (obj.type == 'queryUser' && obj.state == 'inactive'){
+
+        if (bloom.test(id_str) ) {
+          removeJob(jobID).finally(resolve);
+        } else {
+          bloom.add(id_str);
+          found++;
+          resolve();
+        }
+      } else {
+        resolve();
+      }
+    });
   });
 }
 
 var removed = 0;
 function removeJob(id){
-  kue.Job.get( id, function( err, job ) {
-    //console.log("remove job", job.id);
-     job.remove( function() {
-       removed++;
-       //console.log( 'removed ', job.id );
-     });
+  return new RSVP.Promise( function (resolve, reject) {
+    kue.Job.get( id, function( err, job ) {
+      //console.log("remove job", job.id);
+       if (job) {
+         job.remove( function() {
+           removed++;
+           resolve();
+           //console.log( 'removed ', job.id );
+        });
+      } else {
+        resolve();
+      }
+    });
   });
 }
 
