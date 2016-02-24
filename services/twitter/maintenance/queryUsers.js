@@ -16,6 +16,7 @@ metrics.setGauge("heap_used", function () { return process.memoryUsage().heapUse
 metrics.setGauge("heap_total", function () { return process.memoryUsage().heapTotal; });
 metrics.counter("app_started").increment();
 
+var BloomFilter = require("bloomfilter").BloomFilter;
 // 10M entries, 1 false positive
 var bloom = new BloomFilter(
   8 * 1024 * 1024 * 40, // MB
