@@ -71,6 +71,7 @@ var metricRelInBloomfilter = metrics.counter("rel_in_bloomfilter");
 var metricFriendNotExist = metrics.counter("friend_not_exist");
 var metricUserNotExist = metrics.counter("user_not_exist");
 var metricFinish = metrics.counter("finish");
+var metricNeo4jTimeMsec = metrics.distribution("neo4j_time_msec");
 
 function receiveFriend (job, done) {
   //  logger.info("received job");
@@ -84,7 +85,7 @@ function receiveFriend (job, done) {
     if (redisUser && redisUser.neo4jID && redisUser.neo4jID != "undefined"){
       redis.hgetall(util.format("twitter:%s", friend.id_str), function(err, redisFriend) {
         if (redisFriend && redisFriend.neo4jID && redisFriend.neo4jID != "undefined"){
-          upsertRelationship({ id: parseInt(redisUser.neo4jID) }, { id: parseInt(redisFriend.neo4jID) }).then(function() {
+          metricNeo4jTimeMsec.time(upsertRelationship({ id: parseInt(redisUser.neo4jID) }, { id: parseInt(redisFriend.neo4jID) })).then(function() {
             metricFinish.increment();
             done();
           }, done);
@@ -123,6 +124,10 @@ processStack.push(queue.process('receiveFriend', receiveFriend ));
 processStack.push(queue.process('receiveFriend', receiveFriend ));
 processStack.push(queue.process('receiveFriend', receiveFriend ));
 
+var metricRelFindError = metrics.counter("rel_find_error");
+var metricRelAlreadyExists = metrics.counter("rel_already_exists");
+var metricRelSaveError = metrics.counter("rel_save_error");
+var metricRelSaved = metrics.counter("rel_saved");
 function upsertRelationship(node, friend) {
   assert( typeof(node.id) == "number" );
   assert( typeof(friend.id) == "number" );
@@ -131,7 +136,7 @@ function upsertRelationship(node, friend) {
         { idx: node.id, idn: friend.id }, function(err, results) {
         if (err){
           logger.error("neo4j find error %j",err);
-          metrics.counter("rel_find_error").increment();
+          metricRelFindError.increment();
           reject("error");
           return;
         }
@@ -139,7 +144,7 @@ function upsertRelationship(node, friend) {
         if (results.data.length > 0) {
           //TODO search for duplicates and remove duplicates
           logger.debug("relationship found %j", results.data[0][0].metadata.id);
-          metrics.counter("rel_already_exists").increment();
+          metricRelAlreadyExists.increment();
           if (results.data.length > 1){
             for (var i = 1; i < results.data.length; i++){
               neo4j.rel.delete(results.data[i][0].metadata.id, function(err) {
@@ -153,12 +158,12 @@ function upsertRelationship(node, friend) {
         neo4j.relate(node.id, 'follows', friend.id, function(err, rel) {
           if (err){
             logger.error("neo4j save error %j %j", { node: node, friend: friend }, err);
-            metrics.counter("rel_save_error").increment();
+            metricRelSaveError.increment();
             reject("error");
             return;
           }
           logger.debug("saved relationship %j", rel);
-          metrics.counter("rel_saved").increment();
+          metricRelSaved.increment();
           resolve();
         });
       });

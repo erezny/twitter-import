@@ -98,6 +98,7 @@ function(err, db_) {
     { upsert: true });
   };
 
+  var metricNeo4jTimeMsec = metrics.distribution("neo4j_time_msec");
   function receiveUser(job, done) {
     logger.trace("received job %j", job);
     metrics.counter("processStarted").increment();
@@ -120,23 +121,44 @@ function(err, db_) {
     }
     logger.debug("receivedUser %s", user.screen_name);
 
-//    var mongo = saveUserToMongo(user);
-    upsertUserToNeo4j(user)
-    .then(updateUserSaveTime)
-    .then(function(savedUser) {
-      logger.trace("savedUser: %j", savedUser);
-        //queue.create('queryUserFriends', { user: { id_str: user.id_str } } ).removeOnComplete( true ).save();
-        //queue.create('queryUserFollowers', { user: { id_str: user.id_str } } ).removeOnComplete( true ).save();
-        metrics.counter("processFinished").increment();
-      done();
-    }, function(err) {
-      logger.error("receiveUser error on %j\n%j\n--", job, err);
-      metrics.counter("processError").increment();
-      done(err);
+    //    var mongo = saveUserToMongo(user);
+      var key = util.format("twitter:%s", user.id_str);
+    redis.hgetall(key, function(err, redisUser) {
+      if (redisUser && redisUser.neo4jID && redisUser.neo4jID != "undefined"){
+        redis.hget(key, "saveTimestamp", function(err, result) {
+          if (result < parseInt((+new Date) / 1000) - 24 * 60 * 60) {
+              dostuff(user, done);
+          } else {
+            done();
+          }
+        });
+      } else {
+          dostuff(user, done);
+      }
     });
 
   };
 
+var metricsFinished = metrics.counter("processFinished");
+var metricsError = metrics.counter("processError");
+function dostuff(user, done){
+  return metricNeo4jTimeMsec.time(upsertUserToNeo4j(user))
+  .then(updateUserSaveTime)
+  .then(function(savedUser) {
+    logger.trace("savedUser: %j", savedUser);
+      //queue.create('queryUserFriends', { user: { id_str: user.id_str } } ).removeOnComplete( true ).save();
+      //queue.create('queryUserFollowers', { user: { id_str: user.id_str } } ).removeOnComplete( true ).save();
+      metricsFinished.increment();
+    done();
+  }, function(err) {
+    logger.error("receiveUser error on %j\n%j\n--", job, err);
+    metricsError.increment();
+    done(err);
+  });
+}
+
+    processStack.push(queue.process('receiveUser', receiveUser));
+    processStack.push(queue.process('receiveUser', receiveUser));
     processStack.push(queue.process('receiveUser', receiveUser));
 
   setInterval( function() {
