@@ -73,3 +73,11 @@ kue.Job.rangeByType( 'queryFriendsList', 'failed', 0, 100, 'asc', function( err,
     });
   });
 });
+
+kue.Job.rangeByType( 'queryFriendsList', 'delayed', 0, 100, 'asc', function( err, jobs ) {
+  jobs.forEach( function( job ) {
+    job.remove( function() {
+      console.log( 'removed ', job.id );
+    });
+  });
+});
