@@ -119,6 +119,7 @@ MongoClient.connect(util.format('mongodb://%s:%s@%s:%d/%s?authMechanism=SCRAM-SH
           sem.take(function() {
             upsertNodeToNeo4j(user)
               .then( function(user) {
+                //TODO save neo4j id to mongo
                 logger.debug('next user');
                 metrics.counter("user_saved").increment();
                 restartQueries()

@@ -78,10 +78,10 @@ MongoClient.connect(util.format('mongodb://%s:%s@%s:%d/%s?authMechanism=SCRAM-SH
   logger.trace("connected to mongo");
 
   var cursor = db.collection("twitterUsers")
-  .find( { 'internal.expand_friends': { $gt: 0 } } )
+  .find( { 'internal.expand_friends': 0 } )
   .project({
       id_str: 1,
-      'internal.expand_friends': 1
+      'followers_count': -1
   });
 
   var stream = cursor.stream();

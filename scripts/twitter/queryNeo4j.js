@@ -35,8 +35,11 @@ neo4j.queryRaw("MATCH (x:twitterUser{screen_name:\"erezny\"})-[r:follows]->(n) R
   logger.trace("neo4j found %j", results);
   for ( users of results.data) {
     //TODO search for duplicates and remove duplicates
+    if (users[0].data.followers_count < 20000){
     logger.debug("node found %s %s", users[0].data.screen_name, users[0].data.id_str);
-    queue.create('queryFriendsList', { user: users[0].data, cursor: "-1" } ).attempts(5).removeOnComplete( true ).save();
+    queue.create('queryFollowersList', { user: users[0].data, cursor: "-1" } ).attempts(5).removeOnComplete( true ).save();
+
+    }
   }
 
 })
