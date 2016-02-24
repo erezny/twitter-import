@@ -28,7 +28,7 @@ var neo4j = require('seraph')( {
 
   setInterval( function() {
     queue.inactiveCount( 'queryFriendsList', function( err, total ) { // others are activeCount, completeCount, failedCount, delayedCount
-      if (total <= 2) {
+      if (total <= 0) {
         fillFriendsList();
       }
     });
@@ -36,14 +36,14 @@ var neo4j = require('seraph')( {
 
   setInterval( function() {
     queue.inactiveCount( 'queryFriendsIDs', function( err, total ) { // others are activeCount, completeCount, failedCount, delayedCount
-      if (total <= 2) {
+      if (total <= 0) {
         fillFriendsIDs();
       }
     });
-  }, 15 * 60 * 1000 );
+  }, 60 * 60 * 1000 );
 
 function fillFriendsList(){
-  neo4j.queryRaw("match (n:twitterUser) where n.friends_count > 0 and n.friends_count <= 2000 with n limit 10000 " +
+  neo4j.queryRaw("match (n:twitterUser) where n.friends_count > 0 and n.friends_count <= 2000 with n order by n.friends_count limit 10000 " +
     "match p=(n)-[:follows]->(:twitterUser) " +
     "WITH n, count(p) AS friends, count(p)/n.friends_count as ratio " +
     "return n order by ratio limit 10", function(err, results) {
@@ -61,7 +61,7 @@ function fillFriendsList(){
 };
 
 function fillFriendsIDs(){
-  neo4j.queryRaw("match (n:twitterUser) where n.friends_count > 2000 with n limit 10000 " +
+  neo4j.queryRaw("match (n:twitterUser) where n.friends_count > 2000 with n by n.friends_count limit 10000 " +
     "match p=(n)-[:follows]->(:twitterUser) " +
     "WITH n, count(p) AS friends, count(p)/n.friends_count as ratio " +
     "return n order by ratio limit 10", function(err, results) {
