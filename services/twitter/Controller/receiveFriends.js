@@ -104,12 +104,6 @@ function receiveFriend (job, done) {
 
 processStack.push(queue.process('receiveFriend', receiveFriend ));
 processStack.push(queue.process('receiveFriend', receiveFriend ));
-processStack.push(queue.process('receiveFriend', receiveFriend ));
-processStack.push(queue.process('receiveFriend', receiveFriend ));
-processStack.push(queue.process('receiveFriend', receiveFriend ));
-processStack.push(queue.process('receiveFriend', receiveFriend ));
-processStack.push(queue.process('receiveFriend', receiveFriend ));
-processStack.push(queue.process('receiveFriend', receiveFriend ));
 
 function upsertRelationship(node, friend) {
   assert( typeof(node.id) == "number" );
