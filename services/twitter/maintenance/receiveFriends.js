@@ -137,13 +137,8 @@ function scanJob(id){
       var rel_id, job_id;
       try {
         obj.data = JSON.parse(obj.data);
-        if (obj.data.user.id_str < obj.data.friend.id_str){
-          rel_id = util.format("%s:%s", obj.data.user.id_str, obj.data.friend.id_str );
-          job_id = util.format("%s:%s:%s", jobID, obj.data.user.id_str, obj.data.friend.id_str );
-        } else {
-          rel_id = util.format("%s:%s", obj.data.friend.id_str, obj.data.user.id_str );
-          job_id = util.format("%s:%s:%s", jobID, obj.data.friend.id_str, obj.data.user.id_str );
-        }
+        rel_id = util.format("%s:%s", obj.data.user.id_str, obj.data.friend.id_str );
+        job_id = util.format("%s:%s:%s", jobID, obj.data.user.id_str, obj.data.friend.id_str );
       } catch (err) {
         resolve();
         return;
