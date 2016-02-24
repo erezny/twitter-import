@@ -31,6 +31,8 @@ var RateLimiter = require('limiter').RateLimiter;
 var limiter = new RateLimiter(1, (1 / 14) * 15 * 60 * 1000);
 var limiterMembers = new RateLimiter(1, (1 / 14) * 15 * 60 * 1000);
 
+var BloomFilter = require("bloomfilter").BloomFilter;
+
 var RSVP = require('rsvp');
 var logger = require('tracer').colorConsole( {
   level: 'info'
