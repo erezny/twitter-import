@@ -101,14 +101,14 @@ function receiveFriend (job, done) {
   });
 };
 
-queue.process('receiveFriend', 10, receiveFriend );
+queue.process('receiveFriend', 20, receiveFriend );
 
 var metricRelFindError = metrics.counter("rel_find_error");
 var metricRelAlreadyExists = metrics.counter("rel_already_exists");
 var metricRelSaveError = metrics.counter("rel_save_error");
 var metricRelSaved = metrics.counter("rel_saved");
 function upsertRelationship(node, friend) {
-  return function(){
+  return function() {
   assert( typeof(node.id) == "number" );
   assert( typeof(friend.id) == "number" );
   return new RSVP.Promise( function (resolve, reject) {
