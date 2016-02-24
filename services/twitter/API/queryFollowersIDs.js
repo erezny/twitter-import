@@ -20,7 +20,7 @@ metrics.counter("app_started").increment();
 
 var RateLimiter = require('limiter').RateLimiter;
 //set rate limiter slightly lower than twitter api limit
-var limiter = new RateLimiter(1, (1 / 180) * 15 * 60 * 1000);
+var limiter = new RateLimiter(1, (1 / 14) * 15 * 60 * 1000);
 
 var RSVP = require('rsvp');
 var logger = require('tracer').colorConsole( {
