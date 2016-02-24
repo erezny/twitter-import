@@ -63,6 +63,8 @@ process.once( 'SIGINT', function ( sig ) {
   });
 });
 
+var processStack = [];
+
 var neo4j = require('seraph')( {
   server: util.format("%s://%s:%s",
   process.env.NEO4J_PROTOCOL,
@@ -103,7 +105,7 @@ function(err, db_) {
     { upsert: true });
   };
 
-  queue.process('receiveUser', function(job, done) {
+  function receiveUser(job, done) {
     logger.trace("received job %j", job);
     metrics.counter("processStarted").increment();
     var user = {
@@ -140,7 +142,9 @@ function(err, db_) {
       done(err);
     });
 
-  });
+  };
+
+    processStack.push(queue.process('receiveUser', receiveUser));
 
   setInterval( function() {
   queue.inactiveCount( 'receiveUser', function( err, total ) { // others are activeCount, completeCount, failedCount, delayedCount
