@@ -156,8 +156,13 @@ var found = 0;
 function scanJob(id){
   kueRedis.hgetall(id, function (err, obj) {
     var jobID = id.replace("twitter:job:", "");
-    obj.data = JSON.parse(obj.data);
-    var id_str = obj.data.user.id_str;
+    var id_str;
+    try {
+      obj.data = JSON.parse(obj.data);
+      id_str = obj.data.user.id_str;
+    } catch (err) {
+      return;
+    }
 
     if (obj.type == 'queryUser' && obj.state == 'inactive'){
 
