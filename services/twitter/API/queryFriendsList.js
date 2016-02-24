@@ -66,7 +66,7 @@ queue.process('queryFriendsList', function(job, done) {
     metrics.counter("finish").increment();
     done();
   }, function(err) {
-    logger.error("queryFriendsList error: %j %j", job, err);
+    logger.debug("queryFriendsList error: %j %j", job, err);
     metrics.counter("queryError").increment();
     if (err.message == "Not authorized."){
       done();
