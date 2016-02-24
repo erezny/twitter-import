@@ -147,7 +147,7 @@ function upsertRelationship(node, friend) {
           reject("error");
           return;
         }
-        logger.debug("saved relationship %j", rel);
+        logger.debug("saved relationship %j", results);
         metricRelSaved.increment();
         resolve();
       });
