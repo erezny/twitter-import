@@ -95,7 +95,7 @@ function receiveFriend (job, done) {
   }, function(err) {
     logger.debug("neo4j user not in redis %j",err);
     metricUserNotExist.increment();
-    done({ message: "user not in redis" });
+    done(); //avoid retries
   });
 };
 
