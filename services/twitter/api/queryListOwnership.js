@@ -13,7 +13,7 @@ var T = new Twit({
 var MongoClient = require('mongodb').MongoClient,
 assert = require('assert');
 
-const metrics = require('../../../lib/crow.js').withPrefix("twitter.friends.api.list");
+const metrics = require('../../../lib/crow.js').withPrefix("twitter.lists.api.ownership");
 
 metrics.setGauge("heap_used", function () { return process.memoryUsage().heapUsed; });
 metrics.setGauge("heap_total", function () { return process.memoryUsage().heapTotal; });

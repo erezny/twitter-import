@@ -7,7 +7,7 @@ var childOpts =  {
     'killTree': true,           // Kills the entire child process tree on `exit`
     'minUptime': 2000,          // Minimum time a child process has to be up. Forever will 'exit' otherwise.
     'spinSleepTime': 15000,      // Interval between restarts if a child is spinning (i.e. alive < minUptime).
-    'watch': false,               // Value indicating if we should watch files.
+    'watch': true,               // Value indicating if we should watch files.
     'env': { },
     'logFile': './log/forever.log', // Path to log output from forever process (when daemonized)
   };
@@ -27,7 +27,7 @@ var childs = {
     queryFriendsList: new (forever.Monitor)('./services/twitter/API/queryFriendsList.js', childOpts).start(),
     receiveFriends: new (forever.Monitor)('./services/twitter/Controller/receiveFriends.js', childOpts).start(),
     queryFriendsIDs: new (forever.Monitor)('./services/twitter/API/queryFriendsIDs.js', childOpts).start(),
-    queryFriendsIDs: new (forever.Monitor)('./services/twitter/API/queryFollowersIDs.js', childOpts).start(),
+    queryFollowerIDs: new (forever.Monitor)('./services/twitter/API/queryFollowersIDs.js', childOpts).start(),
     queryFollowersList: new (forever.Monitor)('./services/twitter/API/queryFollowersList.js', childOpts).start(),
   }
 };
