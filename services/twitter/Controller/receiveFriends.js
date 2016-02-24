@@ -101,7 +101,7 @@ function receiveFriend (job, done) {
   });
 };
 
-queue.process('receiveFriend', 20, receiveFriend );
+queue.process('receiveFriend', 5, receiveFriend );
 
 var metricRelFindError = metrics.counter("rel_find_error");
 var metricRelAlreadyExists = metrics.counter("rel_already_exists");
