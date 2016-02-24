@@ -125,7 +125,7 @@ function(err, db_) {
     }
     logger.debug("receivedUser %s", user.screen_name);
 
-    var mongo = saveUserToMongo(user);
+//    var mongo = saveUserToMongo(user);
     upsertUserToNeo4j(user)
     .then(updateUserSaveTime)
     .then(function(savedUser) {

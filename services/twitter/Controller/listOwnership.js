@@ -33,7 +33,7 @@ var limiterMembers = new RateLimiter(1, (1 / 14) * 15 * 60 * 1000);
 
 var RSVP = require('rsvp');
 var logger = require('tracer').colorConsole( {
-  level: 'info'
+  level: 'trace'
 } );
 var kue = require('kue');
 var queue = kue.createQueue({
@@ -96,7 +96,7 @@ function(err, db_) {
     //  logger.info("received job");
     logger.trace("received job %j", job);
     metrics.counter("start").increment();
-    saveListToMongo(job.data.list);
+//    saveListToMongo(job.data.list);
     upsertListToNeo4j(job.data.list)
     .then(function(savedList) {
       //this is receiving mongo's output
