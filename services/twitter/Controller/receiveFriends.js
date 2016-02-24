@@ -77,9 +77,10 @@ var neo4j = require('seraph')( {
   // n = 10,000,000, p = 1.0E-10 (1 in 10,000,000,000) → m = 479,252,919 (57.13MB), k = 33
   var relationshipBloom = new BloomFilter(
     8 * 1024 * 1024 * 60, // MB
-    33        // number of hash functions.
+    27        // number of hash functions.
   );
 
+var metricRelInBloomfilter = metrics.counter("rel_in_bloomfilter");
 queue.process('receiveFriend', function(job, done) {
   //  logger.info("received job");
   logger.trace("received job %j", job);
@@ -88,7 +89,7 @@ queue.process('receiveFriend', function(job, done) {
   metrics.counter("start").increment();
   var rel_id = util.format("%s:%s", user.id_str, friend.id_str );
   if (relationshipBloom.test(rel_id)) {
-    metrics.counter("rel_in_bloomfilter").increment();
+    metricRelInBloomfilter.increment();
     done();
   } else {
     relationshipBloom.add(rel_id);
