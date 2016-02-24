@@ -51,7 +51,7 @@ process.once( 'SIGTERM', function ( sig ) {
 
 setInterval( function() {
 queue.inactiveCount( 'queryFriendsList', function( err, total ) { // others are activeCount, completeCount, failedCount, delayedCount
-  metrics.setGauge("queue.inactive", total);
+  if (!err) metrics.setGauge("queue.inactive", total);
 });
 }, 15 * 1000 );
 
