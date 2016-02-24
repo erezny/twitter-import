@@ -17,11 +17,6 @@ metrics.setGauge("heap_total", function () { return process.memoryUsage().heapTo
 metrics.counter("app_started").increment();
 
 var BloomFilter = require("bloomfilter").BloomFilter;
-// 10M entries, 1 false positive
-var bloom = new BloomFilter(
-  8 * 1024 * 1024 * 40, // MB
-  23        // number of hash functions.
-);
 
 var RSVP = require('rsvp');
 var logger = require('tracer').colorConsole( {
@@ -122,18 +117,32 @@ kueRedis.select(1, function() {
   }, 30 * 60 * 60 * 1000);
 });
 
+// 10M entries, 1 false positive
+var relationshipBloom = new BloomFilter(
+  8 * 1024 * 1024 * 40, // MB
+  23        // number of hash functions.
+);
+
+// 10M entries, 1 false positive
+var jobBloom = new BloomFilter(
+  8 * 1024 * 1024 * 40, // MB
+  23        // number of hash functions.
+);
+
 var found = 0;
 function scanJob(id){
   return new RSVP.Promise( function (resolve, reject) {
     kueRedis.hgetall(id, function (err, obj) {
       var jobID = id.replace("twitter:job:", "");
-      var id_str;
+      var rel_id, job_id;
       try {
         obj.data = JSON.parse(obj.data);
         if (obj.data.user.id_str < obj.data.friend.id_str){
-          id_str = util.format("%s:%s", obj.data.user.id_str, obj.data.friend.id_str );
+          rel_id = util.format("%s:%s", obj.data.user.id_str, obj.data.friend.id_str );
+          job_id = util.format("%s:%s:%s", jobID, obj.data.user.id_str, obj.data.friend.id_str );
         } else {
-          id_str = util.format("%s:%s", obj.data.friend.id_str, obj.data.user.id_str );
+          rel_id = util.format("%s:%s", obj.data.friend.id_str, obj.data.user.id_str );
+          job_id = util.format("%s:%s:%s", jobID, obj.data.friend.id_str, obj.data.user.id_str );
         }
       } catch (err) {
         resolve();
@@ -142,10 +151,11 @@ function scanJob(id){
 
       if (obj.type == 'receiveFriend' && obj.state == 'inactive'){
 
-        if (bloom.test(id_str) ) {
+        if (relationshipBloom.test(rel_id) && !jobBloom.test(job_id)) {
           removeJob(jobID).finally(resolve);
         } else {
-          bloom.add(id_str);
+          relationshipBloom.add(rel_id);
+          jobBloom.test(job_id);
           found++;
           resolve();
         }
