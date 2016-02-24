@@ -57,39 +57,6 @@ process.once( 'SIGINT', function ( sig ) {
   });
 });
 
-  setInterval( function() {
-  queue.inactiveCount( 'cleanUserJobs', function( err, total ) { // others are activeCount, completeCount, failedCount, delayedCount
-    metrics.setGauge("queueSize", { object: "user", category: "Maintenance", status: "inactive", queue: "CleanUserJobs" }, total);
-  });
-  }, 15 * 1000 );
-
-  queue.process('queryUser', function(job, done) {
-    //  logger.info("received job");
-    logger.trace("received job %j", job);
-    queryUser(job.data.user)
-    .then(function() {
-      done();
-    }, function(err) {
-      logger.debug("queryUser error %j: %j", job.data, err);
-      metrics.counter("queryError").increment(count = 1, tags = { apiError: err.code, apiMessage: err.message });
-      done(err);
-    });
-  });
-queue.process('cleanUserJobs', function(job, done) {
-  //  logger.info("received job");
-  logger.trace("received job %j", job);
-
-  // queue.inactive( function( err, ids ) {
-  //   ids.forEach( function( id ) {
-  //     kue.Job.get( id, function( err, job ) {
-  //       // Your application should check if job is a stuck one
-  //       job.inactive();
-  //     });
-  //   });
-  // });
-  metrics.counter("finished").increment();
-});
-
 var cursor = '0';
 var lastCount = 0;
 var count = 0;
