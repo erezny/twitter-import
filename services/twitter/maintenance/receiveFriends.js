@@ -206,3 +206,5 @@ function increaseJobPriority(id){
   data: '{"user":{"id_str":"1356046153"}}',
   state: 'inactive' }
 */
+
+scan();
