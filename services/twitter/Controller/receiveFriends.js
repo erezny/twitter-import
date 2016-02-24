@@ -24,8 +24,6 @@ var RateLimiter = require('limiter').RateLimiter;
 var limiter = new RateLimiter(1, (1 / 14) * 15 * 60 * 1000);
 var limiterMembers = new RateLimiter(1, (1 / 14) * 15 * 60 * 1000);
 
-var BloomFilter = require("bloomfilter").BloomFilter;
-
 var RSVP = require('rsvp');
 var logger = require('tracer').colorConsole( {
   level: 'info'
@@ -67,12 +65,6 @@ var neo4j = require('seraph')( {
   });
   }, 15 * 1000 );
 
-  // n = 10,000,000, p = 1.0E-10 (1 in 10,000,000,000) → m = 479,252,919 (57.13MB), k = 33
-  var relationshipBloom = new BloomFilter(
-    8 * 1024 * 1024 * 60, // MB
-    27        // number of hash functions.
-  );
-
   var processStack = [];
 
 var metricRelInBloomfilter = metrics.counter("rel_in_bloomfilter");
@@ -87,12 +79,6 @@ function receiveFriend (job, done) {
   var friend = job.data.friend;
   metrics.counter("start").increment();
   var rel_id = util.format("%s:%s", user.id_str, friend.id_str );
-  if (relationshipBloom.test(rel_id)) {
-    metricRelInBloomfilter.increment();
-    done();
-  } else {
-    relationshipBloom.add(rel_id);
-  }
 
   redis.hgetall(util.format("twitter:%s", user.id_str), function(err, redisUser) {
     if (redisUser && redisUser.neo4jID && redisUser.neo4jID != "undefined"){
