@@ -10,8 +10,7 @@ var T = new Twit({
   app_only_auth:        true
 });
 
-var MongoClient = require('mongodb').MongoClient,
-assert = require('assert');
+var assert = require('assert');
 
 const crow = require("crow-metrics");
 const request = require("request");
@@ -99,7 +98,7 @@ function queryFollowersIDs(user, cursor) {
         logger.debug("queryFollowersIDs twitter api callback");
         logger.info("queryFollowersIDs %s found %d followers", user.screen_name, data.ids.length);
         for (follower of data.ids){
-          queue.create('receiveFriend', { user: { id_str: follower}, friend: { id_str: user.id_str } } ).removeOnComplete( true ).save();
+          queue.create('receiveFriend', { user: { id_str: follower }, friend: { id_str: user.id_str } } ).removeOnComplete( true ).save();
         }
         if (data.next_cursor_str !== '0'){
           queue.create('queryFollowersIDs', { user: user, cursor: data.next_cursor_str }).attempts(5).removeOnComplete( true ).save();
