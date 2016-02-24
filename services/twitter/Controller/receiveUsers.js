@@ -180,6 +180,7 @@ function updateUserSaveTime(user){
 }
 
 function upsertUserToNeo4j(user) {
+  return function(){
   delete user.id;
   return new RSVP.Promise( function (resolve, reject) {
     logger.trace('upserting %s %s', user.screen_name, user.id_str);
@@ -227,4 +228,5 @@ function upsertUserToNeo4j(user) {
       });
     });
   });
+  }
 }
