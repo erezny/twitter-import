@@ -16,6 +16,12 @@ metrics.setGauge("heap_used", function () { return process.memoryUsage().heapUse
 metrics.setGauge("heap_total", function () { return process.memoryUsage().heapTotal; });
 metrics.counter("app_started").increment();
 
+// 10M entries, 1 false positive
+var bloom = new BloomFilter(
+  8 * 1024 * 1024 * 40, // MB
+  23        // number of hash functions.
+);
+
 var RSVP = require('rsvp');
 var logger = require('tracer').colorConsole( {
   level: 'info'
@@ -56,6 +62,18 @@ process.once( 'SIGINT', function ( sig ) {
   });
   }, 15 * 1000 );
 
+  queue.process('queryUser', function(job, done) {
+    //  logger.info("received job");
+    logger.trace("received job %j", job);
+    queryUser(job.data.user)
+    .then(function() {
+      done();
+    }, function(err) {
+      logger.debug("queryUser error %j: %j", job.data, err);
+      metrics.counter("queryError").increment(count = 1, tags = { apiError: err.code, apiMessage: err.message });
+      done(err);
+    });
+  });
 queue.process('cleanUserJobs', function(job, done) {
   //  logger.info("received job");
   logger.trace("received job %j", job);
@@ -79,7 +97,7 @@ function scan() {
     kueRedis.scan(
         cursor,
         'MATCH', 'twitter:job:*',
-        'COUNT', '100',
+        'COUNT', '10000',
         function(err, res) {
             if (err) throw err;
 
@@ -120,7 +138,7 @@ function scan() {
                 return console.log('Iteration complete');
             }
             if (count > lastCount + 1000){
-              console.log("count: %d \tcache size: %d \tremoved: %d", count, cache.length, removed);
+              console.log("count: %d \tcache size: %d \tremoved: %d", count, found, removed);
               lastCount = count;
             }
 
@@ -133,25 +151,21 @@ kueRedis.select(1, function() {
   scan();
 });
 
-var cache = [];
-var cacheMax = 1000000;
-var hashCache = {};
-
+var found = 0;
 function scanJob(id){
   kueRedis.hgetall(id, function (err, obj) {
     var jobID = id.replace("twitter:job:", "");
     obj.data = JSON.parse(obj.data);
+    var id_str = obj.data.user.id_str;
+
     if (obj.type == 'queryUser' && obj.state == 'inactive'){
 
-      if (cache.indexOf(obj.data.user.id_str) >= 0){
+      if (bloom.test(id_str) ) {
         removeJob(jobID);
         return;
-      }
-      if (cache.length < cacheMax){
-        //console.log("user pushed to cache %s", obj.data.user.id_str);
-        cache.push(obj.data.user.id_str);
-        hashCache[obj.data.user.id_str] = { jobID: jobID };
-        return;
+      } else {
+        bloom.add(id_str);
+        found++;
       }
     }
   });
@@ -171,7 +185,11 @@ function removeJob(id){
 //untested
 function increaseJobPriority(id){
   kue.Job.get( id, function( err, job ) {
-    job.priority.set(job.priority--).save();
+    priority = job.priority();
+    console.log("priority %j", priority);
+    if (priority > -15) {
+      job.priority(priority - 1).save();
+    }
   });
 };
 
