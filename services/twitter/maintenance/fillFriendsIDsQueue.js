@@ -26,7 +26,7 @@ var neo4j = require('seraph')( {
   user: process.env.NEO4J_USERNAME,
   pass: process.env.NEO4J_PASSWORD });
 
-neo4j.queryRaw("match (n:twitterUser) where n.friends_count > 0 and n.friends_count < 100000 with n limit 10000 " +
+neo4j.queryRaw("match (n:twitterUser) where n.friends_count > 0 with n limit 10000 " +
   "match p=(n)-[:follows]->(:twitterUser) " +
   "WITH n, count(p) AS friends, count(p)/n.friends_count as ratio " +
   "return n order by ratio limit 10", function(err, results) {
@@ -38,6 +38,10 @@ neo4j.queryRaw("match (n:twitterUser) where n.friends_count > 0 and n.friends_co
   logger.trace("neo4j found %j", results);
   for ( users of results.data) {
     logger.debug("pushing %s %s", users[0].data.screen_name, users[0].data.id_str);
-    queue.create('queryFriendsIDs', { user: users[0].data, cursor: "-1" } ).attempts(5).removeOnComplete( true ).save();
+    if (users[0].friends_count > 2000) {
+      queue.create('queryFriendsIDs', { user: users[0].data, cursor: "-1" } ).attempts(2).removeOnComplete( true ).save();
+    } else {
+      queue.create('queryFriendsList', { user: users[0].data, cursor: "-1" } ).attempts(2).removeOnComplete( true ).save();
+    }
   }
 })
