@@ -139,40 +139,17 @@ function upsertRelationship(node, friend) {
   assert( typeof(node.id) == "number" );
   assert( typeof(friend.id) == "number" );
   return new RSVP.Promise( function (resolve, reject) {
-      neo4j.queryRaw("start x=node({idx}), n=node({idn}) MATCH (x)-[r:follows]->(n) RETURN r",
-        { idx: node.id, idn: friend.id }, function(err, results) {
+    neo4j.queryRaw("start x=node({idx}), n=node({idn}) create unique (x)-[r:follows]->(n) RETURN r",
+      { idx: node.id, idn: friend.id }, function(err, results) {
         if (err){
-          logger.error("neo4j find error %j",err);
-          metricRelFindError.increment();
+          logger.error("neo4j save error %j %j", { node: node, friend: friend }, err);
+          metricRelSaveError.increment();
           reject("error");
           return;
         }
-        logger.trace("neo4j found %j", results);
-        if (results.data.length > 0) {
-          //TODO search for duplicates and remove duplicates
-          logger.debug("relationship found %j", results.data[0][0].metadata.id);
-          metricRelAlreadyExists.increment();
-          if (results.data.length > 1){
-            for (var i = 1; i < results.data.length; i++){
-              neo4j.rel.delete(results.data[i][0].metadata.id, function(err) {
-                if (!err) logger.debug("deleted duplicate relationship");
-              });
-            }
-          }
-          resolve();
-          return;
-        }
-        neo4j.relate(node.id, 'follows', friend.id, function(err, rel) {
-          if (err){
-            logger.error("neo4j save error %j %j", { node: node, friend: friend }, err);
-            metricRelSaveError.increment();
-            reject("error");
-            return;
-          }
-          logger.debug("saved relationship %j", rel);
-          metricRelSaved.increment();
-          resolve();
-        });
+        logger.debug("saved relationship %j", rel);
+        metricRelSaved.increment();
+        resolve();
       });
   });
 }

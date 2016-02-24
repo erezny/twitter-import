@@ -55,7 +55,7 @@ function fillFriendsList(){
     logger.trace("neo4j found %j", results);
     for ( users of results.data) {
       logger.debug("pushing %s %s", users[0].data.screen_name, users[0].data.id_str);
-      queue.create('queryFriendsList', { user: users[0].data, cursor: "-1" } ).attempts(2).removeOnComplete( true ).save();
+      queue.create('queryFriendsIDs', { user: users[0].data, cursor: "-1" } ).attempts(2).removeOnComplete( true ).save();
     }
   });
 };
