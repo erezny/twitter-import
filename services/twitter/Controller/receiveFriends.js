@@ -65,8 +65,6 @@ var neo4j = require('seraph')( {
   });
   }, 15 * 1000 );
 
-  var processStack = [];
-
 var metricRelInBloomfilter = metrics.counter("rel_in_bloomfilter");
 var metricFriendNotExist = metrics.counter("friend_not_exist");
 var metricUserNotExist = metrics.counter("user_not_exist");
@@ -103,26 +101,7 @@ function receiveFriend (job, done) {
   });
 };
 
-processStack.push(queue.process('receiveFriend', receiveFriend ));
-processStack.push(queue.process('receiveFriend', receiveFriend ));
-processStack.push(queue.process('receiveFriend', receiveFriend ));
-processStack.push(queue.process('receiveFriend', receiveFriend ));
-processStack.push(queue.process('receiveFriend', receiveFriend ));
-processStack.push(queue.process('receiveFriend', receiveFriend ));
-processStack.push(queue.process('receiveFriend', receiveFriend ));
-processStack.push(queue.process('receiveFriend', receiveFriend ));
-processStack.push(queue.process('receiveFriend', receiveFriend ));
-processStack.push(queue.process('receiveFriend', receiveFriend ));
-processStack.push(queue.process('receiveFriend', receiveFriend ));
-processStack.push(queue.process('receiveFriend', receiveFriend ));
-processStack.push(queue.process('receiveFriend', receiveFriend ));
-processStack.push(queue.process('receiveFriend', receiveFriend ));
-processStack.push(queue.process('receiveFriend', receiveFriend ));
-processStack.push(queue.process('receiveFriend', receiveFriend ));
-processStack.push(queue.process('receiveFriend', receiveFriend ));
-processStack.push(queue.process('receiveFriend', receiveFriend ));
-processStack.push(queue.process('receiveFriend', receiveFriend ));
-processStack.push(queue.process('receiveFriend', receiveFriend ));
+queue.process('receiveFriend', 10, receiveFriend );
 
 var metricRelFindError = metrics.counter("rel_find_error");
 var metricRelAlreadyExists = metrics.counter("rel_already_exists");

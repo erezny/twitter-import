@@ -157,9 +157,7 @@ function dostuff(user, done){
   });
 }
 
-    processStack.push(queue.process('receiveUser', receiveUser));
-    processStack.push(queue.process('receiveUser', receiveUser));
-    processStack.push(queue.process('receiveUser', receiveUser));
+queue.process('receiveUser', 5, receiveUser);
 
   setInterval( function() {
   queue.inactiveCount( 'receiveUser', function( err, total ) { // others are activeCount, completeCount, failedCount, delayedCount
