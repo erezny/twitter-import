@@ -65,7 +65,7 @@ function scan() {
     kueRedis.scan(
         cursor,
         'MATCH', 'twitter:job:*',
-        'COUNT', '1000',
+        'COUNT', '20000',
         function(err, res) {
             if (err) throw err;
 
@@ -117,7 +117,9 @@ function scan() {
 }
 
 kueRedis.select(1, function() {
-  scan();
+  setInterval(function() {
+    scan();
+  }, 30 * 60 * 60 * 1000);
 });
 
 var found = 0;
