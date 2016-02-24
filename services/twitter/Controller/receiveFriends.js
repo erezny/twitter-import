@@ -80,8 +80,14 @@ var neo4j = require('seraph')( {
     27        // number of hash functions.
   );
 
+  var processStack = [];
+
 var metricRelInBloomfilter = metrics.counter("rel_in_bloomfilter");
-queue.process('receiveFriend', function(job, done) {
+var metricFriendNotExist = metrics.counter("friend_not_exist");
+var metricUserNotExist = metrics.counter("user_not_exist");
+var metricFinish = metrics.counter("finish");
+
+function receiveFriend (job, done) {
   //  logger.info("received job");
   logger.trace("received job %j", job);
   var user = job.data.user;
@@ -100,22 +106,31 @@ queue.process('receiveFriend', function(job, done) {
       redis.hgetall(util.format("twitter:%s", friend.id_str), function(err, redisFriend) {
         if (redisFriend && redisFriend.neo4jID && redisFriend.neo4jID != "undefined"){
           upsertRelationship({ id: parseInt(redisUser.neo4jID) }, { id: parseInt(redisFriend.neo4jID) }).then(function() {
-            metrics.counter("finish").increment();
+            metricFinish.increment();
             done();
           }, done);
         } else {
           logger.debug("friend not in redis %j",err);
-          metrics.counter("friend_not_exist").increment();
+          metricFriendNotExist.increment();
           done({ message: "friend not in redis" } );
         }
       });
     } else {
-      metrics.counter("user_not_exist").increment();
+      metricUserNotExist.increment();
       logger.debug("neo4j user not in redis %j",err);
       done({ message: "user not in redis" });
     }
   });
-});
+};
+
+processStack.push(queue.process('receiveFriend', receiveFriend ));
+processStack.push(queue.process('receiveFriend', receiveFriend ));
+processStack.push(queue.process('receiveFriend', receiveFriend ));
+processStack.push(queue.process('receiveFriend', receiveFriend ));
+processStack.push(queue.process('receiveFriend', receiveFriend ));
+processStack.push(queue.process('receiveFriend', receiveFriend ));
+processStack.push(queue.process('receiveFriend', receiveFriend ));
+processStack.push(queue.process('receiveFriend', receiveFriend ));
 
 function upsertRelationship(node, friend) {
   assert( typeof(node.id) == "number" );
