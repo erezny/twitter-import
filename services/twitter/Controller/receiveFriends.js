@@ -50,6 +50,13 @@ process.once( 'SIGTERM', function ( sig ) {
   });
 });
 
+process.once( 'SIGINT', function ( sig ) {
+  queue.shutdown( 5000, function(err) {
+    console.log( 'Kue shutdown: ', err||'' );
+    process.exit( 0 );
+  });
+});
+
 var neo4j = require('seraph')( {
   server: util.format("%s://%s:%s",
   process.env.NEO4J_PROTOCOL,
@@ -77,29 +84,50 @@ function receiveFriend (job, done) {
   var user = job.data.user;
   var friend = job.data.friend;
   metrics.counter("start").increment();
-  var rel_id = util.format("%s:%s", user.id_str, friend.id_str );
 
-  redis.hgetall(util.format("twitter:%s", user.id_str), function(err, redisUser) {
-    if (redisUser && redisUser.neo4jID && redisUser.neo4jID != "undefined"){
-      redis.hgetall(util.format("twitter:%s", friend.id_str), function(err, redisFriend) {
-        if (redisFriend && redisFriend.neo4jID && redisFriend.neo4jID != "undefined"){
-          metricNeo4jTimeMsec.time(upsertRelationship({ id: parseInt(redisUser.neo4jID) }, { id: parseInt(redisFriend.neo4jID) })).then(function() {
-            metricFinish.increment();
-            done();
-          }, done);
-        } else {
-          logger.debug("friend not in redis %j",err);
-          metricFriendNotExist.increment();
-          done({ message: "friend not in redis" } );
-        }
-      });
-    } else {
-      metricUserNotExist.increment();
-      logger.debug("neo4j user not in redis %j",err);
-      done({ message: "user not in redis" });
-    }
+  RSVP.hash({ user: lookupNeo4jID(user), friend: lookupNeo4jID(friend) })
+  .then(function(results) {
+    logger.trace("ready to upsert");
+    metricNeo4jTimeMsec.time(upsertRelationship(results.user, results.friend)).then(function() {
+      metricFinish.increment();
+      done();
+    }, done);
+  }, function(err) {
+    logger.debug("neo4j user not in redis %j",err);
+    metricUserNotExist.increment();
+    done({ message: "user not in redis" });
   });
 };
+
+//var redisCache = [];
+function lookupNeo4jID(user){
+
+  return new RSVP.Promise( function(resolve, reject) {
+    // for (cache in redisCache){
+    //   if (cache[0] == user.id_str){
+    //     logger.trace("cached");
+    //     resolve(cache[1]);
+    //     cache[2]++;
+    //     return;
+    //   }
+    // }
+    // if (redisCache.length > 100){
+    //   redisCache.sort(function(a,b) {return a[2] - b[2] }).splice(80);
+    // }
+    logger.trace("querying redis");
+    redis.hgetall(util.format("twitter:%s", user.id_str), function(err, redisUser) {
+      logger.trace("finished querying redis");
+      if (redisUser && redisUser.neo4jID && redisUser.neo4jID != "undefined"){
+    //    redisCache.push([ user.id_str, { id: parseInt(redisUser.neo4jID) }, 0 ])
+        logger.trace("resolve %d", redisCache.length);
+        resolve({ id: parseInt(redisUser.neo4jID) });
+      } else {
+        logger.trace("reject");
+        reject();
+      }
+    });
+  });
+}
 
 queue.process('receiveFriend', 5, receiveFriend );
 
