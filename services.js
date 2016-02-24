@@ -6,7 +6,7 @@ var childOpts =  {
     'max': 10,                  // Sets the maximum number of times a given script should run
     'killTree': true,           // Kills the entire child process tree on `exit`
     'minUptime': 2000,          // Minimum time a child process has to be up. Forever will 'exit' otherwise.
-    'spinSleepTime': 1000,      // Interval between restarts if a child is spinning (i.e. alive < minUptime).
+    'spinSleepTime': 15000,      // Interval between restarts if a child is spinning (i.e. alive < minUptime).
     'watch': false,               // Value indicating if we should watch files.
     'env': { },
     'logFile': './log/forever.log', // Path to log output from forever process (when daemonized)
