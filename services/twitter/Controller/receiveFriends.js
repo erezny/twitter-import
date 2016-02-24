@@ -88,7 +88,7 @@ function receiveFriend (job, done) {
   RSVP.hash({ user: lookupNeo4jID(user), friend: lookupNeo4jID(friend) })
   .then(function(results) {
     logger.trace("ready to upsert");
-    metricNeo4jTimeMsec.time(upsertRelationship(results.user, results.friend)).then(function() {
+    upsertRelationship(results.user, results.friend).then(function() {
       metricFinish.increment();
       done();
     }, done);
@@ -136,25 +136,21 @@ var metricRelSaveError = metrics.counter("rel_save_error");
 var metricRelSaved = metrics.counter("rel_saved");
 var sem = require('semaphore')(2);
 function upsertRelationship(node, friend) {
-  return function() {
   assert( typeof(node.id) == "number" );
   assert( typeof(friend.id) == "number" );
   return new RSVP.Promise( function (resolve, reject) {
-    sem.take( function() {
     neo4j.queryRaw("start x=node({idx}), n=node({idn}) create unique (x)-[r:follows]->(n) RETURN r",
       { idx: node.id, idn: friend.id }, function(err, results) {
-        sem.leave();
-        if (err){
-          logger.error("neo4j save error %j %j", { node: node, friend: friend }, err);
-          metricRelSaveError.increment();
-          reject("error");
-          return;
-        }
-        logger.debug("saved relationship %j", results);
-        metricRelSaved.increment();
-        resolve();
-      });
+      sem.leave();
+      if (err){
+        logger.error("neo4j save error %j %j", { node: node, friend: friend }, err);
+        metricRelAlreadyExists.increment();
+        reject("error");
+        return;
+      }
+      logger.debug("saved relationship %j", results);
+      metricRelSaved.increment();
+      resolve();
     });
   });
-}
 }
