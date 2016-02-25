@@ -2,15 +2,8 @@
 // #refactor:10 write queries
 var util = require('util');
 var assert = require('assert');
-
-const crow = require("crow-metrics");
-const request = require("request");
-const metrics = new crow.MetricsRegistry({ period: 15000, separator: "." }).withPrefix("twitter.users.maintenance");
-
-crow.exportInflux(metrics, request, { url: util.format("%s://%s:%s@%s:%d/write?db=%s",
-process.env.INFLUX_PROTOCOL, process.env.INFLUX_USERNAME, process.env.INFLUX_PASSWORD,
-process.env.INFLUX_HOST, parseInt(process.env.INFLUX_PORT), process.env.INFLUX_DATABASE)
-});
+var cacheCtrl = require('../../../lib/twitter/cacheCtrl');
+const metrics = require('../../../lib/crow.js').withPrefix("twitter.users.maintenance");
 
 metrics.setGauge("heap_used", function () { return process.memoryUsage().heapUsed; });
 metrics.setGauge("heap_total", function () { return process.memoryUsage().heapTotal; });
@@ -141,7 +134,10 @@ function scanJob(id){
         } else {
           bloom.add(id_str);
           found++;
-          resolve();
+          cacheCtrl.checkUserQueryTime(obj.data.user)
+          .then(resolve, function() {
+              removeJob(jobID).finally(resolve);
+          })
         }
       } else {
         resolve();
