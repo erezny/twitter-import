@@ -13,11 +13,7 @@ var T = new Twit({
 var MongoClient = require('mongodb').MongoClient,
 assert = require('assert');
 
-const metrics = require('../../../lib/crow.js').withPrefix("twitter.friends.api.list");
-
-metrics.setGauge("heap_used", function () { return process.memoryUsage().heapUsed; });
-metrics.setGauge("heap_total", function () { return process.memoryUsage().heapTotal; });
-metrics.counter("app_started").increment();
+const metrics = require('../../../lib/crow.js').withPrefix("twitter.list.api.members");
 
 var RateLimiter = require('limiter').RateLimiter;
 //set rate limiter slightly lower than twitter api limit
