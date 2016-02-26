@@ -84,6 +84,12 @@ function queryUser(user) {
       T.get('users/show', { user_id: user.id_str }, function(err, data)
       {
         if (err){
+          if (err.code == 50){
+            //user doesn't exist
+            //queue.create('expireUser', {user: user}).removeOnComplete(true).save();
+            reject({user: user, err: err, reason: "user doesn't exist"});
+            return;
+          }
           logger.error("twitter api error %j %j", user, err);
           metrics.counter("apiError").increment(count = 1, tags = { apiError: err.code, apiMessage: err.message });
           reject({ user: user, err: err, reason: "twitter api error" });
