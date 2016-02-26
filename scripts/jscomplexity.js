@@ -15,9 +15,9 @@ function reportAggregator() {
   };
 
   function tableArray() {
-    return combinedReport.sort(function(a,b){
+    return combinedReport.sort(function(a,b) {
       return a.path > b.path;
-    }).map(function(item){
+    }).map(function(item) {
       return [
         item.path,
         item.complexity,
