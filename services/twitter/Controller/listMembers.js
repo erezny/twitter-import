@@ -72,44 +72,29 @@ queue.process('receiveListMembers', function(job, done) {
   });
 });
 
-function setListMember(user, list) {
-  assert( typeof(user.id) == "number");
-  assert( typeof(list.id) == "number");
+var metricRelFindError = metrics.counter("rel_find_error");
+var metricRelAlreadyExists = metrics.counter("rel_already_exists");
+var metricRelSaveError = metrics.counter("rel_save_error");
+var metricRelSaved = metrics.counter("rel_saved");
+var sem = require('semaphore')(2);
+function setListMember(node, list) {
+  assert( typeof(node.id) == "number" );
+  assert( typeof(friend.id) == "number" );
   return new RSVP.Promise( function (resolve, reject) {
-    neo4j.queryRaw("start x=node({idx}), n=node({idn}) MATCH (x)-[r:includes]->(n) RETURN x,r,n",
-    { idx: list.id, idn: user.id }, function(err, results) {
+  sem.take(function() {
+    neo4j.queryRaw("start x=node({idx}), n=node({idn}) create unique (x)-[r:includes]->(n) RETURN r",
+      { idx: node.id, idn: list.id }, function(err, results) {
+      sem.leave();
       if (err){
-        logger.error("neo4j find error %j",err);
-        metrics.counter("members.rel_find_error").increment();
+        logger.error("neo4j save error %j %j", { node: node, list: list }, err);
+        metricRelAlreadyExists.increment();
         reject("error");
         return;
       }
-      logger.trace("neo4j found %j", results);
-      if (results.data.length > 0) {
-        //TODO search for duplicates and remove duplicates
-        logger.debug("relationship found %j", results.data[0][1]);
-        metrics.counter("members.rel_already_exists").increment();
-        resolve(results.data[0][1]);
-        if (results.data.length > 1){
-          for (var i = 1; i < results.data.length; i++){
-            neo4j.rel.delete(results.data[i][1].metadata.id, function(err) {
-              if (!err) logger.debug("deleted duplicate relationship");
-            });
-          }
-        }
-        return;
-      }
-      neo4j.relate(list.id, 'includes', user.id, function(err, rel) {
-        if (err){
-          logger.error("neo4j save error %j %j", { user: user, list: list }, err);
-          metrics.counter("members.rel_save_error").increment();
-          reject("error");
-          return;
-        }
-        logger.debug("saved relationship %j", rel);
-        metrics.counter("members.rel_saved").increment();
-        resolve(rel);
-      });
-    })
+      logger.debug("saved relationship %j", results);
+      metricRelSaved.increment();
+      resolve();
+    });
   });
+});
 }
