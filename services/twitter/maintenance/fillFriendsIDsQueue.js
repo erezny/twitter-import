@@ -2,20 +2,13 @@
 // #refactor:10 write queries
 var util = require('util');
 var assert = require('assert');
+const metrics = require('../../../lib/crow.js').withPrefix("twitter.friends.maintenance.fillGraph");
+var queue = require('../../../lib/kue.js');
 
 var RSVP = require('rsvp');
 var logger = require('tracer').colorConsole( {
-  level: 'debug'
+  level: 'info'
 } );
-var kue = require('kue');
-var queue = kue.createQueue({
-  prefix: 'twitter',
-  redis: {
-    port: process.env.REDIS_PORT,
-    host: process.env.REDIS_HOST,
-    db: 1, // if provided select a non-default redis db
-  }
-});
 
 var neo4j = require('seraph')( {
   server: util.format("%s://%s:%s",
@@ -28,25 +21,30 @@ var neo4j = require('seraph')( {
 
   setInterval( function() {
     queue.inactiveCount( 'queryFriendsList', function( err, total ) { // others are activeCount, completeCount, failedCount, delayedCount
-      if (total <= 0) {
+      if (total <= 5) {
         fillFriendsList();
       }
     });
-  }, 15 * 60 * 1000 );
+  }, 5 * 60 * 1000 );
 
   setInterval( function() {
     queue.inactiveCount( 'queryFriendsIDs', function( err, total ) { // others are activeCount, completeCount, failedCount, delayedCount
-      if (total <= 0) {
+      if (total <= 5) {
         fillFriendsIDs();
       }
     });
-  }, 60 * 60 * 1000 );
+  }, 5 * 60 * 1000 );
+
+function queryTemplate(sortDir){
+  return util.format("match (n:service{type:"VIP"})--()--(n:twitterUser) " +
+    "with collect(distinct n) as n " +
+    "match p=(n)-[:follows]->(:twitterUser) " +
+    "WITH n, count(p) AS friends, n.friends_count - count(p) as remaining " +
+    "return n order by remaining %s limit 5", sortDir);
+}
 
 function fillFriendsList(){
-  neo4j.queryRaw("match (n:twitterUser) where n.friends_count > 0 and n.friends_count <= 2000 with n order by n.friends_count limit 10000 " +
-    "match p=(n)-[:follows]->(:twitterUser) " +
-    "WITH n, count(p) AS friends, count(p)/n.friends_count as ratio " +
-    "return n order by ratio limit 10", function(err, results) {
+  neo4j.queryRaw(queryTemplate("asc"), function(err, results) {
     if (err){
       logger.error("neo4j find error %j",err);
       reject("error");
@@ -55,16 +53,13 @@ function fillFriendsList(){
     logger.trace("neo4j found %j", results);
     for ( users of results.data) {
       logger.debug("pushing %s %s", users[0].data.screen_name, users[0].data.id_str);
-      queue.create('queryFriendsIDs', { user: users[0].data, cursor: "-1" } ).attempts(2).removeOnComplete( true ).save();
+      queue.create('queryFriendsList', { user: users[0].data, cursor: "-1" } ).attempts(2).removeOnComplete( true ).save();
     }
   });
 };
 
 function fillFriendsIDs(){
-  neo4j.queryRaw("match (n:twitterUser) where n.friends_count > 2000 with n by n.friends_count limit 10000 " +
-    "match p=(n)-[:follows]->(:twitterUser) " +
-    "WITH n, count(p) AS friends, count(p)/n.friends_count as ratio " +
-    "return n order by ratio limit 10", function(err, results) {
+  neo4j.queryRaw(queryTemplate("desc"), function(err, results) {
     if (err){
       logger.error("neo4j find error %j",err);
       reject("error");
