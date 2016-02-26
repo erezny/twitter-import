@@ -20,7 +20,7 @@ var neo4j = require('seraph')( {
   pass: process.env.NEO4J_PASSWORD });
 
 checkFillFriendsList()
-setInterval(checkFillFriendsList, 5 * 60 * 1000 );
+setInterval(checkFillFriendsList, 30 * 60 * 1000 );
 function checkFillFriendsList() {
    queue.inactiveCount( 'queryFriendsList', function( err, total ) { // others are activeCount, completeCount, failedCount, delayedCount
      if (total <= 5) {
@@ -29,7 +29,7 @@ function checkFillFriendsList() {
    });
  }
 checkfillFriendsIDs()
-setInterval(checkfillFriendsIDs, 5 * 60 * 1000 );
+setInterval(checkfillFriendsIDs, 30 * 60 * 1000 );
 function checkfillFriendsIDs() {
     queue.inactiveCount( 'queryFriendsIDs', function( err, total ) { // others are activeCount, completeCount, failedCount, delayedCount
       if (total <= 5) {
