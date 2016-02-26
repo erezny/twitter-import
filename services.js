@@ -30,6 +30,7 @@ var childs = {
     queryFollowerIDs: new (forever.Monitor)('./services/twitter/API/queryFollowersIDs.js', childOpts).start(),
     queryFollowersList: new (forever.Monitor)('./services/twitter/API/queryFollowersList.js', childOpts).start(),
     fillFriendsQueue: new (forever.Monitor)('./services/twitter/maintenance/fillFriendsIDsQueue.js', childOpts).start(),
+    statsVIP: new (forever.Monitor)('./services/twitter/maintenance/statsVIP.js', childOpts).start(),
   }
 };
 function addEvents(child) {
