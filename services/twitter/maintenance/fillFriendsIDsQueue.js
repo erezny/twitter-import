@@ -36,7 +36,7 @@ var neo4j = require('seraph')( {
   }, 5 * 60 * 1000 );
 
 function queryTemplate(sortDir){
-  return util.format("match (n:service{type:"VIP"})--()--(n:twitterUser) " +
+  return util.format("match (n:service{type:\"VIP\"})--()--(n:twitterUser) " +
     "with collect(distinct n) as n " +
     "match p=(n)-[:follows]->(:twitterUser) " +
     "WITH n, count(p) AS friends, n.friends_count - count(p) as remaining " +
