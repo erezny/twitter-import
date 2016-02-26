@@ -79,7 +79,7 @@ var metricRelSaved = metrics.counter("rel_saved");
 var sem = require('semaphore')(2);
 function setListMember(node, list) {
   assert( typeof(node.id) == "number" );
-  assert( typeof(friend.id) == "number" );
+  assert( typeof(list.id) == "number" );
   return new RSVP.Promise( function (resolve, reject) {
   sem.take(function() {
     neo4j.queryRaw("start x=node({idx}), n=node({idn}) create unique (x)-[r:includes]->(n) RETURN r",
