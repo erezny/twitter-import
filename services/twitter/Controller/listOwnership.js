@@ -1,23 +1,11 @@
 
 // #refactor:10 write queries
 var util = require('util');
-var Twit = require('twit');
-var T = new Twit({
-  consumer_key:         process.env.TWITTER_CONSUMER_KEY,
-  consumer_secret:      process.env.TWITTER_CONSUMER_SECRET,
-  //access_token:         process.env.TWITTER_ACCESS_TOKEN,
-  //access_token_secret:  process.env.TWITTER_ACCESS_TOKEN_SECRET
-  app_only_auth:        true
-});
 
 var MongoClient = require('mongodb').MongoClient,
 assert = require('assert');
 
 const metrics = require('../../../lib/crow.js').withPrefix("twitter.lists.controller.ownership");
-
-metrics.setGauge("heap_used", function () { return process.memoryUsage().heapUsed; });
-metrics.setGauge("heap_total", function () { return process.memoryUsage().heapTotal; });
-metrics.counter("app_started").increment();
 
 var RateLimiter = require('limiter').RateLimiter;
 //set rate limiter slightly lower than twitter api limit
@@ -92,7 +80,6 @@ function(err, db_) {
 //    saveListToMongo(job.data.list);
     upsertListToNeo4j(job.data.list)
     .then(function(savedList) {
-      //this is receiving mongo's output
       logger.trace("savedList: %j", savedList);
       return new RSVP.Promise( function (resolve, reject) {
         redis.hgetall(util.format("twitter:%s",job.data.list.owner), function(err, obj) {
