@@ -20,7 +20,7 @@ var neo4j = require('seraph')( {
   pass: process.env.NEO4J_PASSWORD });
 
 checkFillFriendsList()
-setInterval(checkFillFriendsList(), 5 * 60 * 1000 );
+setInterval(checkFillFriendsList, 5 * 60 * 1000 );
 function checkFillFriendsList() {
    queue.inactiveCount( 'queryFriendsList', function( err, total ) { // others are activeCount, completeCount, failedCount, delayedCount
      if (total <= 5) {
@@ -29,7 +29,7 @@ function checkFillFriendsList() {
    });
  }
 checkfillFriendsIDs()
-setInterval(checkfillFriendsIDs(), 5 * 60 * 1000 );
+setInterval(checkfillFriendsIDs, 5 * 60 * 1000 );
 function checkfillFriendsIDs() {
     queue.inactiveCount( 'queryFriendsIDs', function( err, total ) { // others are activeCount, completeCount, failedCount, delayedCount
       if (total <= 5) {
@@ -41,7 +41,7 @@ function checkfillFriendsIDs() {
 function queryTemplate(sortDir){
   return util.format("match (service{type:\"VIP\"})--()--(n:twitterUser) " +
     "with distinct n as n, rand() as r order by r limit 100" +
-    "match p=(n)-[:follows]->(:twitterUser) " +
+    "match p = (n)-[:follows]->(:twitterUser) " +
     "WITH n, count(p) AS friends, n.friends_count - count(p) as remaining " +
     "return n order by remaining %s limit 5", sortDir);
 }
