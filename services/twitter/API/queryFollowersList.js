@@ -14,6 +14,7 @@ var MongoClient = require('mongodb').MongoClient,
 assert = require('assert');
 
 const metrics = require('../../../lib/crow.js').withPrefix("twitter.followers.api.list"); //turn lib into node module
+var queue = require('../../../lib/kue.js');
 
 var RateLimiter = require('limiter').RateLimiter;
 //set rate limiter slightly lower than twitter api limit
@@ -23,26 +24,10 @@ var RSVP = require('rsvp');
 var logger = require('tracer').colorConsole( {
   level: 'info'
 } );
-var kue = require('kue');
-var queue = kue.createQueue({
-  prefix: 'twitter',
-  redis: {
-    port: process.env.REDIS_PORT,
-    host: process.env.REDIS_HOST,
-    db: 1, // if provided select a non-default redis db
-  }
-});
 
 var redis = require("redis").createClient({
   host: process.env.REDIS_HOST,
   port: parseInt(process.env.REDIS_PORT),
-});
-
-process.once( 'SIGTERM', function ( sig ) {
-  queue.shutdown( 5000, function(err) {
-    console.log( 'Kue shutdown: ', err||'' );
-    process.exit( 0 );
-  });
 });
 
 setInterval( function() {
