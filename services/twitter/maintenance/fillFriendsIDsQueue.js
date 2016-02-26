@@ -50,7 +50,6 @@ function fillFriendsList(){
   neo4j.queryRaw(queryTemplate("asc"), function(err, results) {
     if (err){
       logger.error("neo4j find error %j",err);
-      reject("error");
       return;
     }
     logger.trace("neo4j found %j", results);
@@ -65,7 +64,6 @@ function fillFriendsIDs(){
   neo4j.queryRaw(queryTemplate("desc"), function(err, results) {
     if (err){
       logger.error("neo4j find error %j",err);
-      reject("error");
       return;
     }
     logger.trace("neo4j found %j", results);
