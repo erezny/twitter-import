@@ -19,24 +19,27 @@ var neo4j = require('seraph')( {
   user: process.env.NEO4J_USERNAME,
   pass: process.env.NEO4J_PASSWORD });
 
-  setInterval( function() {
-    queue.inactiveCount( 'queryFriendsList', function( err, total ) { // others are activeCount, completeCount, failedCount, delayedCount
-      if (total <= 5) {
-        fillFriendsList();
-      }
-    });
-  }, 5 * 60 * 1000 );
-
-  setInterval( function() {
+checkFillFriendsList()
+setInterval(checkFillFriendsList(), 5 * 60 * 1000 );
+function checkFillFriendsList() {
+   queue.inactiveCount( 'queryFriendsList', function( err, total ) { // others are activeCount, completeCount, failedCount, delayedCount
+     if (total <= 5) {
+       fillFriendsList();
+     }
+   });
+ }
+checkfillFriendsIDs()
+setInterval(checkfillFriendsIDs(), 5 * 60 * 1000 );
+function checkfillFriendsIDs() {
     queue.inactiveCount( 'queryFriendsIDs', function( err, total ) { // others are activeCount, completeCount, failedCount, delayedCount
       if (total <= 5) {
         fillFriendsIDs();
       }
     });
-  }, 5 * 60 * 1000 );
+  }
 
 function queryTemplate(sortDir){
-  return util.format("match (n:service{type:\"VIP\"})--()--(n:twitterUser) " +
+  return util.format("match (service{type:\"VIP\"})--()--(n:twitterUser) " +
     "with collect(distinct n) as n " +
     "match p=(n)-[:follows]->(:twitterUser) " +
     "WITH n, count(p) AS friends, n.friends_count - count(p) as remaining " +
