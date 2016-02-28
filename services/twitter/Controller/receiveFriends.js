@@ -59,6 +59,7 @@ function receiveFriend (job, done) {
       done();
     }, done);
   }, function(err) {
+    // enque new receiveFriend job
     logger.debug("neo4j user not in redis %j",err);
     metricUserNotExist.increment();
     done(); //avoid retries
@@ -87,6 +88,9 @@ function lookupNeo4jID(user){
     //    redisCache.push([ user.id_str, { id: parseInt(redisUser.neo4jID) }, 0 ])
         resolve({ id: parseInt(redisUser.neo4jID) });
       } else {
+        // create neo4j node with just id_str
+        // resolve({id: neo4jID})
+        // create
         logger.trace("reject");
         reject();
       }
@@ -98,7 +102,6 @@ queue.process('receiveFriend', 20, receiveFriend );
 
 var metricRelFindError = metrics.counter("rel_find_error");
 var metricRelAlreadyExists = metrics.counter("rel_already_exists");
-var metricRelSaveError = metrics.counter("rel_save_error");
 var metricRelSaved = metrics.counter("rel_saved");
 var sem = require('semaphore')(2);
 function upsertRelationship(node, friend) {
@@ -110,14 +113,18 @@ function upsertRelationship(node, friend) {
       { idx: node.id, idn: friend.id }, function(err, results) {
       sem.leave();
       if (err){
-        logger.error("neo4j save error %j %j", { node: node, friend: friend }, err);
-        metricRelAlreadyExists.increment();
-        reject("error");
-        return;
+        if (err.code == "Neo.ClientError.Statement.ConstraintViolation") {
+          metricRelAlreadyExists.increment();
+          resolve();
+        } else {
+          logger.error("neo4j save error %j %j", { node: node, friend: friend }, err);
+          reject("error");
+        }
+      } else {
+        logger.debug("saved relationship %j", results);
+        metricRelSaved.increment();
+        resolve();
       }
-      logger.debug("saved relationship %j", results);
-      metricRelSaved.increment();
-      resolve();
     });
   });
 });
