@@ -7,6 +7,7 @@ assert = require('assert');
 
 const metrics = require('../../../lib/crow.js').withPrefix("twitter.lists.controller.ownership");
 var queue = require('../../../lib/kue.js');
+var neo4j = require('../../../lib/neo4j.js');
 
 var RSVP = require('rsvp');
 var logger = require('tracer').colorConsole( {
@@ -18,17 +19,8 @@ var redis = require("redis").createClient({
   port: parseInt(process.env.REDIS_PORT),
 });
 
-var neo4j = require('seraph')( {
-  server: util.format("%s://%s:%s",
-  process.env.NEO4J_PROTOCOL,
-  process.env.NEO4J_HOST,
-  process.env.NEO4J_PORT),
-  endpoint: 'db/data',
-  user: process.env.NEO4J_USERNAME,
-  pass: process.env.NEO4J_PASSWORD });
-
-  var db = null;
-  MongoClient.connect(util.format('mongodb://%s:%s@%s:%d/%s?authMechanism=SCRAM-SHA-1&authSource=%s',
+var db = null;
+MongoClient.connect(util.format('mongodb://%s:%s@%s:%d/%s?authMechanism=SCRAM-SHA-1&authSource=%s',
   process.env.MONGO_USER,
   process.env.MONGO_PASSWD,
   process.env.MONGO_HOST,

@@ -7,6 +7,7 @@ assert = require('assert');
 
 const metrics = require('../../../lib/crow.js').withPrefix("twitter.lists.controller.members");
 var queue = require('../../../lib/kue.js');
+var neo4j = require('../../../lib/neo4j.js');
 
 var RSVP = require('rsvp');
 var logger = require('tracer').colorConsole( {
@@ -17,15 +18,6 @@ var redis = require("redis").createClient({
   host: process.env.REDIS_HOST,
   port: parseInt(process.env.REDIS_PORT),
 });
-
-var neo4j = require('seraph')( {
-  server: util.format("%s://%s:%s",
-  process.env.NEO4J_PROTOCOL,
-  process.env.NEO4J_HOST,
-  process.env.NEO4J_PORT),
-  endpoint: 'db/data',
-  user: process.env.NEO4J_USERNAME,
-  pass: process.env.NEO4J_PASSWORD });
 
 setInterval( function() {
 queue.inactiveCount( 'receiveListMembers', function( err, total ) { // others are activeCount, completeCount, failedCount, delayedCount
