@@ -1,14 +1,7 @@
 
 // #refactor:10 write queries
 var util = require('util');
-var Twit = require('twit');
-var T = new Twit({
-  consumer_key:         process.env.TWITTER_CONSUMER_KEY,
-  consumer_secret:      process.env.TWITTER_CONSUMER_SECRET,
-//  access_token:         process.env.TWITTER_ACCESS_TOKEN,
-//  access_token_secret:  process.env.TWITTER_ACCESS_TOKEN_SECRET,
-  app_only_auth:        true
-});
+var T = require('../../../lib/twit.js');
 
 var assert = require('assert');
 
@@ -84,16 +77,18 @@ function queryUser(user) {
       T.get('users/show', { user_id: user.id_str }, function(err, data)
       {
         if (err){
+          //"message":"User has been suspended.","code":63,
           if (err.code == 50){
             //user doesn't exist
             //queue.create('expireUser', {user: user}).removeOnComplete(true).save();
             reject({user: user, err: err, reason: "user doesn't exist"});
             return;
+          } else {
+            logger.error("twitter api error %j %j", user, err);
+            metrics.counter("apiError").increment(count = 1, tags = { apiError: err.code, apiMessage: err.message });
+            reject({ user: user, err: err, reason: "twitter api error" });
+            return;
           }
-          logger.error("twitter api error %j %j", user, err);
-          metrics.counter("apiError").increment(count = 1, tags = { apiError: err.code, apiMessage: err.message });
-          reject({ user: user, err: err, reason: "twitter api error" });
-          return;
         }
         logger.trace("Data %j", data);
         logger.debug("queryUser twitter api callback");

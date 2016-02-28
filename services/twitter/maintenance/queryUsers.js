@@ -5,10 +5,6 @@ var assert = require('assert');
 var cacheCtrl = require('../../../lib/twitter/cacheCtrl');
 const metrics = require('../../../lib/crow.js').withPrefix("twitter.users.maintenance");
 
-metrics.setGauge("heap_used", function () { return process.memoryUsage().heapUsed; });
-metrics.setGauge("heap_total", function () { return process.memoryUsage().heapTotal; });
-metrics.counter("app_started").increment();
-
 var BloomFilter = require("bloomfilter").BloomFilter;
 // 10M entries, 1 false positive
 var bloom = new BloomFilter(

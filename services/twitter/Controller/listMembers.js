@@ -1,25 +1,12 @@
 
 // #refactor:10 write queries
 var util = require('util');
-var Twit = require('twit');
-var T = new Twit({
-  consumer_key:         process.env.TWITTER_CONSUMER_KEY,
-  consumer_secret:      process.env.TWITTER_CONSUMER_SECRET,
-  //access_token:         process.env.TWITTER_ACCESS_TOKEN,
-  //access_token_secret:  process.env.TWITTER_ACCESS_TOKEN_SECRET
-  app_only_auth:        true
-});
 
 var MongoClient = require('mongodb').MongoClient,
 assert = require('assert');
 
 const metrics = require('../../../lib/crow.js').withPrefix("twitter.lists.controller.members");
 var queue = require('../../../lib/kue.js');
-
-var RateLimiter = require('limiter').RateLimiter;
-//set rate limiter slightly lower than twitter api limit
-var limiter = new RateLimiter(1, (1 / 14) * 15 * 60 * 1000);
-var limiterMembers = new RateLimiter(1, (1 / 14) * 15 * 60 * 1000);
 
 var RSVP = require('rsvp');
 var logger = require('tracer').colorConsole( {

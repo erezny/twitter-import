@@ -43,7 +43,7 @@ var queue = kue.createQueue({
 //   });
 // });
 
-kue.Job.rangeByType( 'queryFriendsList', 'inactive', 0, 100, 'asc', function( err, jobs ) {
+kue.Job.rangeByType( 'queryUser', 'inactive', 0, 100000, 'asc', function( err, jobs ) {
   jobs.forEach( function( job ) {
     job.remove( function() {
       console.log( 'removed ', job.id );
@@ -51,22 +51,14 @@ kue.Job.rangeByType( 'queryFriendsList', 'inactive', 0, 100, 'asc', function( er
   });
 });
 
-kue.Job.rangeByType( 'queryFriendsList', 'active', 0, 100, 'asc', function( err, jobs ) {
+kue.Job.rangeByType( 'queryUser', 'active', 0, 1000, 'asc', function( err, jobs ) {
   jobs.forEach( function( job ) {
     job.remove( function() {
       console.log( 'removed ', job.id );
     });
   });
 });
-kue.Job.rangeByType( 'queryFriendsList', 'completed', 0, 100, 'asc', function( err, jobs ) {
-  jobs.forEach( function( job ) {
-    job.remove( function() {
-      console.log( 'removed ', job.id );
-    });
-  });
-});
-
-kue.Job.rangeByType( 'queryFriendsList', 'failed', 0, 100, 'asc', function( err, jobs ) {
+kue.Job.rangeByType( 'queryUser', 'completed', 0, 1000, 'asc', function( err, jobs ) {
   jobs.forEach( function( job ) {
     job.remove( function() {
       console.log( 'removed ', job.id );
@@ -74,7 +66,15 @@ kue.Job.rangeByType( 'queryFriendsList', 'failed', 0, 100, 'asc', function( err,
   });
 });
 
-kue.Job.rangeByType( 'queryFriendsList', 'delayed', 0, 100, 'asc', function( err, jobs ) {
+kue.Job.rangeByType( 'queryUser', 'failed', 0, 1000, 'asc', function( err, jobs ) {
+  jobs.forEach( function( job ) {
+    job.remove( function() {
+      console.log( 'removed ', job.id );
+    });
+  });
+});
+
+kue.Job.rangeByType( 'queryUserListOqueryUserwnership', 'delayed', 0, 1000, 'asc', function( err, jobs ) {
   jobs.forEach( function( job ) {
     job.remove( function() {
       console.log( 'removed ', job.id );
