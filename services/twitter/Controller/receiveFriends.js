@@ -75,9 +75,9 @@ function lookupNeo4jID(user){
     //    redisCache.push([ user.id_str, { id: parseInt(redisUser.neo4jID) }, 0 ])
         resolve({ id: parseInt(redisUser.neo4jID) });
       } else {
-        upsertStubUserToNeo4j(user).then(function(user){
+        upsertStubUserToNeo4j(user).then(function(user) {
           resolve(user);
-        }, function(err){
+        }, function(err) {
         logger.trace("save failed");
         reject(err);
         })
@@ -86,7 +86,7 @@ function lookupNeo4jID(user){
   });
 }
 
-queue.process('receiveFriend', 20, receiveFriend );
+queue.process('receiveFriend', 40, receiveFriend );
 
 var metricRelFindError = metrics.counter("rel_find_error");
 var metricRelAlreadyExists = metrics.counter("rel_already_exists");
@@ -118,7 +118,7 @@ function upsertRelationship(node, friend) {
 });
 }
 
-var userSem = require('semaphore')(3);
+var userSem = require('semaphore')(2);
 function upsertStubUserToNeo4j(user) {
   delete user.id;
   return new RSVP.Promise( function (resolve, reject) {
