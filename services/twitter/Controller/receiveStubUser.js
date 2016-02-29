@@ -43,7 +43,7 @@ function receiveUser(job, done) {
 var metricsFinished = metrics.counter("processFinished");
 var metricsError = metrics.counter("processError");
 function dostuff(user, done){
-  return metricNeo4jTimeMsec.time(upsertUserToNeo4j(user))
+  return metricNeo4jTimeMsec.time(upsertStubUserToNeo4j(user))
   .then(function(savedUser) {
     logger.trace("savedUser: %j", savedUser);
     metricsFinished.increment();
