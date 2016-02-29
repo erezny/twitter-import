@@ -36,9 +36,10 @@ function receiveFriend (job, done) {
   logger.trace("received job %j", job);
   var user = job.data.user;
   var friend = job.data.friend;
+  var rel = job.data;
   metrics.counter("start").increment();
 
-  RSVP.hash({ user: lookupNeo4jID(user), friend: lookupNeo4jID(friend) })
+  RSVP.hash({ user: lookupNeo4jID(user, rel), friend: lookupNeo4jID(friend, rel) })
   .then(function(results) {
     logger.trace("ready to upsert");
     upsertRelationship(results.user, results.friend).then(function() {
@@ -46,7 +47,6 @@ function receiveFriend (job, done) {
       done();
     }, done);
   }, function(err) {
-    queue.create('receiveFriend', { user: user, friend: friend } ).removeOnComplete( true ).save();
     logger.debug("neo4j user not in redis %j",err);
     metricUserNotExist.increment();
     done(); //avoid retries
@@ -54,7 +54,7 @@ function receiveFriend (job, done) {
 };
 
 //var redisCache = [];
-function lookupNeo4jID(user){
+function lookupNeo4jID(user, rel){
 
   return new RSVP.Promise( function(resolve, reject) {
     // for (cache in redisCache){
@@ -75,7 +75,7 @@ function lookupNeo4jID(user){
     //    redisCache.push([ user.id_str, { id: parseInt(redisUser.neo4jID) }, 0 ])
         resolve({ id: parseInt(redisUser.neo4jID) });
       } else {
-        queue.create("queryUser", { user: user } ).removeOnComplete(true).save();
+        queue.create('receiveStubUser', { user: user, rel: rel } ).removeOnComplete( true ).save();
         logger.trace("save failed");
         reject(err);
       }
@@ -83,7 +83,7 @@ function lookupNeo4jID(user){
   });
 }
 
-queue.process('receiveFriend', 40, receiveFriend );
+queue.process('receiveFriend', 10, receiveFriend );
 
 var metricRelFindError = metrics.counter("rel_find_error");
 var metricRelAlreadyExists = metrics.counter("rel_already_exists");
@@ -115,7 +115,7 @@ function upsertRelationship(node, friend) {
 });
 }
 
-var userSem = require('semaphore')(2);
+var userSem = require('semaphore')(1);
 function upsertStubUserToNeo4j(user) {
   delete user.id;
   return new RSVP.Promise( function (resolve, reject) {

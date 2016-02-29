@@ -41,10 +41,11 @@ function checkfillFriendsIDs() {
 function queryTemplate(sortDir){
   return util.format("match (s:service{type:\"VIP\"}) " +
     "match (s)--()--(n:twitterUser) " +
-    "with distinct n as n, rand() as r order by r limit 100 " +
+    "with distinct n as n, rand() as r order by r limit 1000 " +
     "match p = (n)-[:follows]->(:twitterUser) " +
     "WITH n, count(p) AS friends, n.friends_count - count(p) as remaining " +
-    "return n order by remaining %s skip 5 limit 5", sortDir);
+    "where remaining > 3 "
+    "return n order by remaining %s limit 10", sortDir);
 }
 
 function fillFriendsList(){

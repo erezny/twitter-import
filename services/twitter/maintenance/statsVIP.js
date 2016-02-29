@@ -37,10 +37,21 @@ function countVIPFriendsCompleteness(){
     logger.trace("neo4j found %j", results);
     var total = results.data[0][0];
     var remaining = results.data[0][1];
-    metrics.setGauge("total", total);
-    metrics.setGauge("remaining", remaining);
+    setGagues(total, remaining)
   });
 };
+
+var init = 0;
+function setGagues(total, remaining){
+  if (init == 0) {
+    metrics.setGauge("total", total);
+    metrics.setGauge("remaining", remaining);
+    init++;
+  } else {
+    metrics.gauge("total").set(total);
+    metrics.gauge("remaining").set(remaining);
+  }
+}
 
 countVIPFriendsCompleteness()
 setTimeout(countVIPFriendsCompleteness, 30 * 60 * 1000 );
