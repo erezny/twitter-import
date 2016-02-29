@@ -19,77 +19,46 @@ var redis = require("redis").createClient({
   port: parseInt(process.env.REDIS_PORT),
 });
 
-var db = null;
-  MongoClient.connect(util.format('mongodb://%s:%s@%s:%d/%s?authMechanism=SCRAM-SHA-1&authSource=%s',
-  process.env.MONGO_USER,
-  process.env.MONGO_PASSWD,
-  process.env.MONGO_HOST,
-  process.env.MONGO_PORT,
-  process.env.MONGO_DATABASE,
-  process.env.MONGO_DATABASE
-),
-{
-  logger: logger,
-  numberOfRetries: 10,
-  retryMiliSeconds: 10000
-},
-function(err, db_) {
-  if (err){
-    process.exit;
+var RateLimiter = require('limiter').RateLimiter;
+//set rate limiter slightly lower than twitter api limit
+var limiter = new RateLimiter(1, (1 / process.env.NEO4j_LIMIT_NODE_TXPS ) * 60 * 1000);
+
+var metricNeo4jTimeMsec = metrics.distribution("neo4j_time_msec");
+function receiveUser(job, done) {
+  logger.trace("received job %j", job);
+  metrics.counter("processStarted").increment();
+  var user = {
+    id_str: job.data.user.id_str,
+    screen_name: job.data.user.screen_name,
+    name: job.data.user.name,
+    followers_count: job.data.user.followers_count,
+    friends_count: job.data.user.friends_count,
+    favourites_count: job.data.user.favourites_count,
+    description: job.data.user.description,
+    location: job.data.user.location,
+    statuses_count: job.data.user.statuses_count,
+    protected: job.data.user.protected
   }
-  db = db_;
-  logger.info("connected to database");
 
-  function saveUserToMongo(user) {
-    logger.debug("save user to mongo %s", user.screen_name);
-    return db.collection("twitterUsers").update(
-      { 'id_str': user.id_str },
-      { $set: user ,
-      $currentDate: { 'timestamps.updated': { $type: "timestamp" } }
-    },
-    { upsert: true });
-  };
+  //    var mongo = saveUserToMongo(user);
 
-  var metricNeo4jTimeMsec = metrics.distribution("neo4j_time_msec");
-  function receiveUser(job, done) {
-    logger.trace("received job %j", job);
-    metrics.counter("processStarted").increment();
-    var user = {
-      id_str: job.data.user.id_str,
-      screen_name: job.data.user.screen_name,
-      name: job.data.user.name,
-      followers_count: job.data.user.followers_count,
-      friends_count: job.data.user.friends_count,
-      favourites_count: job.data.user.favourites_count,
-      description: job.data.user.description,
-      location: job.data.user.location,
-      statuses_count: job.data.user.statuses_count,
-      protected: job.data.user.protected
-    }
-
-    if ( !user.screen_name) {
-      done({ reason: "incomplete user data" });
-      return;
-    }
-    logger.debug("receivedUser %s", user.screen_name);
-
-    //    var mongo = saveUserToMongo(user);
-      var key = util.format("twitter:%s", user.id_str);
+  limiter.removeTokens(1, function(err, remainingRequests) {
+    var key = util.format("twitter:%s", user.id_str);
     redis.hgetall(key, function(err, redisUser) {
       if (redisUser && redisUser.neo4jID && redisUser.neo4jID != "undefined"){
         redis.hget(key, "saveTimestamp", function(err, result) {
           if (result < parseInt((+new Date) / 1000) - 24 * 60 * 60) {
-              dostuff(user, done);
+            dostuff(user, done);
           } else {
             done();
           }
         });
       } else {
-          dostuff(user, done);
+        dostuff(user, done);
       }
     });
-
-  };
+  });
+};
 
 var metricsFinished = metrics.counter("processFinished");
 var metricsError = metrics.counter("processError");

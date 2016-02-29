@@ -19,6 +19,10 @@ var redis = require("redis").createClient({
   port: parseInt(process.env.REDIS_PORT),
 });
 
+var RateLimiter = require('limiter').RateLimiter;
+//set rate limiter slightly lower than twitter api limit
+var limiter = new RateLimiter(1, (1 / process.env.NEO4j_LIMIT_NODE_TXPS ) * 60 * 1000);
+
 var metricNeo4jTimeMsec = metrics.distribution("neo4j_time_msec");
 function receiveUser(job, done) {
   logger.trace("received job %j", job);
@@ -26,16 +30,18 @@ function receiveUser(job, done) {
   var user = job.data.user;
   var rel = job.data.rel;
 
-  var key = util.format("twitter:%s", user.id_str);
-  redis.hgetall(key, function(err, redisUser) {
-    if (redisUser && redisUser.neo4jID && redisUser.neo4jID != "undefined"){
-      redis.hget(key, "saveTimestamp", function(err, result) {
-        queue.create('receiveFriend', rel ).removeOnComplete( true ).save();
-        done();
-      });
-    } else {
-      dostuff(user, rel, done);
-    }
+  limiter.removeTokens(1, function(err, remainingRequests) {
+    var key = util.format("twitter:%s", user.id_str);
+    redis.hgetall(key, function(err, redisUser) {
+      if (redisUser && redisUser.neo4jID && redisUser.neo4jID != "undefined"){
+        redis.hget(key, "saveTimestamp", function(err, result) {
+          queue.create('receiveFriend', rel ).removeOnComplete( true ).save();
+          done();
+        });
+      } else {
+        dostuff(user, rel, done);
+      }
+    });
   });
 
 };
