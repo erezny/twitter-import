@@ -53,7 +53,7 @@ function queryFollowersIDs(user, cursor) {
   return new Promise(function(resolve, reject) {
     logger.debug("queryFollowersIDs");
     limiter.removeTokens(1, function(err, remainingRequests) {
-      T.get('followers/ids', { user_id: user.id_str, cursor: cursor, count: 5000, stringify_ids: true }, function (err, data)
+      T.get('followers/ids', { user_id: user.id_str, cursor: cursor, count: 500, stringify_ids: true }, function (err, data)
       {
         if (err){
           logger.error("twitter api error %j %j", user, err);
