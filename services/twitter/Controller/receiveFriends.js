@@ -46,7 +46,7 @@ function receiveFriend (job, done) {
       done();
     }, done);
   }, function(err) {
-    // enque new receiveFriend job
+    queue.create('receiveFriend', { user: user, friend: friend } ).removeOnComplete( true ).save();
     logger.debug("neo4j user not in redis %j",err);
     metricUserNotExist.increment();
     done(); //avoid retries
@@ -75,12 +75,9 @@ function lookupNeo4jID(user){
     //    redisCache.push([ user.id_str, { id: parseInt(redisUser.neo4jID) }, 0 ])
         resolve({ id: parseInt(redisUser.neo4jID) });
       } else {
-        upsertStubUserToNeo4j(user).then(function(user) {
-          resolve(user);
-        }, function(err) {
+        queue.create("queryUser", { user: user } ).removeOnComplete(true).save();
         logger.trace("save failed");
         reject(err);
-        })
       }
     });
   });
