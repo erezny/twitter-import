@@ -28,9 +28,10 @@ var childs = {
     receiveFriends: new (forever.Monitor)('./services/twitter/Controller/receiveFriends.js', childOpts).start(),
     queryFriendsIDs: new (forever.Monitor)('./services/twitter/API/queryFriendsIDs.js', childOpts).start(),
     //queryFollowerIDs: new (forever.Monitor)('./services/twitter/API/queryFollowersIDs.js', childOpts).start(),
-    //queryFollowersList: new (forever.Monitor)('./services/twitter/API/queryFollowersList.js', childOpts).start(),
+    queryFollowersList: new (forever.Monitor)('./services/twitter/API/queryFollowersList.js', childOpts).start(),
     fillFriendsQueue: new (forever.Monitor)('./services/twitter/maintenance/fillFriendsIDsQueue.js', childOpts).start(),
     statsVIP: new (forever.Monitor)('./services/twitter/maintenance/statsVIP.js', childOpts).start(),
+    fillUsersQueue: new (forever.Monitor)('./services/twitter/maintenance/fillUsersQueue.js', childOpts).start(),
   }
 };
 function addEvents(child) {
