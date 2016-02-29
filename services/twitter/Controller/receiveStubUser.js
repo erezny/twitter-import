@@ -11,7 +11,7 @@ var neo4j = require('../../../lib/neo4j.js');
 
 var RSVP = require('rsvp');
 var logger = require('tracer').colorConsole( {
-  level: 'trace'
+  level: 'info'
 } );
 
 var redis = require("redis").createClient({
