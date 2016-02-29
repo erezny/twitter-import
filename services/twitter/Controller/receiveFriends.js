@@ -118,7 +118,7 @@ function upsertRelationship(node, friend) {
 });
 }
 
-var userSem = require('semaphore')(2);
+var userSem = require('semaphore')(3);
 function upsertStubUserToNeo4j(user) {
   delete user.id;
   return new RSVP.Promise( function (resolve, reject) {
