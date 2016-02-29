@@ -35,8 +35,10 @@ function countVIPFriendsCompleteness(){
       return;
     }
     logger.trace("neo4j found %j", results);
-    metrics.setGauge("total", results.data[0][0]);
-    metrics.setGauge("remaining", results.data[0][1]);
+    var total = results.data[0][0];
+    var remaining = results.data[0][1];
+    metrics.setGauge("total", total);
+    metrics.setGauge("remaining", remaining);
   });
 };
 
