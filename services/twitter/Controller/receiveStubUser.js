@@ -11,7 +11,7 @@ var neo4j = require('../../../lib/neo4j.js');
 
 var RSVP = require('rsvp');
 var logger = require('tracer').colorConsole( {
-  level: 'info'
+  level: 'trace'
 } );
 
 var redis = require("redis").createClient({
@@ -34,7 +34,7 @@ function receiveUser(job, done) {
         done();
       });
     } else {
-      dostuff(user, done);
+      dostuff(user, rel, done);
     }
   });
 
@@ -42,7 +42,7 @@ function receiveUser(job, done) {
 
 var metricsFinished = metrics.counter("processFinished");
 var metricsError = metrics.counter("processError");
-function dostuff(user, done){
+function dostuff(user, rel, done){
   return metricNeo4jTimeMsec.time(upsertStubUserToNeo4j(user))
   .then(function(savedUser) {
     logger.trace("savedUser: %j", savedUser);
@@ -63,16 +63,6 @@ setInterval( function() {
     metrics.setGauge("queue.inactive", total);
   });
 }, 15 * 1000 );
-
-function updateUserSaveTime(user){
-  return new Promise(function(resolve, reject) {
-    var key = util.format("twitter:%s", user.id_str);
-    var currentTimestamp = new Date().getTime();
-    redis.hset(key, "saveTimestamp", parseInt((+new Date) / 1000), function() {
-      resolve(user)
-    });
-  });
-}
 
 function upsertStubUserToNeo4j(user) {
   return function() {
