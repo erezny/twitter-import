@@ -169,5 +169,4 @@ function upsertStubUserToNeo4j(user) {
       });
     });
   });
-  }
 }
