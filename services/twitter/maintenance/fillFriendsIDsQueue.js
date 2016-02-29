@@ -44,7 +44,7 @@ function queryTemplate(sortDir){
     "with distinct n as n, rand() as r order by r limit 100 " +
     "match p = (n)-[:follows]->(:twitterUser) " +
     "WITH n, count(p) AS friends, n.friends_count - count(p) as remaining " +
-    "return n order by remaining %s limit 5", sortDir);
+    "return n order by remaining %s skip 5 limit 5", sortDir);
 }
 
 function fillFriendsList(){
