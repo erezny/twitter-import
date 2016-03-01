@@ -46,6 +46,7 @@ function receiveUser(job, done) {
     var key = util.format("twitter:%s", user.id_str);
     redis.hgetall(key, function(err, redisUser) {
       if (redisUser && redisUser.neo4jID && redisUser.neo4jID != "undefined"){
+        user.id = redisUser.neo4jID;
         redis.hget(key, "saveTimestamp", function(err, result) {
           if (result < parseInt((+new Date) / 1000) - 24 * 60 * 60) {
             dostuff(user, done);
@@ -53,7 +54,7 @@ function receiveUser(job, done) {
             done();
           }
         });
-      } else {
+      } else { //insert
         dostuff(user, done);
       }
     });
@@ -78,7 +79,7 @@ function dostuff(user, done){
   });
 }
 
-queue.process('receiveUser', 5, receiveUser);
+queue.process('receiveUser', 1, receiveUser);
 
   setInterval( function() {
   queue.inactiveCount( 'receiveUser', function( err, total ) { // others are activeCount, completeCount, failedCount, delayedCount
@@ -98,7 +99,6 @@ function updateUserSaveTime(user){
 
 function upsertUserToNeo4j(user) {
   return function() {
-    delete user.id;
     return new RSVP.Promise( function (resolve, reject) {
       logger.debug('saving user %s', user.screen_name);
       neo4j.save(user, function(err, savedUser) {
