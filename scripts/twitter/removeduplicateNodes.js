@@ -131,11 +131,12 @@ function removeNode(id) {
         logger.debug("removing %s", id);
         neo4j.queryRaw("match (n) where id(n)={id} match (n)-[r]-() delete n,r ",
           { id: id }, function(err, results) {
-            removeSem.leave();
+          removeSem.leave();
           if (err){
             logger.error("neo4j error %j", err);
             reject("error");
           } else {
+            logger.debug("remove results %j", results);
             resolve();
           }
         });
