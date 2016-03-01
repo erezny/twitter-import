@@ -72,8 +72,8 @@ function scan() {
             if (cursor === '0') {
                 return console.log('Iteration complete');
             }
-            if (count > lastCount + 1000){
-            //  console.log("count: %d \tcache size: %d \tremoved: %d", count, found, removed);
+            if (count > lastCount + 10000){
+              console.log("count: %d \tremoved: %d", count, removed);
               lastCount = count;
             }
 
@@ -127,7 +127,7 @@ function removeDuplicates(id_str, neo4jID) {
       });
     });
 }
-
+var removed = 0;
 var removeSem = require('semaphore')(1);
 function removeNode(id) {
     return new RSVP.Promise( function (resolve, reject) {
@@ -139,6 +139,7 @@ function removeNode(id) {
             logger.error("neo4j error %j", err);
             reject("error");
           } else {
+            removed++;
             resolve();
           }
         });
