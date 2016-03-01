@@ -100,31 +100,31 @@ function updateUserSaveTime(user){
 
 function upsertUserToNeo4j(user) {
   return function() {
-  delete user.id;
-  return new RSVP.Promise( function (resolve, reject) {
-    logger.debug('saving user %s', user.screen_name);
-    neo4j.save(user, function(err, savedUser) {
-      if (err){
-        logger.error("neo4j save %s %j", user.screen_name, err);
-        metrics.counter("neo4j_save_error").increment();
-        reject({ err:err, reason:"neo4j save user error" });
-        return;
-      }
-      logger.debug('inserted user %s', savedUser.screen_name);
-      neo4j.label(savedUser, "twitterUser", function(err, labeledUser) {
+    delete user.id;
+    return new RSVP.Promise( function (resolve, reject) {
+      logger.debug('saving user %s', user.screen_name);
+      neo4j.save(user, function(err, savedUser) {
         if (err){
-          logger.error("neo4j label error %s %j", user.screen_name, err);
-          metrics.counter("neo4j_label_error").increment();
-          reject({ err:err, reason:"neo4j label user error" });
+          logger.error("neo4j save %s %j", user.screen_name, err);
+          metrics.counter("neo4j_save_error").increment();
+          reject({ err:err, reason:"neo4j save user error" });
           return;
         }
-        redis.hset(util.format("twitter:%s",savedUser.id_str), "neo4jID", savedUser.id, function(err, res) {
-          logger.debug('labeled user %s', savedUser.screen_name);
-          metrics.counter("neo4j_inserted").increment();
-          resolve(savedUser);
+        logger.debug('inserted user %s', savedUser.screen_name);
+        neo4j.label(savedUser, "twitterUser", function(err, labeledUser) {
+          if (err){
+            logger.error("neo4j label error %s %j", user.screen_name, err);
+            metrics.counter("neo4j_label_error").increment();
+            reject({ err:err, reason:"neo4j label user error" });
+            return;
+          }
+          redis.hset(util.format("twitter:%s",savedUser.id_str), "neo4jID", savedUser.id, function(err, res) {
+            logger.debug('labeled user %s', savedUser.screen_name);
+            metrics.counter("neo4j_inserted").increment();
+            resolve(savedUser);
+          });
         });
       });
     });
-  });
   }
 }
