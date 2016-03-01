@@ -111,7 +111,7 @@ function removeDuplicates(id_str, neo4jID) {
               logger.trace("returned %j", results);
               var jobs = [];
               for (node of results.data){
-                logger.debug("node %j", node);
+                logger.trace("node %j", node);
                 jobs.push(removeNode(node[0].metadata.id));
               }
               RSVP.allSettled(jobs).then(function() {
