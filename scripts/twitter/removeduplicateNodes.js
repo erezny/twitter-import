@@ -95,7 +95,7 @@ function scanUser(key){
   });
 }
 
-var sem = require('semaphore')(1);
+var sem = require('semaphore')(2);
 function removeDuplicates(id_str, neo4jID) {
     return new RSVP.Promise( function (resolve, reject) {
       sem.take(function() {
@@ -124,7 +124,7 @@ function removeDuplicates(id_str, neo4jID) {
     });
 }
 
-var removeSem = require('semaphore')(1);
+var removeSem = require('semaphore')(2);
 function removeNode(id) {
     return new RSVP.Promise( function (resolve, reject) {
       removeSem.take(function() {
