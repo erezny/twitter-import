@@ -127,11 +127,11 @@ function removeDuplicates(id_str, neo4jID) {
 var removeSem = require('semaphore')(1);
 function removeNode(id) {
     return new RSVP.Promise( function (resolve, reject) {
-      sem.take(function() {
+      removeSem.take(function() {
         logger.debug("removing %s", id);
         neo4j.queryRaw("match (n) where id(n)={id} match (n)-[r]-() delete n,r ",
           { id: id }, function(err, results) {
-            sem.leave();
+            removeSem.leave();
           if (err){
             logger.error("neo4j error %j", err);
             reject("error");
