@@ -102,9 +102,9 @@ function removeDuplicates(id_str, neo4jID) {
         logger.trace("querying %s, %s", id_str, neo4jID);
         neo4j.queryRaw("match (n:twitterUser{id_str:{id_str}}) where not( id(n) = {neo4jID}) return n ",
           { id_str: id_str, neo4jID: neo4jID }, function(err, results) {
-            sem.leave();
           if (err){
               logger.error("neo4j error %j", err);
+                sem.leave();
               reject("error");
           } else {
             if (results.data.length > 0) {
@@ -114,8 +114,12 @@ function removeDuplicates(id_str, neo4jID) {
                 logger.trace("node %j", node);
                 jobs.push(removeNode(node[0].metadata.id));
               }
-              RSVP.allSettled(jobs).then(resolve);
+              RSVP.allSettled(jobs).then(function() {
+                sem.leave();
+                resolve();
+              });
             } else {
+              sem.leave();
               resolve();
             }
           }
