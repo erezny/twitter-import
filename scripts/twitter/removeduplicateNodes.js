@@ -129,14 +129,12 @@ function removeNode(id) {
     return new RSVP.Promise( function (resolve, reject) {
       removeSem.take(function() {
         logger.debug("removing %s", id);
-        neo4j.queryRaw("match (n) where id(n) = {id} match (n)-[r]-() delete n,r ",
-          { id: id }, function(err, results) {
+        neo4j.delete(id, true, function(err) {
           removeSem.leave();
           if (err){
             logger.error("neo4j error %j", err);
             reject("error");
           } else {
-            logger.debug("remove results %j", results);
             resolve();
           }
         });
