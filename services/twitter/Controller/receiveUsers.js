@@ -86,8 +86,6 @@ queue.process('receiveUser', 5, receiveUser);
   });
   }, 15 * 1000 );
 
-});
-
 function updateUserSaveTime(user){
   return new Promise(function(resolve, reject) {
     var key = util.format("twitter:%s", user.id_str);
