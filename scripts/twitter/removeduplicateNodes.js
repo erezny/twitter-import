@@ -73,7 +73,7 @@ function scan() {
                 return console.log('Iteration complete');
             }
             if (count > lastCount + 10000){
-              console.log("count: %d \tremoved: %d", count, removed);
+              logger.info("count: %d \tremoved: %d", count, removed);
               lastCount = count;
             }
 
@@ -95,7 +95,7 @@ function scanUser(key){
   });
 }
 
-var sem = require('semaphore')(1);
+var sem = require('semaphore')(2);
 function removeDuplicates(id_str, neo4jID) {
     return new RSVP.Promise( function (resolve, reject) {
       sem.take(function() {
@@ -111,7 +111,7 @@ function removeDuplicates(id_str, neo4jID) {
               logger.trace("returned %j", results);
               var jobs = [];
               for (node of results.data){
-                logger.trace("node %j", node);
+                logger.debug("node %j", node);
                 jobs.push(removeNode(node[0].metadata.id));
               }
               RSVP.allSettled(jobs).then(function() {
