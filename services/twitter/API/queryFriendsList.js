@@ -35,8 +35,17 @@ queue.process('queryFriendsList', function(job, done) {
   metrics.counter("start").increment();
   var user = job.data.user;
   var cursor = job.data.cursor || "-1";
-  queryFriendsList(user, cursor)
-  .then(function(list) {
+  var promise = null;
+  if (cursor == "-1"){
+    promise = checkFriendsListQueryTime(job.data.user)
+  } else {
+    promise = new Promise(function(resolve) { resolve(); });
+  }
+  promise.then(function() {
+    return queryFriendsList(user, cursor)
+  })
+  .then(updateFriendsListQueryTime)
+  .then(function(result) {
     metrics.counter("finish").increment();
     done();
   }, function(err) {
@@ -49,6 +58,31 @@ queue.process('queryFriendsList', function(job, done) {
     }
   });
 });
+
+function checkFriendsListQueryTime(user){
+  return new Promise(function(resolve, reject) {
+    var key = util.format("twitter:%s", user.id_str);
+    var currentTimestamp = new Date().getTime();
+    redis.hgetall(key, function(err, obj) {
+      if ( !obj || !obj.queryFriendsListTimestamp || obj.queryFriendsListTimestamp > parseInt((+new Date) / 1000) - (60 * 60 * 24) ) {
+        resolve(user);
+      } else {
+        reject( { message: "user recently queried" } );
+      }
+    });
+  });
+}
+
+function updateFriendsListQueryTime(result){
+  var user = result.user;
+  return new Promise(function(resolve, reject) {
+    var key = util.format("twitter:%s", user.id_str);
+    var currentTimestamp = new Date().getTime();
+    redis.hset(key, "queryFriendsListTimestamp", parseInt((+new Date) / 1000), function() {
+      resolve()
+    });
+  });
+}
 
 function queryFriendsList(user, cursor) {
   return new Promise(function(resolve, reject) {
@@ -73,7 +107,7 @@ function queryFriendsList(user, cursor) {
           queue.create('queryFriendsList', { user: user, cursor: data.next_cursor_str }).attempts(5).removeOnComplete( true ).save();
         }
         metrics.counter("apiFinished").increment();
-        resolve(data.users);
+        resolve({ user: user, list: data.users });
       });
     });
   });
