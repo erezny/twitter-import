@@ -58,7 +58,6 @@ queue.process('queryFriendsIDs', function(job, done) {
       done(err);
     }
   });
-});
 
 function checkFriendsIDsQueryTime(user){
   return new Promise(function(resolve, reject) {
@@ -104,7 +103,8 @@ function queryFriendsIDs(user, cursor) {
           queue.create('receiveFriend', { user: { id_str: user.id_str }, friend: { id_str: friend } } ).removeOnComplete( true ).save();
         }
         if (data.next_cursor_str !== '0'){
-          queue.create('queryFriendsIDs', { user: user, cursor: data.next_cursor_str }).attempts(5).removeOnComplete( true ).save();
+          var numReceived = job.numReceived + data.ids.length;
+          queue.create('queryFriendsIDs', { user: user, cursor: data.next_cursor_str, numReceived: numReceived }).attempts(5).removeOnComplete( true ).save();
         }
         metrics.counter("apiFinished").increment();
         resolve({ user: user, list: data.ids });
@@ -112,3 +112,5 @@ function queryFriendsIDs(user, cursor) {
     });
   });
 };
+
+});
