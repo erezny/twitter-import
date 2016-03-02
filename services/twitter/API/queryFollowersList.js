@@ -114,7 +114,7 @@ function queryFollowersList(user, cursor) {
           queue.create('queryFollowersList', { user: user, cursor: data.next_cursor_str, numReceived: numReceived }).attempts(5).removeOnComplete( true ).save();
         }
         metrics.counter("apiFinished").increment();
-        resolve(data.users);
+        resolve({ user: user, list: data.users });
       });
     });
   });
