@@ -71,7 +71,7 @@ function queryFollowersList(user, cursor) {
           queue.create('receiveFriend', { user: { id_str: follower.id_str }, friend: { id_str: user.id_str } } ).removeOnComplete( true ).save();
         }
         if (data.next_cursor_str !== '0'){
-        var numReceived = job.numReceived + data.ids.length;
+        var numReceived = job.numReceived + data.users.length;
         queue.create('queryFollowersList', { user: user, cursor: data.next_cursor_str, numReceived: numReceived }).attempts(5).removeOnComplete( true ).save();
         }
         metrics.counter("apiFinished").increment();
