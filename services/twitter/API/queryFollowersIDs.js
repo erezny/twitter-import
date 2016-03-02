@@ -34,7 +34,7 @@ queue.process('queryFollowersIDs', function(job, done) {
   metrics.counter("start").increment();
   var user = job.data.user;
   var cursor = job.data.cursor || "-1";
-  job.numReceived = job.numReceived || 0;
+  job.data.numReceived = job.data.numReceived || 0;
   queryFollowersIDs(user, cursor)
   .then(function(list) {
     metrics.counter("finish").increment();
@@ -43,6 +43,7 @@ queue.process('queryFollowersIDs', function(job, done) {
     logger.error("queryFollowersIDs error: %j %j", job, err);
     metrics.counter("queryError").increment();
     if (err.message == "Not authorized."){
+      //blacklist
       done();
     } else {
       done(err);
@@ -68,7 +69,7 @@ function queryFollowersIDs(user, cursor) {
           queue.create('receiveFriend', { user: { id_str: follower }, friend: { id_str: user.id_str } } ).removeOnComplete( true ).save();
         }
         if (data.next_cursor_str !== '0'){
-          var numReceived = job.numReceived + data.ids.length;
+          var numReceived = job.data.numReceived + data.ids.length;
           queue.create('queryFollowersIDs', { user: user, cursor: data.next_cursor_str, numReceived: numReceived }).attempts(5).removeOnComplete( true ).save();
         }
         metrics.counter("apiFinished").increment();

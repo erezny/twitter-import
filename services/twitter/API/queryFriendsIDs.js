@@ -37,7 +37,7 @@ queue.process('queryFriendsIDs', function(job, done) {
   var user = job.data.user;
   var cursor = job.data.cursor || "-1";
   var promise = null;
-  job.numReceived = job.numReceived || 0;
+  job.data.numReceived = job.data.numReceived || 0;
   if (cursor == "-1"){
     promise = checkFriendsIDsQueryTime(job.data.user)
   } else {
@@ -45,6 +45,8 @@ queue.process('queryFriendsIDs', function(job, done) {
   }
   promise.then(function() {
     return queryFriendsIDs(user, cursor)
+  }, function(err) {
+    done(err);
   })
   .then(updateFriendsIDsQueryTime)
   .then(function(result) {
@@ -104,7 +106,7 @@ function queryFriendsIDs(user, cursor) {
           queue.create('receiveFriend', { user: { id_str: user.id_str }, friend: { id_str: friend } } ).removeOnComplete( true ).save();
         }
         if (data.next_cursor_str !== '0'){
-          var numReceived = job.numReceived + data.ids.length;
+          var numReceived = job.data.numReceived + data.ids.length;
           queue.create('queryFriendsIDs', { user: user, cursor: data.next_cursor_str, numReceived: numReceived }).attempts(5).removeOnComplete( true ).save();
         }
         metrics.counter("apiFinished").increment();
