@@ -88,6 +88,7 @@ queue.process('queryFollowersIDs', function(job, done) {
         resolve()
       });
     });
+  }
 
 function queryFollowersIDs(user, cursor) {
   return new Promise(function(resolve, reject) {
