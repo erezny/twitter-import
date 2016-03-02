@@ -31,6 +31,7 @@ var childs = {
     queryFollowerIDs: new (forever.Monitor)('./services/twitter/API/queryFollowersIDs.js', childOpts).start(),
     queryFollowersList: new (forever.Monitor)('./services/twitter/API/queryFollowersList.js', childOpts).start(),
     fillFriendsQueue: new (forever.Monitor)('./services/twitter/maintenance/fillFriendsIDsQueue.js', childOpts).start(),
+    fillFollowersQueue: new (forever.Monitor)('./services/twitter/maintenance/fillFollowersQueue.js', childOpts).start(),
     statsVIP: new (forever.Monitor)('./services/twitter/maintenance/statsVIP.js', childOpts).start(),
     fillUsersQueue: new (forever.Monitor)('./services/twitter/maintenance/fillUsersQueue.js', childOpts).start(),
     kueUI: new (forever.Monitor)('./services/twitter/ui/kue.js', childOpts).start(),
