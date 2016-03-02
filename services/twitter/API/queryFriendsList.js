@@ -36,6 +36,7 @@ queue.process('queryFriendsList', function(job, done) {
   var user = job.data.user;
   var cursor = job.data.cursor || "-1";
   var promise = null;
+  job.numReceived = job.numReceived || 0;
   if (cursor == "-1"){
     promise = checkFriendsListQueryTime(job.data.user)
   } else {

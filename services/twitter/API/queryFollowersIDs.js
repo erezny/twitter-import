@@ -34,6 +34,7 @@ queue.process('queryFollowersIDs', function(job, done) {
   metrics.counter("start").increment();
   var user = job.data.user;
   var cursor = job.data.cursor || "-1";
+  job.numReceived = job.numReceived || 0;
   queryFollowersIDs(user, cursor)
   .then(function(list) {
     metrics.counter("finish").increment();
