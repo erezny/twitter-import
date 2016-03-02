@@ -12,6 +12,9 @@ var queue = kue.createQueue({
   }
 });
 
-queue.create('queryUserListOwnership', {
+queue.create('queryFriendsIDs', {
+  user: { id_str: "16876313" }, cursor: "-1"
+}).removeOnComplete( true ).save();
+queue.create('queryFriendsList', {
   user: { id_str: "16876313" }, cursor: "-1"
 }).removeOnComplete( true ).save();
