@@ -41,7 +41,7 @@ function checkfillFriendsIDs() {
 function queryTemplate(sortDir){
   return util.format("match (s:service{type:\"VIP\"}) " +
     "match (s)--(l:twitterUser) " +
-    "with distinct l as l, rand() as r order by r limit 1000" +
+    "with distinct l as l, rand() as r order by r limit 1000 " +
     "match (l)--(n:twitterUser) " +
     "with distinct n as n, rand() as r order by r limit 1000 " +
     "match p = (n)-[:follows]->(:twitterUser) " +
