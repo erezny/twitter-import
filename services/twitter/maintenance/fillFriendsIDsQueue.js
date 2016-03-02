@@ -47,7 +47,7 @@ function queryTemplate(sortDir){
     "match p = (n)-[:follows]->(:twitterUser) " +
     "WITH n, count(p) AS friends, n.friends_count - count(p) as remaining " +
     "where remaining > 3 " +
-    "return n order by remaining %s limit 10", sortDir);
+    "return n order by remaining %s limit 100", sortDir);
 }
 
 function fillFriendsList(){
