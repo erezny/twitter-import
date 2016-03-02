@@ -36,8 +36,21 @@ queue.process('queryFollowersList', function(job, done) {
   metrics.counter("start").increment();
   var user = job.data.user;
   var cursor = job.data.cursor || "-1";
+  var promise = null;
   job.data.numReceived = job.data.numReceived || 0;
-  queryFollowersList(user, cursor)
+  if (cursor === "-1"){
+    metrics.counter("freshQuery").increment();
+    promise = checkFollowersListQueryTime(job.data.user)
+  } else {
+    metrics.counter("continuedQuery").increment();
+    promise = new Promise(function(resolve) { resolve(); });
+  }
+  promise.then(function() {
+    return queryFollowersList(user, cursor)
+  }, function(err) {
+    done();
+  })
+  .then(updateFollowersListQueryTime)
   .then(function(list) {
     metrics.counter("finish").increment();
     done();
@@ -50,6 +63,32 @@ queue.process('queryFollowersList', function(job, done) {
       done(err);
     }
   });
+
+  function checkFollowersListQueryTime(user){
+    return new Promise(function(resolve, reject) {
+      var key = util.format("twitter:%s", user.id_str);
+      var currentTimestamp = new Date().getTime();
+      redis.hgetall(key, function(err, obj) {
+        if ( obj && obj.queryFollowersListTimestamp && obj.queryFollowersListTimestamp > parseInt((+new Date) / 1000) - (60 * 60 * 24) ) {
+          resolve(user);
+        } else {
+          metrics.counter("repeatQuery").increment();
+          reject( { message: "user recently queried" } );
+        }
+      });
+    });
+  }
+
+  function updateFollowersListQueryTime(result){
+    var user = result.user;
+    return new Promise(function(resolve, reject) {
+      var key = util.format("twitter:%s", user.id_str);
+      var currentTimestamp = new Date().getTime();
+      redis.hset(key, "queryFollowersListTimestamp", parseInt((+new Date) / 1000), function() {
+        resolve()
+      });
+    });
+  }
 
 function queryFollowersList(user, cursor) {
   return new Promise(function(resolve, reject) {

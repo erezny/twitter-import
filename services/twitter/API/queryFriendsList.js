@@ -38,14 +38,16 @@ queue.process('queryFriendsList', function(job, done) {
   var promise = null;
   job.data.numReceived = job.data.numReceived || 0;
   if (cursor === "-1"){
+    metrics.counter("freshQuery").increment();
     promise = checkFriendsListQueryTime(job.data.user)
   } else {
+    metrics.counter("continuedQuery").increment();
     promise = new Promise(function(resolve) { resolve(); });
   }
   promise.then(function() {
     return queryFriendsList(user, cursor)
-  }, function(err){
-    done(err);
+  }, function(err) {
+    done();
   })
   .then(updateFriendsListQueryTime)
   .then(function(result) {
@@ -66,9 +68,10 @@ function checkFriendsListQueryTime(user){
     var key = util.format("twitter:%s", user.id_str);
     var currentTimestamp = new Date().getTime();
     redis.hgetall(key, function(err, obj) {
-      if ( !obj || !obj.queryFriendsListTimestamp || obj.queryFriendsListTimestamp > parseInt((+new Date) / 1000) - (60 * 60 * 24) ) {
+      if ( obj && obj.queryFriendsListTimestamp && obj.queryFriendsListTimestamp > parseInt((+new Date) / 1000) - (60 * 60 * 24) ) {
         resolve(user);
       } else {
+        metrics.counter("repeatQuery").increment();
         reject( { message: "user recently queried" } );
       }
     });
