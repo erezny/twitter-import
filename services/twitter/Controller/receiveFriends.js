@@ -5,7 +5,7 @@ var util = require('util');
 var MongoClient = require('mongodb').MongoClient,
 assert = require('assert');
 
-const metrics = require('../../../lib/crow.js').withPrefix("twitter.friends.controller");
+const metrics = require('../../../lib/crow.js').withPrefix("twitter.friends.controller.receive");
 var queue = require('../../../lib/kue.js');
 var neo4j = require('../../../lib/neo4j.js');
 
@@ -42,10 +42,8 @@ function receiveFriend (job, done) {
   RSVP.hash({ user: lookupNeo4jID(user, rel), friend: lookupNeo4jID(friend, rel) })
   .then(function(results) {
     logger.trace("ready to upsert");
-    upsertRelationship(results.user, results.friend).then(function() {
+    queue.create('saveFriend', { user: results.user, friend: results.friend } ).removeOnComplete( true ).save();
       metricFinish.increment();
-      done();
-    }, done);
   }, function(err) {
     logger.debug("neo4j user not in redis %j",err);
     metricUserNotExist.increment();
@@ -57,17 +55,6 @@ function receiveFriend (job, done) {
 function lookupNeo4jID(user, rel){
 
   return new RSVP.Promise( function(resolve, reject) {
-    // for (cache in redisCache){
-    //   if (cache[0] == user.id_str){
-    //     logger.trace("cached");
-    //     resolve(cache[1]);
-    //     cache[2]++;
-    //     return;
-    //   }
-    // }
-    // if (redisCache.length > 100){
-    //   redisCache.sort(function(a,b) {return a[2] - b[2] }).splice(80);
-    // }
     logger.trace("querying redis");
     redis.hgetall(util.format("twitter:%s", user.id_str), function(err, redisUser) {
       logger.trace("finished querying redis");
@@ -84,33 +71,3 @@ function lookupNeo4jID(user, rel){
 }
 
 queue.process('receiveFriend', 10, receiveFriend );
-
-var metricRelFindError = metrics.counter("rel_find_error");
-var metricRelAlreadyExists = metrics.counter("rel_already_exists");
-var metricRelSaved = metrics.counter("rel_saved");
-var sem = require('semaphore')(2);
-function upsertRelationship(node, friend) {
-  assert( typeof(node.id) == "number" );
-  assert( typeof(friend.id) == "number" );
-  return new RSVP.Promise( function (resolve, reject) {
-  sem.take(function() {
-    neo4j.queryRaw("start x=node({idx}), n=node({idn}) create unique (x)-[r:follows]->(n) RETURN r",
-      { idx: node.id, idn: friend.id }, function(err, results) {
-      sem.leave();
-      if (err){
-        if (err.code == "Neo.ClientError.Statement.ConstraintViolation") {
-          metricRelAlreadyExists.increment();
-          resolve();
-        } else {
-          logger.error("neo4j save error %j %j", { node: node, friend: friend }, err);
-          reject("error");
-        }
-      } else {
-        logger.debug("saved relationship %j", results);
-        metricRelSaved.increment();
-        resolve();
-      }
-    });
-  });
-});
-}
