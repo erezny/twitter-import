@@ -38,10 +38,10 @@ function saveFriend (job, done) {
   var friend = job.data.friend;
   var rel = job.data;
   metrics.counter("start").increment();
-    upsertRelationship(user, friend).then(function() {
-      metricFinish.increment();
-      done();
-    }, done);
+  upsertRelationship(user, friend).then(function() {
+    metricFinish.increment();
+    done();
+  }, done);
 };
 
 queue.process('saveFriend', 4, saveFriend );

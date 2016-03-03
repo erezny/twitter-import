@@ -43,7 +43,8 @@ function receiveFriend (job, done) {
   .then(function(results) {
     logger.trace("ready to upsert");
     queue.create('saveFriend', { user: results.user, friend: results.friend } ).removeOnComplete( true ).save();
-      metricFinish.increment();
+    metricFinish.increment();
+    done();
   }, function(err) {
     logger.debug("neo4j user not in redis %j",err);
     metricUserNotExist.increment();
