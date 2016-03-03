@@ -44,8 +44,10 @@ function queryTemplate(sortDir){
     "with distinct l as l, rand() as r order by r limit 1000 " +
     "match (l)--(n:twitterUser) " +
     "with distinct n as n, rand() as r order by r limit 1000 " +
-    "match p = (n)-[:follows]->(:twitterUser) " +
-    "WITH n, count(p) AS friends, n.friends_count - count(p) as remaining " +
+    "match (n)--(t:twitterUser) " +
+    "with distinct t as t, rand() as r order by r limit 1000 " +
+    "match p = (t)-[:follows]->(:twitterUser) " +
+    "WITH t, count(p) AS friends, t.friends_count - count(p) as remaining " +
     "where remaining > 3 " +
     "return n order by remaining %s limit 100", sortDir);
 }
