@@ -25,11 +25,8 @@ setInterval( function() {
   });
   }, 15 * 1000 );
 
-var metricRelInBloomfilter = metrics.counter("rel_in_bloomfilter");
-var metricFriendNotExist = metrics.counter("friend_not_exist");
-var metricUserNotExist = metrics.counter("user_not_exist");
 var metricFinish = metrics.counter("finish");
-var metricNeo4jTimeMsec = metrics.distribution("neo4j_time_msec");
+var metricStart = metrics.counter("start");
 
 function saveFriend (job, done) {
   //  logger.info("received job");
@@ -37,7 +34,7 @@ function saveFriend (job, done) {
   var user = job.data.user;
   var friend = job.data.friend;
   var rel = job.data;
-  metrics.counter("start").increment();
+  metricStart.increment();
   upsertRelationship(user, friend).then(function() {
     metricFinish.increment();
     done();
