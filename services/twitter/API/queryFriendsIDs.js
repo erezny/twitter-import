@@ -57,11 +57,7 @@ queue.process('queryFriendsIDs', function(job, done) {
   }, function(err) {
     logger.error("queryFriendsIDs error: %j %j", job, err);
     metrics.counter("queryError").increment();
-    if (err.message == "Not authorized."){
-      done();
-    } else {
-      done(err);
-    }
+    done(err);
   });
 
 function checkFriendsIDsQueryTime(user){
@@ -98,10 +94,16 @@ function queryFriendsIDs(user, cursor) {
       T.get('friends/ids', { user_id: user.id_str, cursor: cursor, count: 5000, stringify_ids: true }, function (err, data)
       {
         if (err){
-          logger.error("twitter api error %j %j", user, err);
-          metrics.counter("apiError").increment();
-          reject(err);
-          return;
+          if (err.message == "Not authorized."){
+            queue.create('markUserPrivate', { user: user } ).removeOnComplete(true).save();
+            resolve({ user: user, list: [] });
+            return;
+          } else {
+            logger.error("twitter api error %j %j", user, err);
+            metrics.counter("apiError").increment();
+            reject(err);
+            return;
+          }
         }
         logger.trace("Data %j", data);
         logger.debug("queryFriendsIDs twitter api callback");
