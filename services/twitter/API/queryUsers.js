@@ -51,10 +51,15 @@ function checkUserQueryTime(user){
     var key = util.format("twitter:%s", user.id_str);
     var currentTimestamp = new Date().getTime();
     redis.hgetall(key, function(err, obj) {
-      if ( !obj || !obj.queryTimestamp || obj.queryTimestamp > parseInt((+new Date) / 1000) - (60 * 60 * 24) ) {
-        resolve(user);
+      if ( obj & obj.queryTimestamp ){
+        if ( obj.queryTimestamp > parseInt((+new Date) / 1000) - (60 * 60 * 24 * 7) ) {
+            metrics.counter("repeatQuery").increment();
+            reject( { message: "user recently queried" , timestamp:parseInt((+new Date) / 1000), queryTimestamp: obj.queryTimestamp } );
+        } else {
+          resolve(user);
+        }
       } else {
-        reject( { message: "user recently queried" } );
+        resolve(user);
       }
     });
   });

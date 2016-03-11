@@ -65,11 +65,15 @@ queue.process('queryFollowersList', function(job, done) {
       var key = util.format("twitter:%s", user.id_str);
       var currentTimestamp = new Date().getTime();
       redis.hgetall(key, function(err, obj) {
-        if ( obj && obj.queryFollowersListTimestamp && obj.queryFollowersListTimestamp < parseInt((+new Date) / 1000) - (60 * 60) ) {
-          resolve(user);
+        if ( obj & obj.queryFollowersListTimestamp ){
+          if ( obj.queryFollowersListTimestamp > parseInt((+new Date) / 1000) - (60 * 60 ) ) {
+              metrics.counter("repeatQuery").increment();
+              reject( { message: "user recently queried" , timestamp:parseInt((+new Date) / 1000), queryTimestamp: obj.queryFollowersListTimestamp } );
+          } else {
+            resolve(user);
+          }
         } else {
-          metrics.counter("repeatQuery").increment();
-          reject( { message: "user recently queried" , timestamp:parseInt((+new Date) / 1000), queryTimestamp: obj.queryFriendsListTimestamp } );
+          resolve(user);
         }
       });
     });

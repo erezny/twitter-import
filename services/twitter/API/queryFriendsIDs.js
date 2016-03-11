@@ -65,11 +65,15 @@ function checkFriendsIDsQueryTime(user){
     var key = util.format("twitter:%s", user.id_str);
     var currentTimestamp = new Date().getTime();
     redis.hgetall(key, function(err, obj) {
-      if ( obj & obj.queryFriendsIDsTimestamp && obj.queryFriendsIDsTimestamp < parseInt((+new Date) / 1000) - (60 * 60 ) ) {
-        resolve(user);
+      if ( obj & obj.queryFriendsIDsTimestamp ){
+        if ( obj.queryFriendsIDsTimestamp > parseInt((+new Date) / 1000) - (60 * 60 ) ) {
+            metrics.counter("repeatQuery").increment();
+            reject( { message: "user recently queried" , timestamp:parseInt((+new Date) / 1000), queryTimestamp: obj.queryFriendsIDsTimestamp } );
+        } else {
+          resolve(user);
+        }
       } else {
-        metrics.counter("repeatQuery").increment();
-        reject( { message: "user recently queried" , timestamp:parseInt((+new Date) / 1000), queryTimestamp: obj.queryFriendsListTimestamp } );
+        resolve(user);
       }
     });
   });
