@@ -45,10 +45,11 @@ function queryTemplate(sortDir){
     "match (l)--(n:twitterUser) " +
     "with distinct n as n, rand() as r order by r limit 1000 " +
     "match (n)--(t:twitterUser) " +
+    "where t.protected == false " +
     "with distinct t as t, rand() as r order by r limit 10000 " +
     "match p = (t)-[:follows]->(:twitterUser) " +
     "WITH t, count(p) AS followers, t.followers_count - count(p) as remaining " +
-    "where remaining > 3 " +
+    "where remaining > 2 " +
     "return t order by remaining %s limit 1000", sortDir);
 }
 
