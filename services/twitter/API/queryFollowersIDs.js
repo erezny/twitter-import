@@ -97,6 +97,10 @@ function queryFollowersIDs(user, cursor) {
             queue.create('markUserPrivate', { user: user } ).removeOnComplete(true).save();
             resolve({ user: user, list: [] });
             return;
+          } else if (err.message == "User has been suspended."){
+            queue.create('markUserSuspended', { user: user } ).removeOnComplete(true).save();
+            resolve({ user: user, list: [] });
+            return;
           } else {
             logger.error("twitter api error %j %j", user, err);
             metrics.counter("apiError").increment();
