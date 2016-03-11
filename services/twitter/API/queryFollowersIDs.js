@@ -104,7 +104,7 @@ function queryFollowersIDs(user, cursor) {
           } else {
             logger.error("twitter api error %j %j", user, err);
             metrics.counter("apiError").increment();
-            reject({ message: "unknown twitter error", err: err});
+            reject({ message: "unknown twitter error", err: err });
             return;
           }
         }
