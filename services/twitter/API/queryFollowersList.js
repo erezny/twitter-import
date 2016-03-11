@@ -65,7 +65,7 @@ queue.process('queryFollowersList', function(job, done) {
       var key = util.format("twitter:%s", user.id_str);
       var currentTimestamp = new Date().getTime();
       redis.hgetall(key, function(err, obj) {
-        if ( obj && obj.queryFollowersListTimestamp && obj.queryFollowersListTimestamp < parseInt((+new Date) / 1000) - (60 * 60 * 48) ) {
+        if ( obj && obj.queryFollowersListTimestamp && obj.queryFollowersListTimestamp < parseInt((+new Date) / 1000) - (60 * 60) ) {
           resolve(user);
         } else {
           metrics.counter("repeatQuery").increment();
