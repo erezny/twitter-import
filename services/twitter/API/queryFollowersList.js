@@ -65,7 +65,7 @@ queue.process('queryFollowersList', function(job, done) {
       var key = util.format("twitter:%s", user.id_str);
       var currentTimestamp = new Date().getTime();
       redis.hgetall(key, function(err, obj) {
-        if ( obj && obj.queryFollowersListTimestamp && obj.queryFollowersListTimestamp < parseInt((+new Date) / 1000) - (60 * 60 * 6) ) {
+        if ( obj && obj.queryFollowersListTimestamp && obj.queryFollowersListTimestamp < parseInt((+new Date) / 1000) - (60 * 60 * 48) ) {
           resolve(user);
         } else {
           metrics.counter("repeatQuery").increment();
@@ -103,8 +103,8 @@ function queryFollowersList(user, cursor) {
             return;
           } else {
             logger.error("twitter api error %j %j", user, err);
-            metrics.counter("apiError").increment();
-            reject(err);
+            metrics.counter("apiError").increment();();
+            reject({ message: "unknown twitter error", err: err });
             return;
           }
         }

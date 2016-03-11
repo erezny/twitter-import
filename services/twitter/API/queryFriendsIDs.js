@@ -65,7 +65,7 @@ function checkFriendsIDsQueryTime(user){
     var key = util.format("twitter:%s", user.id_str);
     var currentTimestamp = new Date().getTime();
     redis.hgetall(key, function(err, obj) {
-      if ( obj & obj.queryFriendsIDsTimestamp && obj.queryFriendsIDsTimestamp < parseInt((+new Date) / 1000) - (60 * 60 * 6 ) ) {
+      if ( obj & obj.queryFriendsIDsTimestamp && obj.queryFriendsIDsTimestamp < parseInt((+new Date) / 1000) - (60 * 60 * 48 ) ) {
         resolve(user);
       } else {
         metrics.counter("repeatQuery").increment();
@@ -105,7 +105,7 @@ function queryFriendsIDs(user, cursor) {
           } else {
             logger.error("twitter api error %j %j", user, err);
             metrics.counter("apiError").increment();
-            reject(err);
+            reject({ message: "unknown twitter error", err: err });
             return;
           }
         }
