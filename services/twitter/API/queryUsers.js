@@ -83,6 +83,10 @@ function queryUser(user) {
             //queue.create('expireUser', {user: user}).removeOnComplete(true).save();
             reject({user: user, err: err, reason: "user doesn't exist"});
             return;
+          } else if (err.message == "User has been suspended."){
+            queue.create('markUserSuspended', { user: user } ).removeOnComplete(true).save();
+            resolve({ user: user, list: [] });
+            return;
           } else {
             logger.error("twitter api error %j %j", user, err);
             metrics.counter("apiError").increment(count = 1, tags = { apiError: err.code, apiMessage: err.message });
