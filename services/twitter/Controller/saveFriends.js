@@ -46,7 +46,7 @@ function saveFriend (job, done) {
   var rel = job.data;
   metricStart.increment();
 
-  function finished (done){
+  function finished (){
     metricFinish.increment();
     var diff = process.hrtime(startTime);
     metricKueTimer.add(diff[0] * 1e9 + diff[1]);
@@ -63,6 +63,7 @@ function saveFriend (job, done) {
     return new RSVP.Promise( function (resolve, reject) {
     sem.take(function() {//timings
       var startNeo4jTime = process.hrtime();
+      logger.trace("query Neo4j %j", [ node, friend ] );
       neo4j.queryRaw("start x=node({idx}), n=node({idn}) create unique (x)-[r:follows]->(n) RETURN r",
         { idx: node.id, idn: friend.id }, function(err, results) {
         sem.leave();
