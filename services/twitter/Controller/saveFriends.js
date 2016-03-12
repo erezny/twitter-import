@@ -1,8 +1,8 @@
 
 var util = require('util');
 var assert = require('assert');
-const kueThreads = process.env.KUE_THREADS || 4;
-const neo4jThreads = process.env.NEO4J_THREADS || 4;
+const kueThreads = parseInt(process.env.KUE_THREADS) || 4;
+const neo4jThreads = parseInt(process.env.NEO4J_THREADS) || 4;
 
 const metrics = require('../../../lib/crow.js').init("importer", {
   api: "twitter",
@@ -84,14 +84,16 @@ function saveFriend (job, done) {
   metricStart.increment();
 
   function finished (){
-    metricFinish.increment();
-    var diff = process.hrtime(startTime);
-    metricKueTimer.add(diff[0] * 1e9 + diff[1]);
-    logger.trace("finish")
-    done();
+    return new RSVP.Promise( function (resolve, reject) {
+      metricFinish.increment();
+      var diff = process.hrtime(startTime);
+      metricKueTimer.add(diff[0] * 1e9 + diff[1]);
+      logger.trace("finish")
+      resolve();
+    });
   }
 
-  upsertRelationship(user, friend).then(finished, done);
+  upsertRelationship(user, friend).then(finished, done).then(done);
 };
 
 queue.process('saveFriend', kueThreads, saveFriend );
