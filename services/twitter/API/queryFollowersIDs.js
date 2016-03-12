@@ -5,7 +5,13 @@ var T = require('../../../lib/twit.js');
 
 var assert = require('assert');
 
-const metrics = require('../../../lib/crow.js').withPrefix("twitter.followers.api.ids"); //turn lib into node module
+const metrics = require('../../../lib/crow.js').init("importer", {
+  api: "twitter",
+  module: "followersIDs",
+  mvc: "api",
+  function: "query",
+  kue: "queryFollowersIDs",
+});
 var queue = require('../../../lib/kue.js');
 
 var RateLimiter = require('limiter').RateLimiter;

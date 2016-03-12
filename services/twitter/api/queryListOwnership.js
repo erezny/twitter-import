@@ -6,7 +6,13 @@ var T = require('../../../lib/twit.js');
 var MongoClient = require('mongodb').MongoClient,
 assert = require('assert');
 
-const metrics = require('../../../lib/crow.js').withPrefix("twitter.lists.api.ownership");
+const metrics = require('../../../lib/crow.js').init("importer", {
+  api: "twitter",
+  module: "userListOwnership",
+  mvc: "api",
+  function: "query",
+  kue: "queryUserListOwnership",
+});
 var queue = require('../../../lib/kue.js');
 
 var RateLimiter = require('limiter').RateLimiter;

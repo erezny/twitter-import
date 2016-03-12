@@ -2,7 +2,12 @@
 // #refactor:10 write queries
 var util = require('util');
 var assert = require('assert');
-const metrics = require('../../../lib/crow.js').withPrefix("twitter.friends.maintenance.fillGraph");
+const metrics = require('../../../lib/crow.js').init("importer", {
+  api: "twitter",
+  module: "users",
+  mvc: "model",
+  function: "fill",
+});
 var queue = require('../../../lib/kue.js');
 
 var RSVP = require('rsvp');
@@ -34,7 +39,7 @@ function queryTemplate(sortDir){
     "match (n:twitterUser) " +
     "where not exists(n.screen_name) " +
     "match p=(n)--(m) with n, count(p) as links " +
-    " order by links desc limit 1800 " +
+    " order by links desc limit 180 " +
     "return n");
 }
 

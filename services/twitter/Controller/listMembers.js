@@ -5,7 +5,13 @@ var util = require('util');
 var MongoClient = require('mongodb').MongoClient,
 assert = require('assert');
 
-const metrics = require('../../../lib/crow.js').withPrefix("twitter.lists.controller.members");
+const metrics = require('../../../lib/crow.js').init("importer", {
+  api: "twitter",
+  module: "listMembers",
+  mvc: "controller",
+  function: "save",
+  kue: "receiveListMembers",
+});
 var queue = require('../../../lib/kue.js');
 var neo4j = require('../../../lib/neo4j.js');
 
