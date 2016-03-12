@@ -49,20 +49,20 @@ function upsertRelationship(node, friend) {
 
       logger.trace("query Neo4j %j", [ node, friend ] );
 
-      if (txn_count > kueThreads / 4){
-        txn.commit();
-        txn_count = 0;
-        txn = neo4j.batch();
+      if (txn_count > neo4jThreads ){
+        var startNeo4jTime = process.hrtime();
+        txn.commit(function(err, results) {
+                var diff = process.hrtime(startNeo4jTime);
+                metricNeo4jTimer.add(diff[0] * 1e9 + diff[1]);
+                txn = neo4j.batch();
+                txn_count = 0;
+                sem.leave();
+        });
+      } else {
+        sem.leave();
       }
-      txn_count += 1;
-      sem.leave();
 
-      var startNeo4jTime = process.hrtime();
-      txn.queryRaw("start x=node({idx}), n=node({idn}) create unique (x)-[r:follows]->(n) RETURN r",
-        { idx: node.id, idn: friend.id }, function(err, results) {
-
-        var diff = process.hrtime(startNeo4jTime);
-        metricNeo4jTimer.add(diff[0] * 1e9 + diff[1]);
+      txn.relate( node.id, "follows", friend.id , function(err, results) {
 
         if (err){
           if (err.code == "Neo.ClientError.Statement.ConstraintViolation") {
@@ -74,6 +74,7 @@ function upsertRelationship(node, friend) {
           }
         } else {
           logger.debug("saved relationship %j", results);
+
           metricRelSaved.increment();
           resolve();
         }
@@ -93,7 +94,7 @@ function saveFriend (job, done) {
   var rel = job.data;
   metricStart.increment();
 
-  function finished (){
+  function finished (result){
     return new RSVP.Promise( function (resolve, reject) {
       metricFinish.increment();
       var diff = process.hrtime(startTime);

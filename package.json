@@ -15,6 +15,7 @@
     "cache-manager": "^1.4.0",
     "co": "^4.6.0",
     "crow-metrics": "^2.3.7",
+    "express": "^4.13.4",
     "forever-monitor": "^1.7.0",
     "influx": "^4.1.0",
     "kue": "^0.10.5",

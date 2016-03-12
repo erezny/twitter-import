@@ -25,7 +25,7 @@ setInterval( function() {
   });
   }, 15 * 1000 );
 
-var metricRelInBloomfilter = metrics.counter("rel_in_bloomfilter");
+var metricRelExists = metrics.counter("rel_exists");
 var metricFriendNotExist = metrics.counter("friend_not_exist");
 var metricUserNotExist = metrics.counter("user_not_exist");
 var metricFinish = metrics.counter("finish");
@@ -39,17 +39,26 @@ function receiveFriend (job, done) {
   var rel = job.data;
   metrics.counter("start").increment();
 
-  RSVP.hash({ user: lookupNeo4jID(user, rel), friend: lookupNeo4jID(friend, rel) })
-  .then(function(results) {
-    logger.trace("ready to upsert");
-    queue.create('saveFriend', { user: results.user, friend: results.friend } ).removeOnComplete( true ).save();
-    metricFinish.increment();
+  lookupRel(rel).then(function() {
+    RSVP.hash({ user: lookupNeo4jID(user, rel), friend: lookupNeo4jID(friend, rel) })
+    .then(function(results) {
+      //TODO check redis for existing relationship
+      logger.trace("ready to upsert");
+      redis.hset(util.formatutil.format("twitter-friend:%s:%s", rel.user.id_str, rel.friend.id_str), "exists", 1);
+      queue.create('saveFriend', { user: results.user, friend: results.friend } ).removeOnComplete( true ).save();
+      metricFinish.increment();
+      done();
+    }, function(err) {
+      logger.debug("neo4j user not in redis %j",err);
+      metricUserNotExist.increment();
+      done(); //avoid retries
+    });
+  },
+  function(err) {
+    metricRelExists.increment();
     done();
-  }, function(err) {
-    logger.debug("neo4j user not in redis %j",err);
-    metricUserNotExist.increment();
-    done(); //avoid retries
   });
+
 };
 
 //var redisCache = [];
@@ -66,6 +75,23 @@ function lookupNeo4jID(user, rel){
         queue.create('receiveStubUser', { user: user, rel: rel } ).removeOnComplete( true ).save();
         logger.trace("save failed");
         reject(err);
+      }
+    });
+  });
+}
+
+//var redisCache = [];
+function lookupRel(rel){
+
+  return new RSVP.Promise( function(resolve, reject) {
+    logger.trace("querying redis");
+    redis.EXISTS(util.format("twitter-friend:%s:%s", rel.user.id_str, rel.friend.id_str), function(err, results) {
+      logger.trace("finished querying redis");
+      if (results == 1){
+    //    redisCache.push([ user.id_str, { id: parseInt(redisUser.neo4jID) }, 0 ])
+        reject({ message: "relationship exists" });
+      } else {
+        resolve();
       }
     });
   });
