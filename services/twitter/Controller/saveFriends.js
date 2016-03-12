@@ -48,7 +48,6 @@ function upsertRelationship(node, friend) {
     sem.take(function() {//timings
 
       logger.trace("query Neo4j %j", [ node, friend ] );
-
       if (txn_count > neo4jThreads ){
         var startNeo4jTime = process.hrtime();
         txn.commit(function(err, results) {
@@ -61,7 +60,7 @@ function upsertRelationship(node, friend) {
       } else {
         sem.leave();
       }
-
+      txn_count++;
       txn.relate( node.id, "follows", friend.id , function(err, results) {
 
         if (err){
