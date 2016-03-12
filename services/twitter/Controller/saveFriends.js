@@ -52,7 +52,7 @@ function upsertRelationship(node, friend) {
 
         sem.leave();
         var diff = process.hrtime(startNeo4jTime);
-        metricKueTimer.add(diff[0] * 1e9 + diff[1]);
+        metricNeo4jTimer.add(diff[0] * 1e9 + diff[1]);
 
         if (err){
           if (err.code == "Neo.ClientError.Statement.ConstraintViolation") {
