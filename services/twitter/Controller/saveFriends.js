@@ -4,7 +4,7 @@ var assert = require('assert');
 const kueThreads = process.env.KUE_THREADS || 4;
 const neo4jThreads = process.env.NEO4J_THREADS || 4;
 
-const metrics = require('../../../lib/crow.js', {
+const metrics = require('../../../lib/crow.js').init("importer", {
   api: "twitter",
   module: "friends",
   mvc: "controller",
@@ -13,7 +13,6 @@ const metrics = require('../../../lib/crow.js', {
   kueThreads: kueThreads,
   neo4jThreads: neo4jThreads,
 });
-
 var queue = require('../../../lib/kue.js');
 var neo4j = require('../../../lib/neo4j.js');
 var RSVP = require('rsvp');
