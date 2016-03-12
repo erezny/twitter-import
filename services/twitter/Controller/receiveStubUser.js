@@ -4,6 +4,8 @@ var util = require('util');
 
 var MongoClient = require('mongodb').MongoClient,
 assert = require('assert');
+const kueThreads = parseInt(process.env.KUE_THREADS) || 500;
+const neo4jThreads = parseInt(process.env.NEO4J_THREADS) || 100;
 
 const metrics = require('../../../lib/crow.js').init("importer", {
   api: "twitter",
@@ -68,7 +70,7 @@ function dostuff(user, rel, done){
   });
 }
 
-queue.process('receiveStubUser', 1, receiveUser);
+queue.process('receiveStubUser', kueThreads, receiveUser);
 
 setInterval( function() {
   queue.inactiveCount( 'receiveStubUser', function( err, total ) { // others are activeCount, completeCount, failedCount, delayedCount
@@ -76,30 +78,47 @@ setInterval( function() {
   });
 }, 15 * 1000 );
 
+var txn = neo4j.batch();
+var txn_count = 0;
+var sem = require('semaphore')(1);
 function upsertStubUserToNeo4j(user) {
   return function() {
-  delete user.id;
-  return new RSVP.Promise( function (resolve, reject) {
-    logger.debug('saving user %s', user.id_str);
-    neo4j.save(user, function(err, savedUser) {
-      if (err){
-        logger.error("neo4j save %s %j", user.id_str, err);
-        metrics.counter("neo4j_save_error").increment();
-        reject({ err:err, reason:"neo4j save user error" });
-        return;
+    delete user.id;
+    return new RSVP.Promise( function (resolve, reject) {
+      sem.take(function() {//timings
+      logger.debug('saving user %s', user.id_str);
+
+      if (txn_count > neo4jThreads ){
+        txn.commit(function(err, results) {
+                txn = neo4j.batch();
+                txn_count = 0;
+                sem.leave();
+        });
+      } else {
+        sem.leave();
       }
-      logger.debug('inserted user %s', savedUser.id_str);
-      neo4j.label(savedUser, "twitterUser", function(err, labeledUser) {
+      txn_count++;
+
+      neo4j.save(user, function(err, savedUser) {
         if (err){
-          logger.error("neo4j label error %s %j", user.id_str, err);
-          metrics.counter("neo4j_label_error").increment();
-          reject({ err:err, reason:"neo4j label user error" });
+          logger.error("neo4j save %s %j", user.id_str, err);
+          metrics.counter("neo4j_save_error").increment();
+          reject({ err:err, reason:"neo4j save user error" });
           return;
         }
-        redis.hset(util.format("twitter:%s",savedUser.id_str), "neo4jID", savedUser.id, function(err, res) {
-          logger.debug('labeled user %s', savedUser.id_str);
-          metrics.counter("neo4j_inserted").increment();
-          resolve(savedUser);
+        logger.debug('inserted user %s', savedUser.id_str);
+        neo4j.label(savedUser, "twitterUser", function(err, labeledUser) {
+          if (err){
+            logger.error("neo4j label error %s %j", user.id_str, err);
+            metrics.counter("neo4j_label_error").increment();
+            reject({ err:err, reason:"neo4j label user error" });
+            return;
+          }
+          redis.hset(util.format("twitter:%s",savedUser.id_str), "neo4jID", savedUser.id, function(err, res) {
+            logger.debug('labeled user %s', savedUser.id_str);
+            metrics.counter("neo4j_inserted").increment();
+            resolve(savedUser);
+          });
         });
       });
     });
