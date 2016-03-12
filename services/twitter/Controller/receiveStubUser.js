@@ -99,7 +99,7 @@ function upsertStubUserToNeo4j(user) {
       }
       txn_count++;
 
-      neo4j.save(user, function(err, savedUser) {
+      txn.save(user, function(err, savedUser) {
         if (err){
           logger.error("neo4j save %s %j", user.id_str, err);
           metrics.counter("neo4j_save_error").increment();
@@ -107,7 +107,7 @@ function upsertStubUserToNeo4j(user) {
           return;
         }
         logger.debug('inserted user %s', savedUser.id_str);
-        neo4j.label(savedUser, "twitterUser", function(err, labeledUser) {
+        txn.label(savedUser, "twitterUser", function(err, labeledUser) {
           if (err){
             logger.error("neo4j label error %s %j", user.id_str, err);
             metrics.counter("neo4j_label_error").increment();
