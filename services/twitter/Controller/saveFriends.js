@@ -1,8 +1,8 @@
 
 var util = require('util');
 var assert = require('assert');
-const kueThreads = parseInt(process.env.KUE_THREADS) || 4;
-const neo4jThreads = parseInt(process.env.NEO4J_THREADS) || 4;
+const kueThreads = parseInt(process.env.KUE_THREADS) || 500;
+const neo4jThreads = parseInt(process.env.NEO4J_THREADS) || 100;
 
 const metrics = require('../../../lib/crow.js').init("importer", {
   api: "twitter",
@@ -47,19 +47,20 @@ function upsertRelationship(node, friend) {
   return new RSVP.Promise( function (resolve, reject) {
     sem.take(function() {//timings
 
-      var startNeo4jTime = process.hrtime();
       logger.trace("query Neo4j %j", [ node, friend ] );
 
-      if (txn_count > kueThreads / 2){
+      if (txn_count > kueThreads / 4){
         txn.commit();
         txn_count = 0;
+        txn = neo4j.batch();
       }
       txn_count += 1;
+      sem.leave();
 
+      var startNeo4jTime = process.hrtime();
       txn.queryRaw("start x=node({idx}), n=node({idn}) create unique (x)-[r:follows]->(n) RETURN r",
         { idx: node.id, idn: friend.id }, function(err, results) {
 
-        sem.leave();
         var diff = process.hrtime(startNeo4jTime);
         metricNeo4jTimer.add(diff[0] * 1e9 + diff[1]);
 
