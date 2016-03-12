@@ -50,11 +50,11 @@ function upsertRelationship(node, friend) {
       logger.trace("query Neo4j %j", [ node, friend ] );
       if (txn_count > neo4jThreads ){
         var startNeo4jTime = process.hrtime();
+        txn_count = 0;
         txn.commit(function(err, results) {
                 var diff = process.hrtime(startNeo4jTime);
                 metricNeo4jTimer.add(diff[0] * 1e9 + diff[1]);
                 txn = neo4j.batch();
-                txn_count = 0;
                 sem.leave();
         });
       } else {

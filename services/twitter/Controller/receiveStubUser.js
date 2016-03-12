@@ -89,9 +89,9 @@ function upsertStubUserToNeo4j(user) {
       logger.debug('saving user %s', user.id_str);
 
       if (txn_count > neo4jThreads ){
+        txn_count = 0;
         txn.commit(function(err, results) {
                 txn = neo4j.batch();
-                txn_count = 0;
                 sem.leave();
         });
       } else {
