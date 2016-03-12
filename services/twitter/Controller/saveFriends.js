@@ -54,7 +54,7 @@ function saveFriend (job, done) {
     done();
   }
 
-  upsertRelationship(user, friend).then(finished);
+  upsertRelationship(user, friend).then(finished, done);
 
   var sem = require('semaphore')(neo4jThreads);
   function upsertRelationship(node, friend) {
