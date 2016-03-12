@@ -38,9 +38,46 @@ const metricRelFindError = metrics.counter("rel_find_error");
 const metricRelAlreadyExists = metrics.counter("rel_already_exists");
 const metricRelSaved = metrics.counter("rel_saved");
 
+var sem = require('semaphore')(neo4jThreads);
+function upsertRelationship(node, friend) {
+  assert( typeof(node.id) == "number" );
+  assert( typeof(friend.id) == "number" );
+  return new RSVP.Promise( function (resolve, reject) {
+    sem.take(function() {//timings
+
+      var startNeo4jTime = process.hrtime();
+      logger.trace("query Neo4j %j", [ node, friend ] );
+      neo4j.queryRaw("start x=node({idx}), n=node({idn}) create unique (x)-[r:follows]->(n) RETURN r",
+        { idx: node.id, idn: friend.id }, function(err, results) {
+
+        sem.leave();
+        var diff = process.hrtime(startNeo4jTime);
+        metricKueTimer.add(diff[0] * 1e9 + diff[1]);
+
+        if (err){
+          if (err.code == "Neo.ClientError.Statement.ConstraintViolation") {
+            metricRelAlreadyExists.increment();
+            resolve();
+          } else {
+            logger.error("neo4j save error %j %j", { node: node, friend: friend }, err);
+            reject("error");
+          }
+        } else {
+          logger.debug("saved relationship %j", results);
+          metricRelSaved.increment();
+          resolve();
+        }
+
+      });
+    });
+  });
+}
+
 function saveFriend (job, done) {
+
   var startTime = process.hrtime();
   logger.trace("received job %j", job);
+
   var user = job.data.user;
   var friend = job.data.friend;
   var rel = job.data;
@@ -55,38 +92,6 @@ function saveFriend (job, done) {
   }
 
   upsertRelationship(user, friend).then(finished, done);
-
-  var sem = require('semaphore')(neo4jThreads);
-  function upsertRelationship(node, friend) {
-    assert( typeof(node.id) == "number" );
-    assert( typeof(friend.id) == "number" );
-    return new RSVP.Promise( function (resolve, reject) {
-    sem.take(function() {//timings
-      var startNeo4jTime = process.hrtime();
-      logger.trace("query Neo4j %j", [ node, friend ] );
-      neo4j.queryRaw("start x=node({idx}), n=node({idn}) create unique (x)-[r:follows]->(n) RETURN r",
-        { idx: node.id, idn: friend.id }, function(err, results) {
-        sem.leave();
-        var diff = process.hrtime(startNeo4jTime);
-        metricKueTimer.add(diff[0] * 1e9 + diff[1]);
-        if (err){
-          if (err.code == "Neo.ClientError.Statement.ConstraintViolation") {
-            metricRelAlreadyExists.increment();
-            resolve();
-          } else {
-            logger.error("neo4j save error %j %j", { node: node, friend: friend }, err);
-            reject("error");
-          }
-        } else {
-          logger.debug("saved relationship %j", results);
-          metricRelSaved.increment();
-          resolve();
-        }
-      });
-    });
-  });
-  }
-
 };
 
 queue.process('saveFriend', kueThreads, saveFriend );
