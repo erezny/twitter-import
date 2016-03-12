@@ -38,7 +38,9 @@ const metricRelFindError = metrics.counter("rel_find_error");
 const metricRelAlreadyExists = metrics.counter("rel_already_exists");
 const metricRelSaved = metrics.counter("rel_saved");
 
-var sem = require('semaphore')(neo4jThreads);
+var txn = neo4j.batch();
+var txn_count = 0;
+var sem = require('semaphore')(1);
 function upsertRelationship(node, friend) {
   assert( typeof(node.id) == "number" );
   assert( typeof(friend.id) == "number" );
@@ -47,7 +49,14 @@ function upsertRelationship(node, friend) {
 
       var startNeo4jTime = process.hrtime();
       logger.trace("query Neo4j %j", [ node, friend ] );
-      neo4j.queryRaw("start x=node({idx}), n=node({idn}) create unique (x)-[r:follows]->(n) RETURN r",
+
+      if (txn_count > kueThreads / 2){
+        txn.commit();
+        txn_count = 0;
+      }
+      txn_count += 1;
+
+      txn.queryRaw("start x=node({idx}), n=node({idn}) create unique (x)-[r:follows]->(n) RETURN r",
         { idx: node.id, idn: friend.id }, function(err, results) {
 
         sem.leave();
