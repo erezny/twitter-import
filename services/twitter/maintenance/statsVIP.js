@@ -2,7 +2,12 @@
 // #refactor:10 write queries
 var util = require('util');
 var assert = require('assert');
-const metrics = require('../../../lib/crow.js').withPrefix("twitter.vip.stats.friendsCompleteness");
+const metrics = require('../../../lib/crow.js').init("importer", {
+  api: "twitter",
+  module: "vip",
+  mvc: "model",
+  function: "stats",
+});
 var queue = require('../../../lib/kue.js');
 
 var RSVP = require('rsvp');
