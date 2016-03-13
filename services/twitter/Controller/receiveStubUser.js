@@ -67,6 +67,7 @@ function redisUserCheck(user){
   return new RSVP.Promise( function(resolve, reject) {
     redis.EXISTS(redisKey(user), function(err, results) {
       if (results >= 1){
+        metricExists.increment();
         resolve(user);
       } else {
         reject(user);
