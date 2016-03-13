@@ -83,7 +83,7 @@ function receiveFriend (job, done) {
   lookupRel(rel)
   .then(finished, function(err) {
     if ( err.message == "relationship exists" || err.message == "user doesn't exist"  ) {
-      done();
+      finished().then(done);
     } else {
       metricError.increment();
       done(err);
