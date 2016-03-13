@@ -12,6 +12,7 @@ const metrics = require('../../../lib/crow.js').init("importer", {
 });
 var queue = require('../../../lib/kue.js');
 var neo4j = require('../../../lib/neo4j.js');
+var model = require('../../../lib/twitter/models/user.js');
 var RSVP = require('rsvp');
 var logger = require('tracer').colorConsole( {
   level: 'info'
@@ -61,7 +62,14 @@ function upsertUserToNeo4j(user) {
   });
 }
 
-var model = require('../../../lib/twitter/models/user.js');
+function updateUserSaveTime(user){
+  return new Promise(function(resolve, reject) {
+    redis.hset(redisKey(user), "saveTimestamp", parseInt((+new Date) / 1000), function() {
+      resolve(user)
+    });
+  });
+}
+
 function saveUser(job, done) {
   logger.trace("received job %j", job);
   metricsStart.increment();
@@ -83,11 +91,3 @@ function saveUser(job, done) {
 };
 
 queue.process('saveUser', kueThreads, saveUser);
-
-function updateUserSaveTime(user){
-  return new Promise(function(resolve, reject) {
-    redis.hset(redisKey(user), "saveTimestamp", parseInt((+new Date) / 1000), function() {
-      resolve(user)
-    });
-  });
-}

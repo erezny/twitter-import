@@ -67,7 +67,7 @@ function redisUserCheck(user){
       if (results >= 1){
         resolve(user);
       } else {
-        reject();
+        reject(user);
       }
     });
   });
@@ -88,10 +88,10 @@ function saveStubUser(job, done) {
     });
   }
 
-  redisUser(user).then(finished,
-      upsertStubUserToNeo4j(user).then(finished, done).then(done);
-    }
-  });
+  redisUserCheck(user)
+  .then(finished,upsertStubUserToNeo4j)
+  .then(finished, done)
+  .then(done);
 };
 
 queue.process('receiveStubUser', kueThreads, saveStubUser);

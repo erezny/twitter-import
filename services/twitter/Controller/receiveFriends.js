@@ -60,7 +60,7 @@ function lookupRel(rel){
 
 function receiveFriend (job, done) {
   logger.trace("received job %j", job);
-  metricsStart.increment();
+  metricStart.increment();
   var user = job.data.user;
   var friend = job.data.friend;
   var rel = job.data;
