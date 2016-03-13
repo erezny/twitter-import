@@ -29,6 +29,7 @@ setInterval( function() {
 }, 15 * 1000 );
 
 const metricRelExists = metrics.counter("rel_exists");
+const metricExists = metrics.counter("exists");
 const metricFinish = metrics.counter("finish");
 const metricStart = metrics.counter("start");
 const metricError = metrics.counter("error");
@@ -44,7 +45,7 @@ function upsertStubUserToNeo4j(user, rel) {
   return new RSVP.Promise( function (resolve, reject) {
     var savedUser = txn.save(user, function(err, savedUser) {
       if (err){
-        metricRelExists.increment();
+        metricExists.increment();
         reject({ err:err, reason:"neo4j save user error" });
       }
     });
