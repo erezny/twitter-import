@@ -57,8 +57,8 @@ function checkUserQueryTime(user){
     var key = util.format("twitter:%s", user.id_str);
     var currentTimestamp = new Date().getTime();
     redis.hgetall(key, function(err, obj) {
-      if ( obj & obj.queryTimestamp ){
-        if ( obj.queryTimestamp > parseInt((+new Date) / 1000) - (60 * 60 * 24 * 7) ) {
+      if ( obj & obj.saveTimestamp ){
+        if ( obj.saveTimestamp > parseInt((+new Date) / 1000) - (60 * 60 * 24 * 7) ) {
             metrics.counter("repeatQuery").increment();
             reject( { message: "user recently queried" , timestamp:parseInt((+new Date) / 1000), queryTimestamp: obj.queryTimestamp } );
         } else {
@@ -88,11 +88,10 @@ function queryUser(user) {
       T.get('users/show', { user_id: user.id_str }, function(err, data)
       {
         if (err){
-          //"message":"User has been suspended.","code":63,
           if (err.code == 50){
             //user doesn't exist
             //queue.create('expireUser', {user: user}).removeOnComplete(true).save();
-            reject({user: user, err: err, reason: "user doesn't exist"});
+            reject({ user: user, err: err, reason: "user doesn't exist" } );
             return;
           } else if (err.message == "User has been suspended."){
             queue.create('markUserSuspended', { user: user } ).removeOnComplete(true).save();
