@@ -76,6 +76,8 @@ var txn_count = {
         this.lock = 0;
         fn();
       })
+    } else {
+      fn();
     }
   },
   dec: function() {
