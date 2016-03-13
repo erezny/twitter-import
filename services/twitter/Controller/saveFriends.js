@@ -60,7 +60,6 @@ function upsertRelationship(node, friend) {
             }
           } else {
             logger.debug("saved relationship %j", results);
-
             metricRelSaved.increment();
             resolve();
           }
@@ -80,10 +79,7 @@ function saveFriend (job, done) {
 
   function finished (result){
     return new RSVP.Promise( function (resolve, reject) {
-      txn_count.dec();
       metricFinish.increment();
-      var diff = process.hrtime(startTime);
-      metricKueTimer.add(diff[0] * 1e9 + diff[1]);
       logger.trace("finish")
       resolve();
     });
