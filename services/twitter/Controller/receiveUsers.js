@@ -72,7 +72,7 @@ function updateUserSaveTime(user){
 
 function saveUser(job, done) {
   logger.trace("received job %j", job);
-  metricsStart.increment();
+  metricStart.increment();
   var user = filterUser(job.data.user);
   var rel = job.data.rel;
 
