@@ -50,7 +50,10 @@ function lookupNeo4jID(user, rel){
 function lookupRel(rel){
   return new RSVP.Promise( function(resolve, reject) {
     redis.exists(redisRelKey(rel), function(err, num) {
-      if (num >= 1){
+      if (err){
+        metricErr.increment();
+        reject(err);
+      } else if (num >= 1){
         metricRelExists.increment();
         reject({ message: "relationship exists" });
       } else {
