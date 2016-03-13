@@ -64,29 +64,25 @@ function upsertRelationship(node, friend) {
     });
 }
 
+neo4j_jobs = []
+
 var sem = require('semaphore')(1);
-var txn_count = {
-  value: 0,
-  lock: 0,
-  inc: function(fn) {
+function buffer(node, friend){
+  return new RSVP.Promise( function (resolve, reject) {
     sem.take(function() {
-      this.value++;
-      if (this.lock == 0 && this.value >= neo4jThreads){
-        this.lock++;
-        fn();
+      neo4j_jobs.push(upsertRelationship(node, friend).then(resolve,reject));
+      if (neo4j_jobs.length >= neo4jThreads){
         txn.commit(function(err,results) {
-          this.lock = 0;
-          sem.leave();
+          RSVP.allSettled(neo4j_jobs).then(function() {
+            neo4j_jobs = [];
+            sem.leave();
+          })
         })
       } else {
-        fn();
         sem.leave();
       }
-    })
-  },
-  dec: function() {
-    this.value--;
-  }
+    });
+  });
 }
 
 function saveFriend (job, done) {
@@ -110,7 +106,7 @@ function saveFriend (job, done) {
     });
   }
 
-  upsertRelationship(user, friend).then(finished, done).then(done);
+  buffer(user, friend).then(finished, done).then(done);
 };
 
 queue.process('saveFriend', kueThreads, saveFriend );
