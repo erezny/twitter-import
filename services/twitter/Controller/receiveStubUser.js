@@ -30,7 +30,7 @@ setInterval( function() {
 
 const metricFinish = metrics.counter("finish");
 const metricStart = metrics.counter("start");
-const metricsError = metrics.counter("error");
+const metricError = metrics.counter("error");
 const metricSaved = metrics.counter("saved");
 
 var txn = neo4j.batch();
@@ -43,13 +43,13 @@ function upsertStubUserToNeo4j(user, rel) {
   return new RSVP.Promise( function (resolve, reject) {
     var savedUser = txn.save(user, function(err, savedUser) {
       if (err){
-        metricsError.increment();
+        metricError.increment();
         reject({ err:err, reason:"neo4j save user error" });
       }
     });
     txn.label(savedUser, "twitterUser", function(err, labeledUser) {
       if (err){
-        metricsError.increment();
+        metricError.increment();
         reject({ err:err, reason:"neo4j label user error" });
       } else {
         redis.hset(redisKey(savedUser), "neo4jID", savedUser.id, function(err, res) {
@@ -75,7 +75,7 @@ function redisUserCheck(user){
 
 function saveStubUser(job, done) {
   logger.trace("received job %j", job);
-  metricsStart.increment();
+  metricStart.increment();
   var user = job.data.user;
   var rel = job.data.rel;
 

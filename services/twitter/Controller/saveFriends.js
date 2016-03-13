@@ -30,7 +30,7 @@ setInterval( function() {
 const metricFinish = metrics.counter("finish");
 const metricStart = metrics.counter("start");
 const metricRelSaved = metrics.counter("rel_saved");
-const metricsError = metrics.counter("error");
+const metricError = metrics.counter("error");
 var txn = neo4j.batch();
 
 setInterval(function() {
@@ -47,7 +47,6 @@ function upsertRelationship(node, friend) {
             logger.error("neo4j save error %j %j", { node: node, friend: friend }, err);
             reject("error");
           } else {
-            logger.debug("saved relationship %j", results);
             metricRelSaved.increment();
             resolve();
           }
@@ -69,7 +68,9 @@ function saveFriend (job, done) {
       resolve();
     });
   }
-  upsertRelationship(user, friend).then(finished, done).then(done);
+  upsertRelationship(user, friend)
+  .then(finished, done)
+  .then(done);
 };
 
 queue.process('saveFriend', kueThreads, saveFriend );

@@ -31,7 +31,7 @@ const metricRelExists = metrics.counter("rel_exists");
 const metricUserNotExist = metrics.counter("user_not_exist");
 const metricFinish = metrics.counter("finish");
 const metricStart = metrics.counter("start");
-const metricsError = metrics.counter("error");
+const metricError = metrics.counter("error");
 
 function lookupNeo4jID(user, rel){
   return new RSVP.Promise( function(resolve, reject) {
@@ -60,7 +60,7 @@ function lookupRel(rel){
           queue.create('saveFriend', { user: results.user, friend: results.friend } ).removeOnComplete( true ).save();
           resolve(rel);
         }, function(err) {
-          metricsError.increment();
+          metricError.increment();
           reject(err); //avoid retries
         });
       }
