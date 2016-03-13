@@ -39,7 +39,7 @@ function queryTemplate(sortDir){
     "match (n:twitterUser) " +
     "where not exists(n.screen_name) " +
     "match p=(n)--(m) with n, count(p) as links " +
-    " order by links desc limit 180 " +
+    " order by links desc limit 1800 " +
     "return n");
 }
 
