@@ -54,14 +54,15 @@ function lookupRel(rel){
         metricRelExists.increment();
         reject({ message: "relationship exists" });
       } else {
-        RSVP.hash({ user: lookupNeo4jID(rel.user, rel), friend: lookupNeo4jID(rel.friend, rel) })
-        .then(function(results) {
-          redis.hset(redisRelKey(rel), "imported", parseInt((+new Date) / 1000));
-          queue.create('saveFriend', { user: results.user, friend: results.friend } ).removeOnComplete( true ).save();
-          resolve(rel);
-        }, function(err) {
-          reject(err);
-        });
+        lookupNeo4jID(rel.user, rel)
+        .then(function(user) {
+          lookupNeo4jID(rel.friend, rel)
+          .then(function(friend) {
+            redis.hset(redisRelKey(rel), "imported", parseInt((+new Date) / 1000));
+            queue.create('saveFriend', { user: user, friend: friend } ).removeOnComplete( true ).save();
+            resolve(rel);
+          }, reject );
+        }, reject );
       }
     });
   });
@@ -81,15 +82,8 @@ function receiveFriend (job, done) {
   }
 
   lookupRel(rel)
-  .then(finished, function(err) {
-    if ( err == {} || err.message == "relationship exists"  ) {
-      finished().then(done);
-    } else {
-      metricError.increment();
-      done(err);
-    }
-  })
-  .then(done);
+  .then(finished, finished)
+  .finally(done);
 
 };
 
