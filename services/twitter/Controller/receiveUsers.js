@@ -1,134 +1,93 @@
 
-// #refactor:10 write queries
 var util = require('util');
-
-var MongoClient = require('mongodb').MongoClient,
-assert = require('assert');
-
+var assert = require('assert');
+const kueThreads = parseInt(process.env.KUE_THREADS) || 500;
+const neo4jThreads = parseInt(process.env.NEO4J_THREADS) || 100;
 const metrics = require('../../../lib/crow.js').init("importer", {
   api: "twitter",
   module: "user",
   mvc: "controller",
   function: "save",
-  kue: "receiveUser",
+  kue: "saveUser",
 });
 var queue = require('../../../lib/kue.js');
 var neo4j = require('../../../lib/neo4j.js');
-
 var RSVP = require('rsvp');
 var logger = require('tracer').colorConsole( {
   level: 'info'
 } );
-
 var redis = require("redis").createClient({
   host: process.env.REDIS_HOST,
   port: parseInt(process.env.REDIS_PORT),
 });
+const redisKey = function(user) { return util.format("twitter:%s", user.id_str); };
 
-var RateLimiter = require('limiter').RateLimiter;
-//set rate limiter slightly lower than twitter api limit
-var limiter = new RateLimiter(1, (1 / process.env.NEO4j_LIMIT_NODE_TXPS ) * 60 * 1000);
+setInterval( function() {
+queue.inactiveCount( 'saveUser', function( err, total ) { // others are activeCount, completeCount, failedCount, delayedCount
+  metrics.setGauge("queue.inactive", total);
+});
+}, 15 * 1000 );
 
-var metricNeo4jTimeMsec = metrics.distribution("neo4j_time_msec");
-function receiveUser(job, done) {
-  logger.trace("received job %j", job);
-  metrics.counter("processStarted").increment();
-  var user = {
-    id_str: job.data.user.id_str,
-    screen_name: job.data.user.screen_name,
-    name: job.data.user.name,
-    followers_count: job.data.user.followers_count,
-    friends_count: job.data.user.friends_count,
-    favourites_count: job.data.user.favourites_count,
-    description: job.data.user.description,
-    location: job.data.user.location,
-    statuses_count: job.data.user.statuses_count,
-    protected: job.data.user.protected
-  }
+const metricFinish = metrics.counter("finish");
+const metricStart = metrics.counter("start");
+const metricsError = metrics.counter("error");
+const metricSaved = metrics.counter("saved");
 
-  //    var mongo = saveUserToMongo(user);
+var txn = neo4j.batch();
+setInterval(function() {
+    txn.commit();
+    txn = neo4j.batch();
+} , 5 * 1000);
 
-  limiter.removeTokens(1, function(err, remainingRequests) {
-    var key = util.format("twitter:%s", user.id_str);
-    redis.hgetall(key, function(err, redisUser) {
-      if (redisUser && redisUser.neo4jID && redisUser.neo4jID != "undefined"){
-        user.id = redisUser.neo4jID;
-        redis.hget(key, "saveTimestamp", function(err, result) {
-          if (result < parseInt((+new Date) / 1000) - 24 * 60 * 60) {
-            dostuff(user, done);
-          } else {
-            done();
-          }
+function upsertUserToNeo4j(user) {
+  return new RSVP.Promise( function (resolve, reject) {
+    var savedUser = txn.save(user, function(err, savedUser) {
+      if (err){
+        metricsError.increment();
+        reject({ err:err, reason:"neo4j save user error" });
+      }
+    });
+    txn.label(savedUser, "twitterUser", function(err, labeledUser) {
+      if (err){
+        metricsError.increment();
+        reject({ err:err, reason:"neo4j label user error" });
+      } else {
+        redis.hset(redisKey(savedUser), "neo4jID", savedUser.id, function(err, res) {
+          metricSaved.increment();
+          resolve(savedUser);
         });
-      } else { //insert
-        dostuff(user, done);
       }
     });
   });
-};
-
-var metricsFinished = metrics.counter("processFinished");
-var metricsError = metrics.counter("processError");
-function dostuff(user, done){
-  return metricNeo4jTimeMsec.time(upsertUserToNeo4j(user))
-  .then(updateUserSaveTime)
-  .then(function(savedUser) {
-    logger.trace("savedUser: %j", savedUser);
-      //queue.create('queryUserFriends', { user: { id_str: user.id_str } } ).removeOnComplete( true ).save();
-      //queue.create('queryUserFollowers', { user: { id_str: user.id_str } } ).removeOnComplete( true ).save();
-      metricsFinished.increment();
-    done();
-  }, function(err) {
-    logger.error("receiveUser error on %j\n%j\n--", job, err);
-    metricsError.increment();
-    done(err);
-  });
 }
 
-queue.process('receiveUser', 1, receiveUser);
+var model = require('../../../lib/twitter/models/user.js');
+function saveUser(job, done) {
+  logger.trace("received job %j", job);
+  metricsStart.increment();
+  var user = filterUser(job.data.user);
+  var rel = job.data.rel;
 
-  setInterval( function() {
-  queue.inactiveCount( 'receiveUser', function( err, total ) { // others are activeCount, completeCount, failedCount, delayedCount
-    metrics.setGauge("queue.inactive", total);
-  });
-  }, 15 * 1000 );
+  function finished (result){
+    return new RSVP.Promise( function (resolve, reject) {
+      metricFinish.increment();
+      logger.trace("finish")
+      queue.create('receiveFriend', rel ).removeOnComplete( true ).save();
+      resolve();
+    });
+  }
+  upsertUserToNeo4j(user)
+  .then(updateUserSaveTime, done)
+  .then(finished, done)
+  .then(done);
+};
+
+queue.process('saveUser', kueThreads, saveUser);
 
 function updateUserSaveTime(user){
   return new Promise(function(resolve, reject) {
-    var key = util.format("twitter:%s", user.id_str);
-    var currentTimestamp = new Date().getTime();
-    redis.hset(key, "saveTimestamp", parseInt((+new Date) / 1000), function() {
+    redis.hset(redisKey(user), "saveTimestamp", parseInt((+new Date) / 1000), function() {
       resolve(user)
     });
   });
-}
-
-function upsertUserToNeo4j(user) {
-  return function() {
-    return new RSVP.Promise( function (resolve, reject) {
-      logger.debug('saving user %s', user.screen_name);
-      neo4j.save(user, function(err, savedUser) {
-        if (err){
-          logger.error("neo4j save %s %j", user.screen_name, err);
-          metrics.counter("neo4j_save_error").increment();
-          reject({ err:err, reason:"neo4j save user error" });
-          return;
-        }
-        logger.debug('inserted user %s', savedUser.screen_name);
-        neo4j.label(savedUser, "twitterUser", function(err, labeledUser) {
-          if (err){
-            logger.error("neo4j label error %s %j", user.screen_name, err);
-            metrics.counter("neo4j_label_error").increment();
-            reject({ err:err, reason:"neo4j label user error" });
-            return;
-          }
-          redis.hset(util.format("twitter:%s",savedUser.id_str), "neo4jID", savedUser.id, function(err, res) {
-            logger.debug('labeled user %s', savedUser.screen_name);
-            metrics.counter("neo4j_inserted").increment();
-            resolve(savedUser);
-          });
-        });
-      });
-    });
-  }
 }

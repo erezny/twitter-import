@@ -3,15 +3,12 @@ var util = require('util');
 var assert = require('assert');
 const kueThreads = parseInt(process.env.KUE_THREADS) || 500;
 const neo4jThreads = parseInt(process.env.NEO4J_THREADS) || 100;
-
 const metrics = require('../../../lib/crow.js').init("importer", {
   api: "twitter",
   module: "friends",
   mvc: "controller",
   function: "save",
   kue: "saveFriend",
-  kueThreads: kueThreads,
-  neo4jThreads: neo4jThreads,
 });
 var queue = require('../../../lib/kue.js');
 var neo4j = require('../../../lib/neo4j.js');
@@ -32,12 +29,8 @@ setInterval( function() {
 
 const metricFinish = metrics.counter("finish");
 const metricStart = metrics.counter("start");
-const metricKueTimer = metrics.distribution("kueue_ms");
-const metricNeo4jTimer = metrics.distribution("neo4j_ms");
-const metricRelFindError = metrics.counter("rel_find_error");
-const metricRelAlreadyExists = metrics.counter("rel_already_exists");
 const metricRelSaved = metrics.counter("rel_saved");
-
+const metricsError = metrics.counter("error");
 var txn = neo4j.batch();
 
 setInterval(function() {
@@ -51,13 +44,8 @@ function upsertRelationship(node, friend) {
   return new RSVP.Promise( function (resolve, reject) {
         txn.relate( node.id, "follows", friend.id , function(err, results) {
           if (err){
-            if (err.code == "Neo.ClientError.Statement.ConstraintViolation") {
-              metricRelAlreadyExists.increment();
-              resolve();
-            } else {
-              logger.error("neo4j save error %j %j", { node: node, friend: friend }, err);
-              reject("error");
-            }
+            logger.error("neo4j save error %j %j", { node: node, friend: friend }, err);
+            reject("error");
           } else {
             logger.debug("saved relationship %j", results);
             metricRelSaved.increment();
@@ -68,10 +56,7 @@ function upsertRelationship(node, friend) {
 }
 
 function saveFriend (job, done) {
-
-  var startTime = process.hrtime();
   logger.trace("received job %j", job);
-
   var user = job.data.user;
   var friend = job.data.friend;
   var rel = job.data;
@@ -84,7 +69,6 @@ function saveFriend (job, done) {
       resolve();
     });
   }
-
   upsertRelationship(user, friend).then(finished, done).then(done);
 };
 
