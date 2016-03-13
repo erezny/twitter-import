@@ -2,7 +2,7 @@
 // #refactor:10 write queries
 var util = require('util');
 var assert = require('assert');
-var assert = require('assert');const metrics = require('../../../lib/crow.js').init("importer", {
+const metrics = require('../../../lib/crow.js').init("importer", {
   api: "twitter",
   module: "friends",
   mvc: "model",
