@@ -39,6 +39,11 @@ const metricRelAlreadyExists = metrics.counter("rel_already_exists");
 const metricRelSaved = metrics.counter("rel_saved");
 
 var txn = neo4j.batch();
+
+setInterval(function() {
+    txn.commit();
+} , 5 * 1000);
+
 function upsertRelationship(node, friend) {
   assert( typeof(node.id) == "number" );
   assert( typeof(friend.id) == "number" );
@@ -64,28 +69,6 @@ function upsertRelationship(node, friend) {
     });
 }
 
-neo4j_jobs = []
-
-var sem = require('semaphore')(1);
-function buffer(node, friend){
-  return new RSVP.Promise( function (resolve, reject) {
-    sem.take(function() {
-      neo4j_jobs.push(upsertRelationship(node, friend).then(resolve,reject));
-      if (neo4j_jobs.length == neo4jThreads){
-        txn.commit(function(err,results) {
-          RSVP.allSettled(neo4j_jobs).then(function() {
-            neo4j_jobs = [];
-            txn = neo4j.batch();
-            sem.leave();
-          })
-        })
-      } else {
-        sem.leave();
-      }
-    });
-  });
-}
-
 function saveFriend (job, done) {
 
   var startTime = process.hrtime();
@@ -107,7 +90,7 @@ function saveFriend (job, done) {
     });
   }
 
-  buffer(user, friend).then(finished, done).then(done);
+  upsertRelationship(user, friend).then(finished, done).then(done);
 };
 
 queue.process('saveFriend', kueThreads, saveFriend );
