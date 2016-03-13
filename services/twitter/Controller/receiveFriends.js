@@ -36,7 +36,7 @@ const metricError = metrics.counter("error");
 function lookupNeo4jID(user, rel){
   return new RSVP.Promise( function(resolve, reject) {
     redis.hgetall(util.format("twitter:%s", user.id_str), function(err, redisUser) {
-      if (redisUser && redisUser.neo4jID && redisUser.neo4jID != "undefined"){
+      if (redisUser && redisUser.neo4jID && redisUser.neo4jID != "undefined" && parseInt(redisUser.neo4jID) > 1){
         resolve({ id: parseInt(redisUser.neo4jID) });
       } else {
         queue.create('receiveStubUser', { user: user, rel: rel } ).removeOnComplete( true ).save();
@@ -60,7 +60,6 @@ function lookupRel(rel){
           queue.create('saveFriend', { user: results.user, friend: results.friend } ).removeOnComplete( true ).save();
           resolve(rel);
         }, function(err) {
-          metricError.increment();
           reject(err); //avoid retries
         });
       }
@@ -83,6 +82,7 @@ function receiveFriend (job, done) {
 
   lookupRel(rel)
   .then(finished, function(err) {
+    metricError.increment();
     done();
   })
   .then(done);
