@@ -39,48 +39,48 @@ const metricRelAlreadyExists = metrics.counter("rel_already_exists");
 const metricRelSaved = metrics.counter("rel_saved");
 
 var txn = neo4j.batch();
-var txn_count = 0;
 var sem = require('semaphore')(1);
 function upsertRelationship(node, friend) {
   assert( typeof(node.id) == "number" );
   assert( typeof(friend.id) == "number" );
   return new RSVP.Promise( function (resolve, reject) {
-    sem.take(function() {//timings
-
-      logger.trace("query Neo4j %j", [ node, friend ] );
-      if (txn_count > neo4jThreads ){
-        var startNeo4jTime = process.hrtime();
-        txn_count = 0;
-        txn.commit(function(err, results) {
-                var diff = process.hrtime(startNeo4jTime);
-                metricNeo4jTimer.add(diff[0] * 1e9 + diff[1]);
-                txn = neo4j.batch();
-                sem.leave();
-        });
-      } else {
-        sem.leave();
-      }
-      txn_count++;
-      txn.relate( node.id, "follows", friend.id , function(err, results) {
-
-        if (err){
-          if (err.code == "Neo.ClientError.Statement.ConstraintViolation") {
-            metricRelAlreadyExists.increment();
-            resolve();
+      txn_count.inc(function() {
+        txn.relate( node.id, "follows", friend.id , function(err, results) {
+          if (err){
+            if (err.code == "Neo.ClientError.Statement.ConstraintViolation") {
+              metricRelAlreadyExists.increment();
+              resolve();
+            } else {
+              logger.error("neo4j save error %j %j", { node: node, friend: friend }, err);
+              reject("error");
+            }
           } else {
-            logger.error("neo4j save error %j %j", { node: node, friend: friend }, err);
-            reject("error");
+            logger.debug("saved relationship %j", results);
+
+            metricRelSaved.increment();
+            resolve();
           }
-        } else {
-          logger.debug("saved relationship %j", results);
-
-          metricRelSaved.increment();
-          resolve();
-        }
-
+        });
       });
     });
-  });
+}
+
+var txn_count = {
+  value: 0,
+  lock: 0,
+  inc: function(fn) {
+    this.value++;
+    if (this.lock == 0 && this.value >= neo4jThreads){
+      this.lock++;
+      txn.commit(function(err,results) {
+        this.lock = 0;
+        fn();
+      })
+    }
+  },
+  dec: function() {
+    this.value--;
+  }
 }
 
 function saveFriend (job, done) {
@@ -95,6 +95,7 @@ function saveFriend (job, done) {
 
   function finished (result){
     return new RSVP.Promise( function (resolve, reject) {
+      txn_count.dec();
       metricFinish.increment();
       var diff = process.hrtime(startTime);
       metricKueTimer.add(diff[0] * 1e9 + diff[1]);
