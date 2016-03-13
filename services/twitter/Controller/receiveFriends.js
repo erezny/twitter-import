@@ -30,6 +30,8 @@ setInterval( function() {
 const metricRelExists = metrics.counter("rel_exists");
 const metricUserNotExist = metrics.counter("user_not_exist");
 const metricFinish = metrics.counter("finish");
+const metricStart = metrics.counter("start");
+const metricsError = metrics.counter("error");
 
 function lookupNeo4jID(user, rel){
   return new RSVP.Promise( function(resolve, reject) {
@@ -52,7 +54,15 @@ function lookupRel(rel){
         metricRelExists.increment();
         reject({ message: "relationship exists" });
       } else {
-        resolve();
+        RSVP.hash({ user: lookupNeo4jID(rel.user, rel), friend: lookupNeo4jID(rel.friend, rel) })
+        .then(function(results) {
+          redis.hset(redisRelKey(rel), "imported", parseInt((+new Date) / 1000));
+          queue.create('saveFriend', { user: results.user, friend: results.friend } ).removeOnComplete( true ).save();
+          resolve(rel);
+        }, function(err) {
+          metricsError.increment();
+          reject(err); //avoid retries
+        });
       }
     });
   });
@@ -61,8 +71,6 @@ function lookupRel(rel){
 function receiveFriend (job, done) {
   logger.trace("received job %j", job);
   metricStart.increment();
-  var user = job.data.user;
-  var friend = job.data.friend;
   var rel = job.data;
 
   function finished (result){
@@ -73,21 +81,11 @@ function receiveFriend (job, done) {
     });
   }
 
-  lookupRel(rel).then(function() {
-    RSVP.hash({ user: lookupNeo4jID(user, rel), friend: lookupNeo4jID(friend, rel) })
-    .then(function(results) {
-      redis.hset(redisRelKey(rel), "exists", 1);
-      queue.create('saveFriend', { user: results.user, friend: results.friend } ).removeOnComplete( true ).save();
-      metricFinish.increment();
-      done();
-    }, function(err) {
-      metricUserNotExist.increment();
-      done(); //avoid retries
-    });
-  },
-  function(err) {
+  lookupRel(rel)
+  .then(finished, function(err) {
     done();
-  });
+  })
+  .then(done);
 
 };
 
