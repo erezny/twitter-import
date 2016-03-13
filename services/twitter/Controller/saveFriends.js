@@ -39,7 +39,6 @@ const metricRelAlreadyExists = metrics.counter("rel_already_exists");
 const metricRelSaved = metrics.counter("rel_saved");
 
 var txn = neo4j.batch();
-var sem = require('semaphore')(1);
 function upsertRelationship(node, friend) {
   assert( typeof(node.id) == "number" );
   assert( typeof(friend.id) == "number" );
@@ -65,20 +64,25 @@ function upsertRelationship(node, friend) {
     });
 }
 
+var sem = require('semaphore')(1);
 var txn_count = {
   value: 0,
   lock: 0,
   inc: function(fn) {
-    this.value++;
-    if (this.lock == 0 && this.value >= neo4jThreads){
-      this.lock++;
-      txn.commit(function(err,results) {
-        this.lock = 0;
+    sem.take(function() {
+      this.value++;
+      if (this.lock == 0 && this.value >= neo4jThreads){
+        this.lock++;
         fn();
-      })
-    } else {
-      fn();
-    }
+        txn.commit(function(err,results) {
+          this.lock = 0;
+          sem.leave();
+        })
+      } else {
+        fn();
+        sem.leave();
+      }
+    })
   },
   dec: function() {
     this.value--;
