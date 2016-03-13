@@ -41,7 +41,7 @@ function lookupNeo4jID(user, rel){
       } else {
         queue.create('receiveStubUser', { user: user, rel: rel } ).removeOnComplete( true ).save();
         metricUserNotExist.increment();
-        reject(err);
+        reject({ message: "user doesn't exist" });
       }
     });
   });
@@ -60,7 +60,7 @@ function lookupRel(rel){
           queue.create('saveFriend', { user: results.user, friend: results.friend } ).removeOnComplete( true ).save();
           resolve(rel);
         }, function(err) {
-          reject(err); //avoid retries
+          reject(err);
         });
       }
     });
@@ -82,8 +82,12 @@ function receiveFriend (job, done) {
 
   lookupRel(rel)
   .then(finished, function(err) {
-    metricError.increment();
-    done();
+    if ( err.message == "relationship exists" || err.message == "user doesn't exist"  ) {
+      done();
+    } else {
+      metricError.increment();
+      done(err);
+    }
   })
   .then(done);
 
