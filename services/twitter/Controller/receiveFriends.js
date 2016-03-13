@@ -1,4 +1,5 @@
 
+"use strict";
 var util = require('util');
 var assert = require('assert');
 const metrics = require('../../../lib/crow.js').init("importer", {
@@ -18,14 +19,14 @@ var redis = require("redis").createClient({
   host: process.env.REDIS_HOST,
   port: parseInt(process.env.REDIS_PORT),
 });
-var redisKey = function(user) { return util.format("twitter:%s", user.id_str); ;
-var redisRelKey = function(rel) { return util.format("twitter-friend:%s:%s", rel.user.id_str, rel.friend.id_str) }; };
+var redisKey = function(user) { return util.format("twitter:%s", user.id_str); };
+var redisRelKey = function(rel) { return util.format("twitter-friend:%s:%s", rel.user.id_str, rel.friend.id_str) };
 
 setInterval( function() {
   queue.inactiveCount( 'receiveFriend', function( err, total ) { // others are activeCount, completeCount, failedCount, delayedCount
     metrics.setGauge("queue.inactive", total);
   });
-  }, 15 * 1000 );
+}, 15 * 1000 );
 
 const metricRelExists = metrics.counter("rel_exists");
 const metricUserNotExist = metrics.counter("user_not_exist");
