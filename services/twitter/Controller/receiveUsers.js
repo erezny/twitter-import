@@ -62,6 +62,19 @@ function upsertUserToNeo4j(user) {
   });
 }
 
+function lookupNeo4jID(user){
+  return new RSVP.Promise( function(resolve, reject) {
+    redis.hgetall(redisKey(user), function(err, redisUser) {
+      if (redisUser && redisUser.neo4jID && redisUser.neo4jID != "undefined"){
+        user.id = parseInt(redisUser.neo4jID)
+        resolve(user);
+      } else {
+        resolve(user);
+      }
+    });
+  });
+}
+
 function updateUserSaveTime(user){
   return new Promise(function(resolve, reject) {
     redis.hset(redisKey(user), "saveTimestamp", parseInt((+new Date) / 1000), function() {
@@ -84,7 +97,8 @@ function saveUser(job, done) {
       resolve();
     });
   }
-  upsertUserToNeo4j(user)
+  lookupNeo4jID(user)
+  .then(upsertUserToNeo4j)
   .then(updateUserSaveTime, done)
   .then(finished, done)
   .then(done);
