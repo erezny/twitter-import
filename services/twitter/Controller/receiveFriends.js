@@ -18,8 +18,8 @@ var redis = require("redis").createClient({
   host: process.env.REDIS_HOST,
   port: parseInt(process.env.REDIS_PORT),
 });
-const redisKey = function(user) { return util.format("twitter:%s", user.id_str); ;
-const redisRelKey = function(rel) { return util.format("twitter-friend:%s:%s", rel.user.id_str, rel.friend.id_str) }; };
+var redisKey = function(user) { return util.format("twitter:%s", user.id_str); ;
+var redisRelKey = function(rel) { return util.format("twitter-friend:%s:%s", rel.user.id_str, rel.friend.id_str) }; };
 
 setInterval( function() {
   queue.inactiveCount( 'receiveFriend', function( err, total ) { // others are activeCount, completeCount, failedCount, delayedCount
@@ -35,7 +35,7 @@ const metricError = metrics.counter("error");
 
 function lookupNeo4jID(user, rel){
   return new RSVP.Promise( function(resolve, reject) {
-    redis.hgetall(util.format("twitter:%s", user.id_str), function(err, redisUser) {
+    redis.hgetall(redisKey(user), function(err, redisUser) {
       if (redisUser && redisUser.neo4jID && redisUser.neo4jID != "undefined" && parseInt(redisUser.neo4jID) > 1){
         resolve({ id: parseInt(redisUser.neo4jID) });
       } else {
@@ -75,7 +75,7 @@ function receiveFriend (job, done) {
   function finished (result){
     return new RSVP.Promise( function (resolve, reject) {
       metricFinish.increment();
-      logger.trace("finish")
+      logger.trace("finish");
       resolve();
     });
   }
