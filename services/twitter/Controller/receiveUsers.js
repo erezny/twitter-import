@@ -46,17 +46,17 @@ function upsertUserToNeo4j(user) {
       if (err){
         metricsError.increment();
         reject({ err:err, reason:"neo4j save user error" });
+      } else {
+        redis.hset(redisKey(savedUser), "neo4jID", savedUser.id, function(err, res) {
+          metricSaved.increment();
+          resolve(savedUser);
+        });
       }
     });
     txn.label(savedUser, "twitterUser", function(err, labeledUser) {
       if (err){
         metricsError.increment();
         reject({ err:err, reason:"neo4j label user error" });
-      } else {
-        redis.hset(redisKey(savedUser), "neo4jID", savedUser.id, function(err, res) {
-          metricSaved.increment();
-          resolve(savedUser);
-        });
       }
     });
   });
