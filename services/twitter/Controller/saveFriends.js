@@ -71,10 +71,11 @@ function buffer(node, friend){
   return new RSVP.Promise( function (resolve, reject) {
     sem.take(function() {
       neo4j_jobs.push(upsertRelationship(node, friend).then(resolve,reject));
-      if (neo4j_jobs.length >= neo4jThreads){
+      if (neo4j_jobs.length == neo4jThreads){
         txn.commit(function(err,results) {
           RSVP.allSettled(neo4j_jobs).then(function() {
             neo4j_jobs = [];
+            txn = neo4j.batch();
             sem.leave();
           })
         })
