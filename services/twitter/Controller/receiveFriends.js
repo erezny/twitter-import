@@ -49,7 +49,7 @@ function lookupNeo4jID(user, rel){
 
 function lookupRel(rel){
   return new RSVP.Promise( function(resolve, reject) {
-    redis.EXISTS(util.format("twitter-friend:%s:%s", rel.user.id_str, rel.friend.id_str), function(err, results) {
+    redis.exists(redisRelKey(rel), function(err, results) {
       if (results >= 1){
         metricRelExists.increment();
         reject({ message: "relationship exists" });

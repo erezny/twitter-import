@@ -31,8 +31,8 @@ const metricFinish = metrics.counter("finish");
 const metricStart = metrics.counter("start");
 const metricRelSaved = metrics.counter("rel_saved");
 const metricError = metrics.counter("error");
-var txn = neo4j.batch();
 
+var txn = neo4j.batch();
 setInterval(function() {
     txn.commit();
     txn = neo4j.batch();
