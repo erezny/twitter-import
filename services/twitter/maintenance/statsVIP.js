@@ -59,4 +59,4 @@ function setGagues(total, remaining){
 }
 
 countVIPFriendsCompleteness()
-setTimeout(countVIPFriendsCompleteness, 30 * 60 * 1000 );
+setInterval(countVIPFriendsCompleteness, 30 * 60 * 1000 );
