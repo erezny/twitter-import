@@ -41,7 +41,9 @@ const metricRelSaved = metrics.counter("rel_saved");
 var txn = neo4j.batch();
 
 setInterval(function() {
-    txn.commit();
+    txn.commit(function() {
+      txn = neo4j.batch();
+    });
 } , 5 * 1000);
 
 function upsertRelationship(node, friend) {
