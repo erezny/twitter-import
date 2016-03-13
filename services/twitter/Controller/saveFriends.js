@@ -48,7 +48,6 @@ function upsertRelationship(node, friend) {
   assert( typeof(node.id) == "number" );
   assert( typeof(friend.id) == "number" );
   return new RSVP.Promise( function (resolve, reject) {
-      txn_count.inc(function() {
         txn.relate( node.id, "follows", friend.id , function(err, results) {
           if (err){
             if (err.code == "Neo.ClientError.Statement.ConstraintViolation") {
@@ -66,7 +65,6 @@ function upsertRelationship(node, friend) {
           }
         });
       });
-    });
 }
 
 function saveFriend (job, done) {
