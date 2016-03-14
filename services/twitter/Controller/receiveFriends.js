@@ -50,25 +50,14 @@ function lookupNeo4jID(user, rel){
 
 function lookupRel(rel){
   return new RSVP.Promise( function(resolve, reject) {
-    redis.exists(redisRelKey(rel), function(err, num) {
-      if (err){
-        metricErr.increment();
-        reject(err);
-      } else if (num >= 1){
-        metricRelExists.increment();
-        reject({ message: "relationship exists" });
-      } else {
-        lookupNeo4jID(rel.user, rel)
-        .then(function(user) {
-          lookupNeo4jID(rel.friend, rel)
-          .then(function(friend) {
-            redis.hset(redisRelKey(rel), "imported", parseInt((+new Date) / 1000));
-            queue.create('saveFriend', { user: user, friend: friend } ).removeOnComplete( true ).save();
-            resolve(rel);
-          }, reject );
-        }, reject );
-      }
-    });
+    lookupNeo4jID(rel.user, rel)
+    .then(function(user) {
+      lookupNeo4jID(rel.friend, rel)
+      .then(function(friend) {
+        queue.create('saveFriend', { user: user, friend: friend } ).removeOnComplete( true ).save();
+        resolve(rel);
+      }, reject );
+    }, reject );
   });
 }
 
