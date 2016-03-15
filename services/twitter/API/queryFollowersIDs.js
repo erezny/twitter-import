@@ -26,11 +26,12 @@ var redis = require("redis").createClient({
   port: parseInt(process.env.REDIS_PORT),
 });
 
-setInterval( function() {
-queue.inactiveCount( 'queryFollowersIDs', function( err, total ) { // others are activeCount, completeCount, failedCount, delayedCount
-  metrics.setGauge("queue.inactive", total);
-});
-}, 15 * 1000 );
+function count_queue(){
+  queue.inactiveCount( 'queryFollowersIDs', function( err, total ) { // others are activeCount, completeCount, failedCount, delayedCount
+    metrics.setGauge("queue.inactive", total);
+  });
+};
+setInterval( count_queue, 15 * 1000 );
 
 const metricRelSaved = metrics.counter("rel_saved");
 const metricRelError = metrics.counter("rel_error");
