@@ -1,11 +1,7 @@
 
-// #refactor:10 write queries
 var util = require('util');
-var Twit = require('twit');
 var T = require('../../../lib/twit.js');
-
-var MongoClient = require('mongodb').MongoClient,
-assert = require('assert');
+var assert = require('assert');
 
 const metrics = require('../../../lib/crow.js').init("importer", {
   api: "twitter",
@@ -15,7 +11,7 @@ const metrics = require('../../../lib/crow.js').init("importer", {
   kue: "queryFriendsIDs",
 });
 var queue = require('../../../lib/kue.js');
-
+var neo4j = require('../../../lib/neo4j.js');
 var RateLimiter = require('limiter').RateLimiter;
 //set rate limiter slightly lower than twitter api limit
 var limiter = new RateLimiter(1, (1 / 14) * 15 * 60 * 1000);
@@ -36,35 +32,81 @@ queue.inactiveCount( 'queryFriendsIDs', function( err, total ) { // others are a
 });
 }, 15 * 1000 );
 
+const metricRelSaved = metrics.counter("rel_saved");
+const metricRelError = metrics.counter("rel_error");
+const metricStart = metrics.counter("start");
+const metricFreshQuery = metrics.counter("freshQuery");
+const metricContinuedQuery = metrics.counter("continuedQuery");
+const metricFinish = metrics.counter("finish");
+const metricQueryError = metrics.counter("queryError");
+const metricRepeatQuery = metrics.counter("repeatQuery");
+const metricUpdatedTimestamp = metrics.counter("updatedTimestamp");
+const metricApiError = metrics.counter("apiError");
+const metricApiFinished = metrics.counter("apiFinished");
+const metricTxnFinished = metrics.counter("txnFinished");
+
 queue.process('queryFriendsIDs', function(job, done) {
   //  logger.info("received job");
   logger.trace("queryFriendsIDs received job %j", job);
-  metrics.counter("start").increment();
+  metricStart.increment();
   var user = job.data.user;
   var cursor = job.data.cursor || "-1";
   var promise = null;
   job.data.numReceived = job.data.numReceived || 0;
   if (cursor == "-1"){
-    metrics.counter("freshQuery").increment();
+    metricFreshQuery.increment();
     promise = checkFriendsIDsQueryTime(job.data.user)
   } else {
-    metrics.counter("continuedQuery").increment();
+    metricContinuedQuery.increment();
     promise = new Promise(function(resolve) { resolve(); });
   }
   promise.then(function() {
-    return queryFriendsIDs(user, cursor)
+    return queryFriendsIDs(user, cursor, job)
   }, function(err) {
     done();
   })
+  .then(saveFriends)
   .then(updateFriendsIDsQueryTime)
   .then(function(result) {
-    metrics.counter("finish").increment();
+    metricFinish.increment();
     done();
   }, function(err) {
     logger.error("queryFriendsIDs error: %j %j", job, err);
-    metrics.counter("queryError").increment();
+    metricQueryError.increment();
     done(err);
   });
+
+});
+
+const cypher = "merge (x:twitterUser { id_str: {user} }) " +
+            "merge (y:twitterUser { id_str: {friend} }) " +
+            "merge (x)-[r:follows]-(y) ";
+
+function saveFriends(result) {
+  return new Promise(function(resolve, reject) {
+    var user = result.user;
+    var friends = result.list;
+    var txn = neo4j.batch();
+    logger.info("save");
+
+    for (friend of friends){
+      txn.query(cypher, { user: user.id_str, friend: friend } , function(err, results) {
+        if (err){
+          metricRelError.increment();
+        } else {
+          metricRelSaved.increment();
+        }
+      });
+    }
+    process.nextTick(function() {
+      logger.info("commit");
+      txn.commit(function (err, results) {
+        metricTxnFinished.increment();
+        resolve(result);
+      });
+    })
+  });
+}
 
 function checkFriendsIDsQueryTime(user){
   return new Promise(function(resolve, reject) {
@@ -73,7 +115,7 @@ function checkFriendsIDsQueryTime(user){
     redis.hgetall(key, function(err, obj) {
       if ( obj & obj.queryFriendsIDsTimestamp ){
         if ( obj.queryFriendsIDsTimestamp > parseInt((+new Date) / 1000) - (60 * 60 ) ) {
-            metrics.counter("repeatQuery").increment();
+            metricRepeatQuery.increment();
             reject( { message: "user recently queried" , timestamp:parseInt((+new Date) / 1000), queryTimestamp: obj.queryFriendsIDsTimestamp } );
         } else {
           resolve(user);
@@ -91,13 +133,13 @@ function updateFriendsIDsQueryTime(result){
     var key = util.format("twitter:%s", user.id_str);
     var currentTimestamp = new Date().getTime();
     redis.hset(key, "queryFriendsIDsTimestamp", parseInt((+new Date) / 1000), function() {
-      metrics.counter("updatedTimestamp").increment();
+      metricUpdatedTimestamp.increment();
       resolve()
     });
   });
 }
 
-function queryFriendsIDs(user, cursor) {
+function queryFriendsIDs(user, cursor, job) {
   return new Promise(function(resolve, reject) {
     logger.debug("queryFriendsIDs");
     limiter.removeTokens(1, function(err, remainingRequests) {
@@ -114,7 +156,7 @@ function queryFriendsIDs(user, cursor) {
             return;
           } else {
             logger.error("twitter api error %j %j", user, err);
-            metrics.counter("apiError").increment();
+            metricApiError.increment();
             reject({ message: "unknown twitter error", err: err });
             return;
           }
@@ -122,18 +164,14 @@ function queryFriendsIDs(user, cursor) {
         logger.trace("Data %j", data);
         logger.debug("queryFriendsIDs twitter api callback");
         logger.info("queryFriendsIDs %s found %d friends", user.screen_name, data.ids.length);
-        for (friend of data.ids){
-          queue.create('receiveFriend', { user: { id_str: user.id_str }, friend: { id_str: friend } } ).removeOnComplete( true ).save();
-        }
+
         if (data.next_cursor_str !== '0'){
           var numReceived = job.data.numReceived + data.ids.length;
           queue.create('queryFriendsIDs', { user: user, cursor: data.next_cursor_str, numReceived: numReceived }).attempts(5).removeOnComplete( true ).save();
         }
-        metrics.counter("apiFinished").increment();
+        metricApiFinished.increment();
         resolve({ user: user, list: data.ids });
       });
     });
   });
 };
-
-});

@@ -1,8 +1,6 @@
 
-// #refactor:10 write queries
 var util = require('util');
 var T = require('../../../lib/twit.js');
-
 var assert = require('assert');
 
 const metrics = require('../../../lib/crow.js').init("importer", {
@@ -13,7 +11,7 @@ const metrics = require('../../../lib/crow.js').init("importer", {
   kue: "queryFollowersIDs",
 });
 var queue = require('../../../lib/kue.js');
-
+var neo4j = require('../../../lib/neo4j.js');
 var RateLimiter = require('limiter').RateLimiter;
 //set rate limiter slightly lower than twitter api limit
 var limiter = new RateLimiter(1, (1 / 14) * 15 * 60 * 1000);
@@ -34,35 +32,80 @@ queue.inactiveCount( 'queryFollowersIDs', function( err, total ) { // others are
 });
 }, 15 * 1000 );
 
+const metricRelSaved = metrics.counter("rel_saved");
+const metricRelError = metrics.counter("rel_error");
+const metricStart = metrics.counter("start");
+const metricFreshQuery = metrics.counter("freshQuery");
+const metricContinuedQuery = metrics.counter("continuedQuery");
+const metricFinish = metrics.counter("finish");
+const metricQueryError = metrics.counter("queryError");
+const metricRepeatQuery = metrics.counter("repeatQuery");
+const metricUpdatedTimestamp = metrics.counter("updatedTimestamp");
+const metricApiError = metrics.counter("apiError");
+const metricApiFinished = metrics.counter("apiFinished");
+const metricTxnFinished = metrics.counter("txnFinished");
+
 queue.process('queryFollowersIDs', function(job, done) {
   //  logger.info("received job");
   logger.trace("queryFollowersIDs received job %j", job);
-  metrics.counter("start").increment();
+  metricStart.increment();
   var user = job.data.user;
   var cursor = job.data.cursor || "-1";
   var promise = null;
   job.data.numReceived = job.data.numReceived || 0;
   if (cursor === "-1"){
-    metrics.counter("freshQuery").increment();
+    metricFreshQuery.increment();
     promise = checkFollowersIDsQueryTime(job.data.user)
   } else {
-    metrics.counter("continuedQuery").increment();
+    metricContinuedQuery.increment();
     promise = new Promise(function(resolve) { resolve(); });
   }
   promise.then(function() {
-    return queryFollowersIDs(user, cursor)
+    return queryFollowersIDs(user, cursor, job)
   }, function(err) {
     done();
   })
+  .then(saveFollowers)
   .then(updateFollowersIDsQueryTime)
   .then(function(list) {
-    metrics.counter("finish").increment();
+    metricFinish.increment();
     done();
   }, function(err) {
     logger.error("queryFollowersIDs error: %j %j", job, err);
-    metrics.counter("queryError").increment();
+    metricQueryError.increment();
     done(err);
   });
+});
+
+  const cypher = "merge (x:twitterUser { id_str: {user} }) " +
+              "merge (y:twitterUser { id_str: {friend} }) " +
+              "merge (x)-[r:follows]-(y) ";
+
+  function saveFollowers(result) {
+    return new Promise(function(resolve, reject) {
+      var user = result.user;
+      var followers = result.list;
+      var txn = neo4j.batch();
+      logger.info("save");
+
+      for (follower of followers){
+        txn.query(cypher, { user: follower, friend: user.id_str } , function(err, results) {
+          if (err){
+            metricRelError.increment();
+          } else {
+            metricRelSaved.increment();
+          }
+        });
+      }
+      process.nextTick(function() {
+        logger.info("commit");
+        txn.commit(function (err, results) {
+          metricTxnFinished.increment();
+          resolve(result);
+        });
+      })
+    });
+  }
 
   function checkFollowersIDsQueryTime(user){
     return new Promise(function(resolve, reject) {
@@ -71,7 +114,7 @@ queue.process('queryFollowersIDs', function(job, done) {
       redis.hgetall(key, function(err, obj) {
         if ( obj & obj.queryFollowersIDsTimestamp ){
           if ( obj.queryFollowersIDsTimestamp > parseInt((+new Date) / 1000) - (60 * 60 ) ) {
-              metrics.counter("repeatQuery").increment();
+              metricRepeatQuery.increment();
               reject( { message: "user recently queried" , timestamp:parseInt((+new Date) / 1000), queryTimestamp: obj.queryFollowersIDsTimestamp } );
           } else {
             resolve(user);
@@ -89,13 +132,13 @@ queue.process('queryFollowersIDs', function(job, done) {
       var key = util.format("twitter:%s", user.id_str);
       var currentTimestamp = new Date().getTime();
       redis.hset(key, "queryFollowersIDsTimestamp", parseInt((+new Date) / 1000), function() {
-        metrics.counter("updatedTimestamp").increment();
+        metricUpdatedTimestamp.increment();
         resolve()
       });
     });
   }
 
-function queryFollowersIDs(user, cursor) {
+function queryFollowersIDs(user, cursor, job) {
   return new Promise(function(resolve, reject) {
     logger.debug("queryFollowersIDs");
     limiter.removeTokens(1, function(err, remainingRequests) {
@@ -112,7 +155,7 @@ function queryFollowersIDs(user, cursor) {
             return;
           } else {
             logger.error("twitter api error %j %j", user, err);
-            metrics.counter("apiError").increment();
+            metricApiError.increment();
             reject({ message: "unknown twitter error", err: err });
             return;
           }
@@ -120,18 +163,14 @@ function queryFollowersIDs(user, cursor) {
         logger.trace("Data %j", data);
         logger.debug("queryFollowersIDs twitter api callback");
         logger.info("queryFollowersIDs %s found %d followers", user.screen_name, data.ids.length);
-        for (follower of data.ids){
-          queue.create('receiveFriend', { user: { id_str: follower }, friend: { id_str: user.id_str } } ).removeOnComplete( true ).save();
-        }
+
         if (data.next_cursor_str !== '0'){
           var numReceived = job.data.numReceived + data.ids.length;
           queue.create('queryFollowersIDs', { user: user, cursor: data.next_cursor_str, numReceived: numReceived }).attempts(5).removeOnComplete( true ).save();
         }
-        metrics.counter("apiFinished").increment();
+        metricApiFinished.increment();
         resolve({ user: user, list: data.ids });
       });
     });
   });
 };
-
-});
