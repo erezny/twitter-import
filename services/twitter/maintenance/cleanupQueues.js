@@ -49,41 +49,41 @@ cleanup();
 //   });
 // });
 
-// kue.Job.rangeByType( 'queryUser', 'inactive', 0, 100000, 'asc', function( err, jobs ) {
-//   jobs.forEach( function( job ) {
-//     job.remove( function() {
-//       console.log( 'removed ', job.id );
-//     });
-//   });
-// });
-//
-// kue.Job.rangeByType( 'queryUser', 'active', 0, 1000, 'asc', function( err, jobs ) {
-//   jobs.forEach( function( job ) {
-//     job.remove( function() {
-//       console.log( 'removed ', job.id );
-//     });
-//   });
-// });
-// kue.Job.rangeByType( 'queryUser', 'completed', 0, 1000, 'asc', function( err, jobs ) {
-//   jobs.forEach( function( job ) {
-//     job.remove( function() {
-//       console.log( 'removed ', job.id );
-//     });
-//   });
-// });
-//
-// kue.Job.rangeByType( 'queryUser', 'failed', 0, 1000, 'asc', function( err, jobs ) {
-//   jobs.forEach( function( job ) {
-//     job.remove( function() {
-//       console.log( 'removed ', job.id );
-//     });
-//   });
-// });
-//
-// kue.Job.rangeByType( 'queryUserListOqueryUserwnership', 'delayed', 0, 1000, 'asc', function( err, jobs ) {
-//   jobs.forEach( function( job ) {
-//     job.remove( function() {
-//       console.log( 'removed ', job.id );
-//     });
-//   });
-// });
+kue.Job.rangeByType( 'receiveStubUser', 'inactive', 0, 100000, 'asc', function( err, jobs ) {
+  jobs.forEach( function( job ) {
+    job.remove( function() {
+      console.log( 'removed ', job.id );
+    });
+  });
+});
+
+kue.Job.rangeByType( 'receiveStubUser', 'active', 0, 1000, 'asc', function( err, jobs ) {
+  jobs.forEach( function( job ) {
+    job.remove( function() {
+      console.log( 'removed ', job.id );
+    });
+  });
+});
+kue.Job.rangeByType( 'receiveStubUser', 'completed', 0, 1000, 'asc', function( err, jobs ) {
+  jobs.forEach( function( job ) {
+    job.remove( function() {
+      console.log( 'removed ', job.id );
+    });
+  });
+});
+
+kue.Job.rangeByType( 'receiveStubUser', 'failed', 0, 1000, 'asc', function( err, jobs ) {
+  jobs.forEach( function( job ) {
+    job.remove( function() {
+      console.log( 'removed ', job.id );
+    });
+  });
+});
+
+kue.Job.rangeByType( 'receiveStubUser', 'delayed', 0, 1000, 'asc', function( err, jobs ) {
+  jobs.forEach( function( job ) {
+    job.remove( function() {
+      console.log( 'removed ', job.id );
+    });
+  });
+});
