@@ -65,7 +65,7 @@ setInterval(function() {
 
 const cypher = "merge (x:twitterUser { id_str: {user} }) " +
             "merge (y:twitterUser { id_str: {friend} }) " +
-            "merge (x)-[r:follows]-(y) ";
+            "merge (x)-[r:follows]->(y) ";
 
 function saveFriend(rel) {
   return new Promise(function(resolve, reject) {

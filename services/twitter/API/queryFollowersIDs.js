@@ -80,7 +80,7 @@ queue.process('queryFollowersIDs', function(job, done) {
 
   const cypher = "merge (x:twitterUser { id_str: {user} }) " +
               "merge (y:twitterUser { id_str: {friend} }) " +
-              "merge (x)-[r:follows]-(y) ";
+              "merge (x)-[r:follows]->(y) ";
 
   function saveFollowers(result) {
     return new Promise(function(resolve, reject) {
