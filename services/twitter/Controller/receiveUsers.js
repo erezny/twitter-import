@@ -41,7 +41,6 @@ setInterval(function() {
     txn = neo4j.batch();
     txn_cmt.commit(function (err, results) {
       metricTxnFinished.increment();
-      resolve(result);
     });
 } , 5 * 1000);
 
