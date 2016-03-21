@@ -153,7 +153,7 @@ function saveFollowers(result) {
     logger.info("save");
 
     for (follower of followers){
-      txn.query(cypher, { user: follower, friend: user } , function(err, results) {
+      txn.query(follower_cypher, { user: follower, friend: user } , function(err, results) {
         if (err){
           metricRelError.increment();
         } else {

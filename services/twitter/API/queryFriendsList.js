@@ -152,7 +152,7 @@ function saveFriends(result) {
     logger.info("save");
 
     for (friend of friends){
-      txn.query(cypher, { user: user, friend: friend } , function(err, results) {
+      txn.query(friend_cypher, { user: user, friend: friend } , function(err, results) {
         if (err){
           metricRelError.increment();
         } else {
