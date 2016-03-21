@@ -37,7 +37,7 @@ const metricTxnFinished = metrics.counter("txnFinished");
 
 var txn = neo4j.batch();
 setInterval(function() {
-    let txn_cmt = txn;
+    var txn_cmt = txn;
     txn = neo4j.batch();
     txn.commit(function (err, results) {
       metricTxnFinished.increment();
