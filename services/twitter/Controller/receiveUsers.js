@@ -39,7 +39,7 @@ var txn = neo4j.batch();
 setInterval(function() {
     var txn_cmt = txn;
     txn = neo4j.batch();
-    txn.commit(function (err, results) {
+    txn_cmt.commit(function (err, results) {
       metricTxnFinished.increment();
       resolve(result);
     });
