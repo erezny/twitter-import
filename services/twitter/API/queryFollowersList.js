@@ -141,7 +141,7 @@ function queryFollowersList(user, cursor) {
 
 const follower_cypher = "merge (x:twitterUser { id_str: {user}.id_str }) " +
             "set x += {user} " +
-            "with x" +
+            "with x " +
             "merge (y:twitterUser { id_str: {friend}.id_str }) " +
             "merge (x)-[r:follows]->(y) ";
 
