@@ -164,7 +164,7 @@ function saveFriends(result) {
       logger.info("commit");
       txn.commit(function (err, results) {
        if (err){
-         logger.error("transaction error %s", err);
+         logger.error("transaction error %s", JSON.stringify(err));
         }
         logger.info("committed");
         metricTxnFinished.increment();
