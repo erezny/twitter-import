@@ -38,6 +38,8 @@ queue.inactiveCount( 'queryFriendsList', function( err, total ) { // others are 
 const metricRelSaved = metrics.counter("rel_saved");
 const metricRelError = metrics.counter("rel_error");
 const metricTxnFinished = metrics.counter("txnFinished");
+const metricError = metrics.counter("error");
+const metricSaved = metrics.counter("saved");
 
 queue.process('queryFriendsList', function(job, done) {
   //  logger.info("received job");
@@ -140,9 +142,11 @@ function queryFriendsList(user, cursor) {
 
 const friend_cypher = "merge (x:twitterUser { id_str: {user}.id_str }) " +
             "merge (y:twitterUser { id_str: {friend}.id_str }) " +
-            "set y += {user} " +
-            "with x,y " +
             "merge (x)-[r:follows]->(y) ";
+
+const user_cypher = "merge (x:twitterUser { id_str: {user}.id_str }) " +
+            "on match set x += {user} " +
+            "on create set x += {user} ";
 
 function saveFriends(result) {
   return new Promise(function(resolve, reject) {
@@ -152,13 +156,21 @@ function saveFriends(result) {
     logger.info("save");
 
     for (friend of friends){
-      txn.query(friend_cypher, { user: user, friend: friend } , function(err, results) {
+      txn.query(user_cypher, { user: friend } , function(err, results) {
+        if (err){
+          metricError.increment();
+        } else {
+          metricSaved.increment();
+        }
+      });
+      txn.query(friend_cypher, { user: { id_str: user.id_str } , friend: friend } , function(err, results) {
         if (err){
           metricRelError.increment();
         } else {
           metricRelSaved.increment();
         }
       });
+
     }
     process.nextTick(function() {
       logger.info("commit");
