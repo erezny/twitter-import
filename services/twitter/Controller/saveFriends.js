@@ -31,6 +31,7 @@ const metricFinish = metrics.counter("finish");
 const metricStart = metrics.counter("start");
 const metricRelSaved = metrics.counter("rel_saved");
 const metricError = metrics.counter("error");
+const metricTxnFinished = metrics.counter("txnFinished");
 
 var txn = neo4j.batch();
 setInterval(function() {
