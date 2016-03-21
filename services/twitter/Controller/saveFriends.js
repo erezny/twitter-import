@@ -34,8 +34,12 @@ const metricError = metrics.counter("error");
 
 var txn = neo4j.batch();
 setInterval(function() {
-    txn.commit();
+    var txn_cmt = txn;
     txn = neo4j.batch();
+    txn_cmt.commit(function (err, results) {
+      metricTxnFinished.increment();
+      resolve(result);
+    });
 } , 5 * 1000);
 
 function upsertRelationship(node, friend) {
