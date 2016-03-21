@@ -56,6 +56,7 @@ queue.process('queryFollowersList', function(job, done) {
   }, function(err) {
     done();
   })
+  .then(saveFollowers)
   .then(updateFollowersListQueryTime)
   .then(function(list) {
     metrics.counter("finish").increment();
@@ -121,10 +122,6 @@ function queryFollowersList(user, cursor) {
         logger.trace("Data %j", data);
         logger.debug("queryFollowersList twitter api callback");
         logger.info("queryFollowersList %s found %d followers", user.screen_name, data.users.length);
-        for (follower of data.users){
-          queue.create('receiveUser', { user: follower } ).removeOnComplete(true).save();
-          queue.create('receiveFriend', { user: { id_str: follower.id_str }, friend: { id_str: user.id_str } } ).removeOnComplete( true ).save();
-        }
         if (data.next_cursor_str !== '0'){
           var numReceived = job.data.numReceived + data.users.length;
           queue.create('queryFollowersList', { user: user, cursor: data.next_cursor_str, numReceived: numReceived }).attempts(5).removeOnComplete( true ).save();
@@ -137,3 +134,36 @@ function queryFollowersList(user, cursor) {
 };
 
 });
+
+const follower_cypher = "merge (x:twitterUser { id_str: {user}.id_str }) " +
+            "set x += {user} " +
+            "with x" +
+            "merge (y:twitterUser { id_str: {friend}.id_str }) " +
+            "merge (x)-[r:follows]->(y) ";
+
+function saveFollowers(result) {
+  return new Promise(function(resolve, reject) {
+    var user = result.user;
+    var followers = result.list;
+    var txn = neo4j.batch();
+    logger.info("save");
+
+    for (follower of followers){
+      txn.query(cypher, { user: follower, friend: user } , function(err, results) {
+        if (err){
+          metricRelError.increment();
+        } else {
+          metricRelSaved.increment();
+        }
+      });
+    }
+    process.nextTick(function() {
+      logger.info("commit");
+      txn.commit(function (err, results) {
+        logger.info("committed");
+        metricTxnFinished.increment();
+        resolve(result);
+      });
+    })
+  });
+}

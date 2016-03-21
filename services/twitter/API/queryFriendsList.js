@@ -136,3 +136,36 @@ function queryFriendsList(user, cursor) {
 };
 
 });
+
+const friend_cypher = "merge (x:twitterUser { id_str: {user}.id_str }) " +
+            "merge (y:twitterUser { id_str: {friend}.id_str }) " +
+            "set y += {user} " +
+            "with x,y " +
+            "merge (x)-[r:follows]->(y) ";
+
+function saveFriends(result) {
+  return new Promise(function(resolve, reject) {
+    var user = result.user;
+    var friends = result.list;
+    var txn = neo4j.batch();
+    logger.info("save");
+
+    for (friend of friends){
+      txn.query(cypher, { user: user, friend: friend } , function(err, results) {
+        if (err){
+          metricRelError.increment();
+        } else {
+          metricRelSaved.increment();
+        }
+      });
+    }
+    process.nextTick(function() {
+      logger.info("commit");
+      txn.commit(function (err, results) {
+        logger.info("committed");
+        metricTxnFinished.increment();
+        resolve(result);
+      });
+    })
+  });
+}
