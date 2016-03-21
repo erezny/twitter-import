@@ -57,7 +57,7 @@ function checkUserQueryTime(user){
     var key = util.format("twitter:%s", user.id_str);
     var currentTimestamp = new Date().getTime();
     redis.hgetall(key, function(err, obj) {
-      if ( obj & obj.saveTimestamp ){
+      if ( obj && obj.saveTimestamp ){
         if ( obj.saveTimestamp > parseInt((+new Date) / 1000) - (60 * 60 * 24 * 7) ) {
             metrics.counter("repeatQuery").increment();
             reject( { message: "user recently queried" , timestamp:parseInt((+new Date) / 1000), queryTimestamp: obj.queryTimestamp } );
