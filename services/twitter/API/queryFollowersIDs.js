@@ -101,6 +101,7 @@ queue.process('queryFollowersIDs', function(job, done) {
       process.nextTick(function() {
         logger.info("commit");
         txn.commit(function (err, results) {
+          logger.info("committed");
           metricTxnFinished.increment();
           resolve(result);
         });
