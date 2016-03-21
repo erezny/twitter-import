@@ -14,7 +14,7 @@ const metrics = require('../../../lib/crow.js').init("importer", {
   kue: "queryFollowersList",
 });
 var queue = require('../../../lib/kue.js');
-
+var neo4j = require('../../../lib/neo4j.js');
 var RateLimiter = require('limiter').RateLimiter;
 //set rate limiter slightly lower than twitter api limit
 var limiter = new RateLimiter(1, (1 / 29) * 15 * 60 * 1000);
