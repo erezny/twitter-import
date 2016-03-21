@@ -43,9 +43,9 @@ setInterval(function() {
       metricTxnFinished.increment();
       resolve(result);
     });
-} , 30 * 1000);
+} , 5 * 1000);
 
-const cypher = "match (x:twitterUser { id_str: {user}.id_str })" +
+const cypher = "merge (x:twitterUser { id_str: {user}.id_str })" +
             "update x += {user} ";
 
 function upsertUserToNeo4j(user) {
