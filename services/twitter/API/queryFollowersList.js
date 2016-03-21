@@ -164,6 +164,9 @@ function saveFollowers(result) {
     process.nextTick(function() {
       logger.info("commit");
       txn.commit(function (err, results) {
+       if (err){
+         logger.error("transaction error %s", err);
+        }
         logger.info("committed");
         metricTxnFinished.increment();
         resolve(result);

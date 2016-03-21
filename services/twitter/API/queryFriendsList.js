@@ -59,6 +59,7 @@ queue.process('queryFriendsList', function(job, done) {
   }, function(err) {
     done();
   })
+  .then(saveFollowers)
   .then(updateFriendsListQueryTime)
   .then(function(result) {
     metrics.counter("finish").increment();
@@ -166,6 +167,9 @@ function saveFriends(result) {
     process.nextTick(function() {
       logger.info("commit");
       txn.commit(function (err, results) {
+       if (err){
+         logger.error("transaction error %s", err);
+        }
         logger.info("committed");
         metricTxnFinished.increment();
         resolve(result);
