@@ -59,7 +59,7 @@ queue.process('queryFriendsList', function(job, done) {
   }, function(err) {
     done();
   })
-  .then(saveFollowers)
+  .then(saveFriends)
   .then(updateFriendsListQueryTime)
   .then(function(result) {
     metrics.counter("finish").increment();
