@@ -35,6 +35,10 @@ queue.inactiveCount( 'queryFriendsList', function( err, total ) { // others are 
 });
 }, 15 * 1000 );
 
+const metricRelSaved = metrics.counter("rel_saved");
+const metricRelError = metrics.counter("rel_error");
+const metricTxnFinished = metrics.counter("txnFinished");
+
 queue.process('queryFriendsList', function(job, done) {
   //  logger.info("received job");
   logger.trace("queryFriendsList received job %j", job);

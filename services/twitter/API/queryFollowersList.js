@@ -35,6 +35,8 @@ queue.inactiveCount( 'queryFollowersList', function( err, total ) { // others ar
 });
 }, 15 * 1000 );
 
+const metricTxnFinished = metrics.counter("txnFinished");
+
 var metricNeo4jTimeMsec = metrics.distribution("neo4j_time_msec");
 queue.process('queryFollowersList', function(job, done) {
   //  logger.info("received job");
