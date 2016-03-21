@@ -33,16 +33,24 @@ const metricFinish = metrics.counter("finish");
 const metricStart = metrics.counter("start");
 const metricsError = metrics.counter("error");
 const metricSaved = metrics.counter("saved");
+const metricTxnFinished = metrics.counter("txnFinished");
 
 var txn = neo4j.batch();
 setInterval(function() {
-    txn.commit();
+    let txn_cmt = txn;
     txn = neo4j.batch();
-} , 5 * 1000);
+    txn.commit(function (err, results) {
+      metricTxnFinished.increment();
+      resolve(result);
+    });
+} , 30 * 1000);
+
+const cypher = "match (x:twitterUser { id_str: {user}.id_str })" +
+            "update x += {user} ";
 
 function upsertUserToNeo4j(user) {
   return new RSVP.Promise( function (resolve, reject) {
-    var savedUser = txn.save(user, function(err, savedUser) {
+    var savedUser = txn.query(cypher, user, function(err, savedUser) {
       if (err){
         metricsError.increment();
         reject({ err:err, reason:"neo4j save user error" });
@@ -97,8 +105,7 @@ function saveUser(job, done) {
       resolve();
     });
   }
-  lookupNeo4jID(user)
-  .then(upsertUserToNeo4j)
+  upsertUserToNeo4j(user)
   .then(updateUserSaveTime, done)
   .then(finished, done)
   .then(done);
