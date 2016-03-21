@@ -125,10 +125,6 @@ function queryFriendsList(user, cursor) {
         logger.trace("Data %j", data);
         logger.debug("queryFriendsList twitter api callback");
         logger.info("queryFriendsList %s found %d friends", user.screen_name, data.users.length);
-        for (friend of data.users){
-          queue.create('receiveUser', { user: friend } ).removeOnComplete(true).save();
-          queue.create('receiveFriend', { user: { id_str: user.id_str }, friend: { id_str: friend.id_str } } ).attempts(5).removeOnComplete( true ).save();
-        }
         if (data.next_cursor_str !== '0'){
           var numReceived = job.data.numReceived + data.users.length;
           queue.create('queryFriendsList', { user: user, cursor: data.next_cursor_str, numReceived: numReceived }).attempts(5).removeOnComplete( true ).save();
