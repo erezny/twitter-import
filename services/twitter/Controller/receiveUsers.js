@@ -12,6 +12,7 @@ const metrics = require('../../../lib/crow.js').init("importer", {
 });
 var queue = require('../../../lib/kue.js');
 var neo4j = require('../../../lib/neo4j.js');
+var _ = require('../../../lib/util.js');
 var model = require('../../../lib/twitter/models/user.js');
 var RSVP = require('rsvp');
 var logger = require('tracer').colorConsole( {
@@ -44,13 +45,21 @@ setInterval(function() {
     });
 } , 5 * 1000);
 
-const cypher = "merge (x:twitterUser { id_str: {user}.id_str })" +
-            "update x += {user} ";
+const user_cypher = "merge (x:twitterUser { id_str: {user}.id_str }) " +
+            "set x.screen_name = {user}.screen_name, " +
+            " x.name = {user}.name, " +
+            " x.followers_count = {user}.followers_count, " +
+            " x.friends_count = {user}.friends_count, " +
+            " x.favourites_count = {user}.favourites_count, " +
+            " x.description = {user}.description, " +
+            " x.location = {user}.location, " +
+            " x.statuses_count = {user}.statuses_count, " +
+            " x.protected = {user}.protected " ;
 
 function upsertUserToNeo4j(user) {
   return new RSVP.Promise( function (resolve, reject) {
-    var savedUser = txn.query(cypher, user, function(err, savedUser) {
-      if (err){
+    var savedUser = txn.query(user_cypher, user, function(err, savedUser) {
+      if (!_.isEmpty(err)){
         metricsError.increment();
         reject({ err:err, reason:"neo4j save user error" });
       } else {
@@ -58,12 +67,6 @@ function upsertUserToNeo4j(user) {
           metricSaved.increment();
           resolve(savedUser);
         });
-      }
-    });
-    txn.label(savedUser, "twitterUser", function(err, labeledUser) {
-      if (err){
-        metricsError.increment();
-        reject({ err:err, reason:"neo4j label user error" });
       }
     });
   });

@@ -2,7 +2,7 @@
 // #refactor:10 write queries
 var util = require('util');
 var T = require('../../../lib/twit.js');
-var _ = require('../../../lib/util.js');0.
+var _ = require('../../../lib/util.js');
 var assert = require('assert');
 
 const metrics = require('../../../lib/crow.js').init("importer", {
@@ -125,31 +125,3 @@ function queryUser(user) {
     });
   });
 };
-const user_cypher = "merge (x:twitterUser { id_str: {user}.id_str }) " +
-            "set x.screen_name = {user}.screen_name, " +
-            " x.name = {user}.name, " +
-            " x.followers_count = {user}.followers_count, " +
-            " x.friends_count = {user}.friends_count, " +
-            " x.favourites_count = {user}.favourites_count, " +
-            " x.description = {user}.description, " +
-            " x.location = {user}.location, " +
-            " x.statuses_count = {user}.statuses_count, " +
-            " x.protected = {user}.protected " ;
-
-function saveUser(user) {
-  return new Promise(function(resolve, reject) {
-    var txn = neo4j.batch();
-    logger.info("save");
-
-    neo4j.query(user_cypher, { user: follower } , function(err, results) {
-      if ( !_.isEmpty(err)){
-        metricError.increment();
-        reject();
-      } else {
-        metricSaved.increment();
-        resolve();
-      }
-    });
-
-  });
-}
