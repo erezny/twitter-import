@@ -147,8 +147,7 @@ const friend_cypher = "merge (x:twitterUser { id_str: {user}.id_str }) " +
             "merge (x)-[r:follows]->(y) ";
 
 const user_cypher = "merge (x:twitterUser { id_str: {user}.id_str }) " +
-            "set x.id_str = {user}.id_str, " +
-            " x.screen_name = {user}.screen_name, " +
+            "set x.screen_name = {user}.screen_name, " +
             " x.name = {user}.name, " +
             " x.followers_count = {user}.followers_count, " +
             " x.friends_count = {user}.friends_count, " +
@@ -173,7 +172,7 @@ function saveFollowers(result) {
           metricSaved.increment();
         }
       });
-      txn.query(follower_cypher, { user: follower, friend: user } , function(err, results) {
+      txn.query(friend_cypher, { user: follower, friend: user } , function(err, results) {
         if ( !_.isEmpty(err)){
           metricRelError.increment();
         } else {
