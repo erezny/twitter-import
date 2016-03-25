@@ -93,7 +93,7 @@ function saveFriends(result) {
 
     for (friend of friends){
       txn.query(cypher, { user: user.id_str, friend: friend } , function(err, results) {
-        if (err){
+        if (!_.isEmpty(err)){
           metricRelError.increment();
         } else {
           metricRelSaved.increment();

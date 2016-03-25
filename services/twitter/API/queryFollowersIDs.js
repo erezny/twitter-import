@@ -92,7 +92,7 @@ queue.process('queryFollowersIDs', function(job, done) {
 
       for (follower of followers){
         txn.query(cypher, { user: follower, friend: user.id_str } , function(err, results) {
-          if (err){
+          if (!_.isEmpty(err)){
             metricRelError.increment();
           } else {
             metricRelSaved.increment();
