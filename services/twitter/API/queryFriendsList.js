@@ -146,8 +146,16 @@ const friend_cypher = "merge (x:twitterUser { id_str: {user}.id_str }) " +
             "merge (x)-[r:follows]->(y) ";
 
 const user_cypher = "merge (x:twitterUser { id_str: {user}.id_str }) " +
-            "on match set x += {user} " +
-            "on create set x += {user} ";
+            "set x.id_str += {user}.id_str, " +
+            " x.screen_name += {user}.screen_name, " +
+            " x.name += {user}.name, " +
+            " x.followers_count += {user}.followers_count, " +
+            " x.friends_count += {user}.friends_count, " +
+            " x.favourites_count += {user}.favourites_count, " +
+            " x.description += {user}.description, " +
+            " x.location += {user}.location, " +
+            " x.statuses_count += {user}.statuses_count, " +
+            " x.protected += {user}.protected " ;
 
 function saveFriends(result) {
   return new Promise(function(resolve, reject) {
