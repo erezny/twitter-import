@@ -38,6 +38,8 @@ queue.inactiveCount( 'queryFollowersList', function( err, total ) { // others ar
 const metricRelSaved = metrics.counter("rel_saved");
 const metricRelError = metrics.counter("rel_error");
 const metricTxnFinished = metrics.counter("txnFinished");
+const metricError = metrics.counter("error");
+const metricSaved = metrics.counter("saved");
 
 var metricNeo4jTimeMsec = metrics.distribution("neo4j_time_msec");
 queue.process('queryFollowersList', function(job, done) {
@@ -139,11 +141,13 @@ function queryFollowersList(user, cursor) {
 
 });
 
-const follower_cypher = "merge (x:twitterUser { id_str: {user}.id_str }) " +
-            "set x += {user} " +
-            "with x " +
+const friend_cypher = "merge (x:twitterUser { id_str: {user}.id_str }) " +
             "merge (y:twitterUser { id_str: {friend}.id_str }) " +
             "merge (x)-[r:follows]->(y) ";
+
+const user_cypher = "merge (x:twitterUser { id_str: {user}.id_str }) " +
+            "on match set x += {user} " +
+            "on create set x += {user} ";
 
 function saveFollowers(result) {
   return new Promise(function(resolve, reject) {
@@ -153,8 +157,15 @@ function saveFollowers(result) {
     logger.info("save");
 
     for (follower of followers){
+      txn.query(user_cypher, { user: follower } , function(err, results) {
+        if ( !util.isEmpty(err)){
+          metricError.increment();
+        } else {
+          metricSaved.increment();
+        }
+      });
       txn.query(follower_cypher, { user: follower, friend: user } , function(err, results) {
-        if (err){
+        if ( !util.isEmpty(err)){
           metricRelError.increment();
         } else {
           metricRelSaved.increment();
@@ -164,7 +175,7 @@ function saveFollowers(result) {
     process.nextTick(function() {
       logger.info("commit");
       txn.commit(function (err, results) {
-       if (err){
+       if ( !util.isEmpty(err)){
          logger.error("transaction error %s", JSON.stringify(err));
         }
         logger.info("committed");

@@ -87,7 +87,7 @@ function queryUser(user) {
     limiter.removeTokens(1, function(err, remainingRequests) {
       T.get('users/show', { user_id: user.id_str }, function(err, data)
       {
-        if (err){
+        if (!util.isEmpty(err)){
           if (err.code == 50){
             //user doesn't exist
             //queue.create('expireUser', {user: user}).removeOnComplete(true).save();

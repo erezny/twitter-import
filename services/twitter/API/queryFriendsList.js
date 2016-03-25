@@ -157,14 +157,14 @@ function saveFriends(result) {
 
     for (friend of friends){
       txn.query(user_cypher, { user: friend } , function(err, results) {
-        if (err){
+        if (!util.isEmpty(err)){
           metricError.increment();
         } else {
           metricSaved.increment();
         }
       });
       txn.query(friend_cypher, { user: { id_str: user.id_str } , friend: friend } , function(err, results) {
-        if (err){
+        if (!util.isEmpty(err)){
           metricRelError.increment();
         } else {
           metricRelSaved.increment();
@@ -175,7 +175,7 @@ function saveFriends(result) {
     process.nextTick(function() {
       logger.info("commit");
       txn.commit(function (err, results) {
-       if (err){
+       if (!util.isEmpty(err)){
          logger.error("transaction error %s", JSON.stringify(err));
         }
         logger.info("committed");

@@ -147,7 +147,7 @@ function queryFriendsIDs(user, cursor, job) {
     limiter.removeTokens(1, function(err, remainingRequests) {
       T.get('friends/ids', { user_id: user.id_str, cursor: cursor, count: 5000, stringify_ids: true }, function (err, data)
       {
-        if (err){
+        if (!util.isEmpty(err)){
           if (err.message == "Not authorized."){
             queue.create('markUserPrivate', { user: user } ).removeOnComplete(true).save();
             resolve({ user: user, list: [] });
