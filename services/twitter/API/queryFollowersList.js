@@ -2,6 +2,7 @@
 // #refactor:10 write queries
 var util = require('util');
 var T = require('../../../lib/twit.js');
+var _ = require('../../../lib/util.js');
 
 var MongoClient = require('mongodb').MongoClient,
 assert = require('assert');
@@ -109,7 +110,7 @@ function queryFollowersList(user, cursor) {
     limiter.removeTokens(1, function(err, remainingRequests) {
       T.get('followers/list', { user_id: user.id_str, cursor: cursor, count: 200 }, function (err, data)
       {
-        if (err){
+        if (!_.isEmpty(err)){
           if (err.message == "Not authorized."){
             queue.create('markUserPrivate', { user: user } ).removeOnComplete(true).save();
             resolve({ user: user, list: [] });
@@ -158,14 +159,14 @@ function saveFollowers(result) {
 
     for (follower of followers){
       txn.query(user_cypher, { user: follower } , function(err, results) {
-        if ( !util.isEmpty(err)){
+        if ( !_.isEmpty(err)){
           metricError.increment();
         } else {
           metricSaved.increment();
         }
       });
       txn.query(follower_cypher, { user: follower, friend: user } , function(err, results) {
-        if ( !util.isEmpty(err)){
+        if ( !_.isEmpty(err)){
           metricRelError.increment();
         } else {
           metricRelSaved.increment();
@@ -175,7 +176,7 @@ function saveFollowers(result) {
     process.nextTick(function() {
       logger.info("commit");
       txn.commit(function (err, results) {
-       if ( !util.isEmpty(err)){
+       if ( !_.isEmpty(err)){
          logger.error("transaction error %s", JSON.stringify(err));
         }
         logger.info("committed");

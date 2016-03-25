@@ -2,7 +2,7 @@
 // #refactor:10 write queries
 var util = require('util');
 var T = require('../../../lib/twit.js');
-
+var _ = require('../../../lib/util.js');0.
 var assert = require('assert');
 
 const metrics = require('../../../lib/crow.js').init("importer", {
@@ -87,7 +87,7 @@ function queryUser(user) {
     limiter.removeTokens(1, function(err, remainingRequests) {
       T.get('users/show', { user_id: user.id_str }, function(err, data)
       {
-        if (!util.isEmpty(err)){
+        if (!_.isEmpty(err)){
           if (err.code == 50){
             //user doesn't exist
             //queue.create('expireUser', {user: user}).removeOnComplete(true).save();
