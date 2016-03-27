@@ -13,7 +13,6 @@ var childOpts =  {
   };
 
 var childs = {
-  twitter: {
   //  apiToMongo: (new (forever.Monitor)('./services/twitter/apiToMongo.js', childOpts)).start(),
 //    checkNeo4jFollowers: new (forever.Monitor)('./services/twitter/checkNeo4jFollowers.js', childOpts).start(),
 //    checkNeo4jFriends: new (forever.Monitor)('./services/twitter/checkNeo4jFriends.js', childOpts).start(),
@@ -35,8 +34,7 @@ var childs = {
     fillFollowersQueue: new (forever.Monitor)('./services/twitter/maintenance/fillFollowersQueue.js', childOpts).start(),
     statsVIP: new (forever.Monitor)('./services/twitter/maintenance/statsVIP.js', childOpts).start(),
     fillUsersQueue: new (forever.Monitor)('./services/twitter/maintenance/fillUsersQueue.js', childOpts).start(),
-    kueUI: new (forever.Monitor)('./services/twitter/ui/kue.js', childOpts).start(),
-  }
+    kueUI: new (forever.Monitor)('./services/twitter/ui/kue.js', childOpts).start()
 };
 function addEvents(child) {
   child.on('exit', function () {
@@ -45,4 +43,16 @@ function addEvents(child) {
   child.on('restart', function () {
     console.log('%s restarted, count: %d', child.command, child.restarts);
   });
+}
+process.once( 'SIGTERM', shutdown );
+
+process.once( 'SIGINT', shutdown );
+
+function shutdown(sig) {
+  for ( child of childs ) {
+    child.kill('sig');
+  }
+  setTimer( function() {
+    process.exit( 0 );
+  }, 10 * 1000);
 }
