@@ -97,13 +97,11 @@ function saveUser(job, done) {
   logger.trace("received job %j", job);
   metricStart.increment();
   var user = model.filterUser(job.data.user);
-  var rel = job.data.rel;
 
   function finished (result){
     return new RSVP.Promise( function (resolve, reject) {
       metricFinish.increment();
       logger.trace("finish")
-      queue.create('receiveFriend', rel ).removeOnComplete( true ).save();
       resolve();
     });
   }

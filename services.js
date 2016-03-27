@@ -19,7 +19,7 @@ var childs = {
 //    checkNeo4jFriends: new (forever.Monitor)('./services/twitter/checkNeo4jFriends.js', childOpts).start(),
 //    checkNeo4jUsers: new (forever.Monitor)('./services/twitter/checkNeo4jUsers.js', childOpts).start(),
     queryUsers: new (forever.Monitor)('./services/twitter/API/queryUsers.js', childOpts).start(),
-    receiveUsers: new (forever.Monitor)('./services/twitter/Controller/receiveUsers.js', childOpts).start(),
+    saveUsers: new (forever.Monitor)('./services/twitter/Controller/receiveUsers.js', childOpts).start(),
     receiveStubUser: new (forever.Monitor)('./services/twitter/Controller/receiveStubUser.js', childOpts).start(),
     queryListMembers: new (forever.Monitor)('./services/twitter/API/queryListMembers.js', childOpts).start(),
     queryListOwnership: new (forever.Monitor)('./services/twitter/API/queryListOwnership.js', childOpts).start(),

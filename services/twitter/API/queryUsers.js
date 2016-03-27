@@ -118,7 +118,7 @@ function queryUser(user) {
           statuses_count: data.statuses_count,
           protected: data.protected
         }
-        queue.create('receiveUser', { user: queriedUser } ).removeOnComplete( true ).save();
+        queue.create('saveUser', { user: queriedUser } ).removeOnComplete( true ).save();
         metrics.counter("queryFinished").increment();
         resolve(queriedUser);
       });
