@@ -112,4 +112,3 @@ function saveUser(job, done) {
 };
 
 queue.process('saveUser', kueThreads, saveUser);
-queue.process('receiveUser', kueThreads, saveUser);
