@@ -2,6 +2,7 @@
 // #refactor:10 write queries
 var util = require('util');
 var assert = require('assert');
+var _ = require('../../../lib/util.js');
 const metrics = require('../../../lib/crow.js').init("importer", {
   api: "twitter",
   module: "vip",
@@ -60,3 +61,21 @@ function setGagues(total, remaining){
 
 countVIPFriendsCompleteness()
 setInterval(countVIPFriendsCompleteness, 30 * 60 * 1000 );
+
+function updateDistances() {
+  var query = " match (n:twitterUser) with n, rand() as r order by r limit 100000 " +
+  "match (v:service{type:\"VIP\"}) with n,v " +
+  "optional match p=shortestPath((n)<-[*..20]-(v)) " +
+  "with n, length(p) as distance where distance > 0 " +
+  "set n.vip_distance = distance ";
+
+  neo4j.queryRaw(query, function(err, results) {
+    if (!_.isEmpty(err)){
+      logger.error("neo4j find error %j %j", err, results);
+      return;
+    }
+  });
+};
+
+updateDistances()
+setInterval(updateDistances, 5 * 60 * 1000 );
