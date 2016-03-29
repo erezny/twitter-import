@@ -40,7 +40,7 @@ setInterval(function() {
     txn_cmt.commit(function (err, results) {
       metricTxnFinished.increment();
     });
-} , 5 * 1000);
+} , 60 * 1000);
 
 function upsertRelationship(node, friend) {
   assert( typeof(node.id) == "number" );

@@ -43,7 +43,7 @@ setInterval(function() {
     txn_cmt.commit(function (err, results) {
       metricTxnFinished.increment();
     });
-} , 5 * 1000);
+} , 60 * 1000);
 
 const user_cypher = "merge (x:twitterUser { id_str: {user}.id_str }) " +
             "set x.screen_name = {user}.screen_name, " +

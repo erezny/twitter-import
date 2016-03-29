@@ -57,13 +57,13 @@ queue.process('queryFollowersIDs', function(job, done) {
   job.data.numReceived = job.data.numReceived || 0;
   if (cursor === "-1"){
     metricFreshQuery.increment();
-    promise = checkFollowersIDsQueryTime(job.data.user)
+    promise = checkFollowersIDsQueryTime(job.data.user);
   } else {
     metricContinuedQuery.increment();
     promise = new Promise(function(resolve) { resolve(); });
   }
   promise.then(function() {
-    return queryFollowersIDs(user, cursor, job)
+    return queryFollowersIDs(user, cursor, job);
   }, function(err) {
     done();
   })
@@ -90,14 +90,8 @@ queue.process('queryFollowersIDs', function(job, done) {
       var txn = neo4j.batch();
       logger.info("save");
 
-      for (follower of followers){
-        txn.query(cypher, { user: follower, friend: user.id_str } , function(err, results) {
-          if (!_.isEmpty(err)){
-            metricRelError.increment();
-          } else {
-            metricRelSaved.increment();
-          }
-        });
+      for ( var follower of followers ) {
+        txn.query(cypher, { user: follower, friend: user.id_str } , txnFinished);
       }
       process.nextTick(function() {
         logger.info("commit");
@@ -106,7 +100,15 @@ queue.process('queryFollowersIDs', function(job, done) {
           metricTxnFinished.increment();
           resolve(result);
         });
-      })
+      });
+
+      function txnFinished(err, results) {
+        if (!_.isEmpty(err)){
+          metricRelError.increment();
+        } else {
+          metricRelSaved.increment();
+        }
+      }
     });
   }
 

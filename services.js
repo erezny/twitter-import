@@ -49,7 +49,7 @@ process.once( 'SIGTERM', shutdown );
 process.once( 'SIGINT', shutdown );
 
 function shutdown(sig) {
-  for ( child of childs ) {
+  for ( var child of childs)  {
     child.kill('sig');
   }
   setTimer( function() {
