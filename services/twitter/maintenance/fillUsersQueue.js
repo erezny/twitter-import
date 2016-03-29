@@ -37,10 +37,10 @@ function checkfillUsers() {
 function queryTemplate(sortDir){
   return util.format(
     "match (n:twitterUser) " +
-    "where not exists(n.screen_name) " +
-    "match p=(n)--(m) with n, count(p) as links " +
-    " order by links desc limit 1800 " +
-    "return n");
+    "where not exists(n.screen_name) and not n.protected " +
+    "return n " +
+    "order by n.weighted_vip_distance desc limit 1800 "
+  );
 }
 
 function fillUsers(){
