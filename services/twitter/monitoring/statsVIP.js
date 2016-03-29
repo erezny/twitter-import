@@ -70,14 +70,15 @@ function updateDistances() {
   "match (v:service{type:\"VIP\"}) with n,v " +
   "optional match path=shortestPath((n)<-[*..20]-(v)), " +
   "               followerships=(n)<-[r:follows]-(m:twitterUser), " +
-  "               friendships=(n)-[r:follows]->(m:twitterUser) " +
+  "               friendships=(n)-[r:follows]->(l:twitterUser) " +
+  "where not m.screen_name is null and not l.screen_nme is null " +
   "with n, length(path) as distance, " +
   "     length(followerships) as followers , length(friendships) as friends " +
   "set n.vip_distance = distance, " +
   "    n.followers_imported_count = followers, " +
   "    n.friends_imported_count = friends, " +
   "    n.weighted_vip_distance    = sqrt( toFloat(friends*friends) / toFloat(distance*distance) ) " +
-  "";
+  "    ";
 
   neo4j.queryRaw(query, function(err, results) {
     if (!_.isEmpty(err)){
