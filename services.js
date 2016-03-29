@@ -32,7 +32,7 @@ var childs = {
     queryFollowersList: new (forever.Monitor)('./services/twitter/API/queryFollowersList.js', childOpts).start(),
     fillFriendsQueue: new (forever.Monitor)('./services/twitter/maintenance/fillFriendsIDsQueue.js', childOpts).start(),
     fillFollowersQueue: new (forever.Monitor)('./services/twitter/maintenance/fillFollowersQueue.js', childOpts).start(),
-    statsVIP: new (forever.Monitor)('./services/twitter/maintenance/statsVIP.js', childOpts).start(),
+//    statsVIP: new (forever.Monitor)('./services/twitter/monitoring/statsVIP.js', childOpts).start(),
     fillUsersQueue: new (forever.Monitor)('./services/twitter/maintenance/fillUsersQueue.js', childOpts).start(),
     kueUI: new (forever.Monitor)('./services/twitter/ui/kue.js', childOpts).start()
 };
@@ -44,11 +44,11 @@ function addEvents(child) {
     console.log('%s restarted, count: %d', child.command, child.restarts);
   });
 }
-process.once( 'SIGTERM', shutdown );
+process.once( 'SIGTERM', shutdown, childs );
 
-process.once( 'SIGINT', shutdown );
+process.once( 'SIGINT', shutdown, childs);
 
-function shutdown(sig) {
+function shutdown(sig, childs) {
   for ( var child of childs)  {
     child.kill('sig');
   }
