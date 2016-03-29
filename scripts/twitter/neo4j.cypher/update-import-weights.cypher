@@ -110,3 +110,25 @@ with n
 match (n)
  with distinct n.import_friends_remaining as import_friends_remaining_key, count(*) as import_friends_remaining_count
 return import_friends_remaining_key, import_friends_remaining_count order by import_friends_remaining_key
+
+
+match (n:twitterUser) with n, rand() as r order by r limit 100000
+match (v:service{type:"VIP"}) with n,v
+optional match p=shortestPath((n)<-[*..20]-(v))
+with n, length(p) as distance where distance > 0
+set n.vip_distance = distance
+with n
+optional match p=(n)<-[r:follows]-(m:twitterUser) with n, length(p) as links
+set n.followers_imported_count = links,
+    n.weighted_vip_distance    = sqrt( links*links / (distance*distance) )
+
+
+
+match (n:twitterUser) with n, rand() as r order by r limit 100000
+match (v:service{type:"VIP"}) with n,v
+match p=shortestPath((n)<-[*..20]-(v)) where length(p) > 0
+with n, length(p) as distance
+optional match p=(n)<-[r:follows]-(m:twitterUser) with n, length(p) as links, distance
+set n.vip_distance 			   = distance,
+    n.followers_imported_count = links,
+    n.weighted_vip_distance    = sqrt( links*links / (n.vip_distance*n.vip_distance) )
