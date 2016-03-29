@@ -64,8 +64,6 @@ queue.process('queryFollowersIDs', function(job, done) {
   }
   promise.then(function() {
     return queryFollowersIDs(user, cursor, job);
-  }, function(err) {
-    done();
   })
   .then(saveFollowers)
   .then(updateFollowersIDsQueryTime)
@@ -73,8 +71,8 @@ queue.process('queryFollowersIDs', function(job, done) {
     metricFinish.increment();
     done();
   }, function(err) {
-    logger.error("queryFollowersIDs error: %j %j", job, err);
-    metricQueryError.increment();
+    logger.debug("queryFollowersIDs error: %j %j", job, err);
+    metricQueryError.increment(count = 1, tags = { apiError: err.code, apiMessage: err.message });
     done(err);
   });
 });
@@ -138,7 +136,7 @@ queue.process('queryFollowersIDs', function(job, done) {
       var currentTimestamp = new Date().getTime();
       redis.hset(key, "queryFollowersIDsTimestamp", parseInt((+new Date) / 1000), function() {
         metricUpdatedTimestamp.increment();
-        resolve()
+        resolve();
       });
     });
   }

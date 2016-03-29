@@ -91,7 +91,7 @@ function queryUser(user) {
           if (err.code == 50){
             //user doesn't exist
             //queue.create('expireUser', {user: user}).removeOnComplete(true).save();
-            reject({ user: user, err: err, reason: "user doesn't exist" } );
+            reject({ user: user, err: err, message: "user doesn't exist" } );
             return;
           } else if (err.message == "User has been suspended."){
             queue.create('markUserSuspended', { user: user } ).removeOnComplete(true).save();
@@ -100,7 +100,7 @@ function queryUser(user) {
           } else {
             logger.error("twitter api error %j %j", user, err);
             metrics.counter("apiError").increment(count = 1, tags = { apiError: err.code, apiMessage: err.message });
-            reject({ user: user, err: err, reason: "twitter api error" });
+            reject({ user: user, err: err, message: "twitter api error" });
             return;
           }
         }
