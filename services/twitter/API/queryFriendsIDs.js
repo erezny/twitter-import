@@ -91,24 +91,47 @@ function saveFriends(result) {
     var txn = neo4j.batch();
     logger.info("save");
 
-    for (friend of friends){
-      txn.query(cypher, { user: user.id_str, friend: friend } , function(err, results) {
-        if (!_.isEmpty(err)){
-          metricRelError.increment();
-        } else {
-          metricRelSaved.increment();
+    var uniqueUsers = [];
+    for ( var friend of friends ) {
+      if ( uniqueUsers.indexOf(friend) === -1 ) {
+        uniqueUsers.push(friend);
+      }
+    }
+
+    var query = {
+      statements: [
+        {
+          statement: "merge (u:twitterUser { id_str: {user}.id_str })",
+          parameters: {
+            'user': {
+              id_str: user.id_str
+    } } } ] };
+
+    for ( var friendID of uniqueUsers ) {
+      query.statements.push({
+        statement: "match (u:twitterUser { id_str: {user}.id_str }) " +
+                   "merge (f:twitterUser { id_str: {friend}.id_str }) " +
+                   "merge (u)-[:follows]->(f) ",
+        parameters: {
+          'user': { id_str: user.id_str },
+          'friend': { id_str: friendID }
         }
       });
     }
-    process.nextTick(function() {
-      logger.info("commit");
-      txn.commit(function (err, results) {
+    var operation = neo4j.operation('transaction/commit', 'POST', query);
+    neo4j.call(operation, function(err, neo4jresult, neo4jresponse) {
+      if (!_.isEmpty(err)){
+        logger.error("query error: %j", err);
+        metricTxnError.increment();
+        reject(err);
+      } else {
         logger.info("committed");
         metricTxnFinished.increment();
         resolve(result);
-      });
-    })
+      }
+    });
   });
+
 }
 
 function checkFriendsIDsQueryTime(user){
