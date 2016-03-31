@@ -77,36 +77,29 @@ queue.process('queryFollowersIDs', function(job, done) {
   });
 });
 
-  const cypher = "merge (x:twitterUser { id_str: {user} }) " +
-              "merge (y:twitterUser { id_str: {friend} }) with x, y " +
-              "merge (x)-[r:follows]->(y) ";
-
   function saveFollowers(result) {
     return new Promise(function(resolve, reject) {
       var user = result.user;
       var followers = result.list;
-      var txn = neo4j.batch();
       logger.info("save");
 
+      var cypherArray = [ util.format("merge (f:twitterUser { id_str:\"%s\"}) ", user.id_str ) ];
+      var uniqueUsers = [];
       for ( var follower of followers ) {
-        txn.query(cypher, { user: follower, friend: user.id_str } , txnFinished);
+        if ( uniqueUsers.indexOf(follower) === -1 ) {
+          uniqueUsers.push(follower);
+        }
       }
-      process.nextTick(function() {
-        logger.info("commit");
-        txn.commit(function (err, results) {
+      for ( var i = 0; i < uniqueUsers.length; i++ ) {
+        cypherArray.push( util.format("merge (u%d:twitterUser { id_str:\"%s\"}) ", i, uniqueUsers[i] ) );
+        cypherArray.push( util.format("merge (u%d)-[:follows]->(f) ", i ) );
+      }
+      var cypher = cypherArray.join('\n');
+      neo4j.query(cypher, function(err, results) {
           logger.info("committed");
           metricTxnFinished.increment();
           resolve(result);
-        });
       });
-
-      function txnFinished(err, results) {
-        if (!_.isEmpty(err)){
-          metricRelError.increment();
-        } else {
-          metricRelSaved.increment();
-        }
-      }
     });
   }
 
