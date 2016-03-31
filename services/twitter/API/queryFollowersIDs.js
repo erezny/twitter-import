@@ -115,7 +115,7 @@ queue.process('queryFollowersIDs', function(job, done) {
         });
       }
       var operation = neo4j.operation('transaction/commit', 'POST', query);
-      neo4j.call(operation, function(err, result, response) {
+      neo4j.call(operation, function(err, neo4jresult, neo4jresponse) {
         if (!_.isEmpty(err)){
           logger.error("query error: %j", err);
           metricTxnError.increment();
