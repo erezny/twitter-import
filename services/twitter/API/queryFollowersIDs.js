@@ -46,6 +46,7 @@ const metricUpdatedTimestamp = metrics.counter("updatedTimestamp");
 const metricApiError = metrics.counter("apiError");
 const metricApiFinished = metrics.counter("apiFinished");
 const metricTxnFinished = metrics.counter("txnFinished");
+const metricTxnError = metrics.counter("txnError");
 
 queue.process('queryFollowersIDs', function(job, done) {
   //  logger.info("received job");
@@ -83,22 +84,47 @@ queue.process('queryFollowersIDs', function(job, done) {
       var followers = result.list;
       logger.info("save");
 
-      var cypherArray = [ util.format("merge (f:twitterUser { id_str:\"%s\"}) ", user.id_str ) ];
       var uniqueUsers = [];
       for ( var follower of followers ) {
         if ( uniqueUsers.indexOf(follower) === -1 ) {
           uniqueUsers.push(follower);
         }
       }
-      for ( var i = 0; i < uniqueUsers.length; i++ ) {
-        cypherArray.push( util.format("merge (u%d:twitterUser { id_str:\"%s\"}) ", i, uniqueUsers[i] ) );
-        cypherArray.push( util.format("merge (u%d)-[:follows]->(f) ", i ) );
+
+      var query = {
+        statements: [
+          {
+            statement: "merge (f:twitterUser { id_str: {user}.id_str })",
+            parameters: {
+              'user': {
+                id_str: user.id_str
+              }
+            }
+          }
+        ]
+      };
+      for ( var vollower of uniqueUsers ) {
+        query.statements.push({
+          statement: "match (f:twitterUser { id_str: {user}.id_str }) " +
+                     "merge (u:twitterUser { id_str: {follower}.id_str }) " +
+                     "merge (u)-[:follows]->(f) ",
+          parameters: {
+            'user': { id_str: user.id_str },
+            'follower': { id_str: follower.id_str }
+          }
+        });
       }
-      var cypher = cypherArray.join('\n');
-      neo4j.query(cypher, function(err, results) {
+      var operation = neo4j.operation('transaction/commit', 'POST', query);
+      neo4j.call(operation, function(err, result, response) {
+        if (!_.isEmpty(err)){
+          logger.error("query error: %j", err);
+          metricTxnError.increment();
+          reject(err);
+        } else {
           logger.info("committed");
           metricTxnFinished.increment();
           resolve(result);
+        }
       });
     });
   }
