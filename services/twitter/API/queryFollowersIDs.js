@@ -103,14 +103,14 @@ queue.process('queryFollowersIDs', function(job, done) {
           }
         ]
       };
-      for ( var follower of uniqueUsers ) {
+      for ( var followerid of uniqueUsers ) {
         query.statements.push({
           statement: "match (f:twitterUser { id_str: {user}.id_str }) " +
                      "merge (u:twitterUser { id_str: {follower}.id_str }) " +
                      "merge (u)-[:follows]->(f) ",
           parameters: {
             'user': { id_str: user.id_str },
-            'follower': { id_str: follower.id_str }
+            'follower': { id_str: followerid }
           }
         });
       }
