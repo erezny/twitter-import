@@ -13,27 +13,18 @@ var childOpts =  {
   };
 
 var childs = {
-  //  apiToMongo: (new (forever.Monitor)('./services/twitter/apiToMongo.js', childOpts)).start(),
-//    checkNeo4jFollowers: new (forever.Monitor)('./services/twitter/checkNeo4jFollowers.js', childOpts).start(),
-//    checkNeo4jFriends: new (forever.Monitor)('./services/twitter/checkNeo4jFriends.js', childOpts).start(),
-//    checkNeo4jUsers: new (forever.Monitor)('./services/twitter/checkNeo4jUsers.js', childOpts).start(),
-    queryUsers: new (forever.Monitor)('./services/twitter/API/queryUsers.js', childOpts).start(),
-    saveUsers: new (forever.Monitor)('./services/twitter/Controller/receiveUsers.js', childOpts).start(),
-    receiveStubUser: new (forever.Monitor)('./services/twitter/Controller/receiveStubUser.js', childOpts).start(),
-    queryListMembers: new (forever.Monitor)('./services/twitter/API/queryListMembers.js', childOpts).start(),
-    queryListOwnership: new (forever.Monitor)('./services/twitter/API/queryListOwnership.js', childOpts).start(),
-    listMembers: new (forever.Monitor)('./services/twitter/Controller/listMembers.js', childOpts).start(),
-    listOwnership: new (forever.Monitor)('./services/twitter/Controller/listOwnership.js', childOpts).start(),
-    queryFriendsList: new (forever.Monitor)('./services/twitter/API/queryFriendsList.js', childOpts).start(),
-    receiveFriends: new (forever.Monitor)('./services/twitter/Controller/receiveFriends.js', childOpts).start(),
-    saveFriends: new (forever.Monitor)('./services/twitter/Controller/saveFriends.js', childOpts).start(),
+//    queryUsers: new (forever.Monitor)('./services/twitter/API/queryUsers.js', childOpts).start(),
+//    queryListMembers: new (forever.Monitor)('./services/twitter/API/queryListMembers.js', childOpts).start(),
+//    queryListOwnership: new (forever.Monitor)('./services/twitter/API/queryListOwnership.js', childOpts).start(),
+//    queryFriendsList: new (forever.Monitor)('./services/twitter/API/queryFriendsList.js', childOpts).start(),
     queryFriendsIDs: new (forever.Monitor)('./services/twitter/API/queryFriendsIDs.js', childOpts).start(),
     queryFollowerIDs: new (forever.Monitor)('./services/twitter/API/queryFollowersIDs.js', childOpts).start(),
     queryFollowersList: new (forever.Monitor)('./services/twitter/API/queryFollowersList.js', childOpts).start(),
-    fillFriendsQueue: new (forever.Monitor)('./services/twitter/maintenance/fillFriendsIDsQueue.js', childOpts).start(),
-    fillFollowersQueue: new (forever.Monitor)('./services/twitter/maintenance/fillFollowersQueue.js', childOpts).start(),
+// fillFriendsQueue: new (forever.Monitor)('./services/twitter/maintenance/fillFriendsIDsQueue.js', childOpts).start(),
+// fillFollowersQueue: new (forever.Monitor)('./services/twitter/maintenance/fillFollowersQueue.js', childOpts).start(),
 //    statsVIP: new (forever.Monitor)('./services/twitter/monitoring/statsVIP.js', childOpts).start(),
     fillUsersQueue: new (forever.Monitor)('./services/twitter/maintenance/fillUsersQueue.js', childOpts).start(),
+    countImportedRelationships: new (forever.Monitor)('./services/twitter/maintenance/countImportedRelationships.js', childOpts).start(),
     kueUI: new (forever.Monitor)('./services/twitter/ui/kue.js', childOpts).start()
 };
 function addEvents(child) {
@@ -44,15 +35,15 @@ function addEvents(child) {
     console.log('%s restarted, count: %d', child.command, child.restarts);
   });
 }
-process.once( 'SIGTERM', shutdown, childs );
+process.once( 'SIGTERM', shutdown );
 
-process.once( 'SIGINT', shutdown, childs);
+process.once( 'SIGINT', shutdown );
 
-function shutdown(sig, childs) {
+function shutdown(sig) {
   for ( var child of childs)  {
     child.kill('sig');
   }
   setTimer( function() {
     process.exit( 0 );
-  }, 10 * 1000);
+  }, 70 * 1000);
 }
