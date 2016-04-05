@@ -40,8 +40,8 @@ process.once( 'SIGTERM', shutdown );
 process.once( 'SIGINT', shutdown );
 
 function shutdown(sig) {
-  for ( var child of childs)  {
-    child.kill('sig');
+  for ( var name of Object.keys(childs))  {
+    childs[name].kill('sig');
   }
   setTimer( function() {
     process.exit( 0 );
