@@ -141,55 +141,49 @@ function queryFriendsList(user, cursor) {
 
 });
 
-const friend_cypher = "merge (x:twitterUser { id_str: {user}.id_str }) " +
-            "merge (y:twitterUser { id_str: {friend}.id_str }) " +
-            "merge (x)-[r:follows]->(y) ";
-
-const user_cypher = "merge (x:twitterUser { id_str: {user}.id_str }) " +
-            "set x.screen_name = {user}.screen_name, " +
-            " x.name = {user}.name, " +
-            " x.followers_count = {user}.followers_count, " +
-            " x.friends_count = {user}.friends_count, " +
-            " x.favourites_count = {user}.favourites_count, " +
-            " x.description = {user}.description, " +
-            " x.location = {user}.location, " +
-            " x.statuses_count = {user}.statuses_count, " +
-            " x.protected = {user}.protected " ;
+const friend_cypher = "match (y:twitterUser { id_str: {user}.id_str }) " +
+            "merge (x:twitterUser { id_str: {friend}.id_str }) " +
+            "create unique (x)-[r:follows]->(y) " +
+            "set y.analytics_updated = 0 " +
+            " x.screen_name = {friend}.screen_name, " +
+            " x.name = {friend}.name, " +
+            " x.followers_count = {friend}.followers_count, " +
+            " x.friends_count = {friend}.friends_count, " +
+            " x.favourites_count = {friend}.favourites_count, " +
+            " x.description = {friend}.description, " +
+            " x.location = {friend}.location, " +
+            " x.statuses_count = {friend}.statuses_count, " +
+            " x.protected = {friend}.protected " ;
 
 function saveFriends(result) {
   return new Promise(function(resolve, reject) {
     var user = result.user;
     var friends = result.list;
-    var txn = neo4j.batch();
     logger.info("save");
 
-    for (friend of friends){
-      txn.query(user_cypher, { user: friend } , function(err, results) {
-        if (!_.isEmpty(err)){
-          metricError.increment();
-        } else {
-          metricSaved.increment();
+    var query = {
+      statements: [ ]
+    };
+    for ( var friend of friends ) {
+      query.statements.push({
+        statement: friend_cypher,
+        parameters: {
+          'user': { id_str: user.id_str },
+          'friend': model.filterUser(friend)
         }
       });
-      txn.query(friend_cypher, { user: { id_str: user.id_str } , friend: friend } , function(err, results) {
-        if (!_.isEmpty(err)){
-          metricRelError.increment();
-        } else {
-          metricRelSaved.increment();
-        }
-      });
-
     }
-    process.nextTick(function() {
-      logger.info("commit");
-      txn.commit(function (err, results) {
-       if (!_.isEmpty(err)){
-         logger.error("transaction error %s", JSON.stringify(err));
-        }
+    var operation = neo4j.operation('transaction/commit', 'POST', query);
+    neo4j.call(operation, function(err, neo4jresult, neo4jresponse) {
+      if (!_.isEmpty(err)){
+        logger.error("query error: %j", err);
+        metricTxnError.increment();
+        reject(err);
+      } else {
         logger.info("committed");
         metricTxnFinished.increment();
         resolve(result);
-      });
-    })
+      }
+    });
   });
 }

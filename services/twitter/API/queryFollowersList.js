@@ -19,7 +19,7 @@ var neo4j = require('../../../lib/neo4j.js');
 var RateLimiter = require('limiter').RateLimiter;
 //set rate limiter slightly lower than twitter api limit
 var limiter = new RateLimiter(1, (1 / 29) * 15 * 60 * 1000);
-
+var model = require('../../../lib/twitter/models/user.js');
 var RSVP = require('rsvp');
 var logger = require('tracer').colorConsole( {
   level: 'info'
@@ -142,54 +142,49 @@ function queryFollowersList(user, cursor) {
 
 });
 
-const friend_cypher = "merge (x:twitterUser { id_str: {user}.id_str }) " +
-            "merge (y:twitterUser { id_str: {friend}.id_str }) " +
-            "merge (x)-[r:follows]->(y) ";
-
-const user_cypher = "merge (x:twitterUser { id_str: {user}.id_str }) " +
-            "set x.screen_name = {user}.screen_name, " +
-            " x.name = {user}.name, " +
-            " x.followers_count = {user}.followers_count, " +
-            " x.friends_count = {user}.friends_count, " +
-            " x.favourites_count = {user}.favourites_count, " +
-            " x.description = {user}.description, " +
-            " x.location = {user}.location, " +
-            " x.statuses_count = {user}.statuses_count, " +
-            " x.protected = {user}.protected " ;
+const follower_cypher = "match (y:twitterUser { id_str: {user}.id_str }) " +
+            "merge (x:twitterUser { id_str: {follower}.id_str }) " +
+            "create unique (x)-[r:follows]->(y) " +
+            "set y.analytics_updated = 0 " +
+            " x.screen_name = {follower}.screen_name, " +
+            " x.name = {follower}.name, " +
+            " x.followers_count = {follower}.followers_count, " +
+            " x.friends_count = {follower}.friends_count, " +
+            " x.favourites_count = {ufollowerser}.favourites_count, " +
+            " x.description = {follower}.description, " +
+            " x.location = {follower}.location, " +
+            " x.statuses_count = {follower}.statuses_count, " +
+            " x.protected = {follower}.protected " ;
 
 function saveFollowers(result) {
   return new Promise(function(resolve, reject) {
     var user = result.user;
     var followers = result.list;
-    var txn = neo4j.batch();
     logger.info("save");
 
-    for (follower of followers){
-      txn.query(user_cypher, { user: follower } , function(err, results) {
-        if ( !_.isEmpty(err)){
-          metricError.increment();
-        } else {
-          metricSaved.increment();
-        }
-      });
-      txn.query(friend_cypher, { user: follower, friend: user } , function(err, results) {
-        if ( !_.isEmpty(err)){
-          metricRelError.increment();
-        } else {
-          metricRelSaved.increment();
+    var query = {
+      statements: [ ]
+    };
+    for ( var follower of followers ) {
+      query.statements.push({
+        statement: follower_cypher,
+        parameters: {
+          'user': { id_str: user.id_str },
+          'follower': model.filterUser(follower)
         }
       });
     }
-    process.nextTick(function() {
-      logger.info("commit");
-      txn.commit(function (err, results) {
-       if ( !_.isEmpty(err)){
-         logger.error("transaction error %s", JSON.stringify(err));
-        }
+    var operation = neo4j.operation('transaction/commit', 'POST', query);
+    neo4j.call(operation, function(err, neo4jresult, neo4jresponse) {
+      if (!_.isEmpty(err)){
+        logger.error("query error: %j", err);
+        metricTxnError.increment();
+        reject(err);
+      } else {
         logger.info("committed");
         metricTxnFinished.increment();
         resolve(result);
-      });
-    })
+      }
+    });
   });
 }

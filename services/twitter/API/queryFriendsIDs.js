@@ -80,10 +80,6 @@ queue.process('queryFriendsIDs', function(job, done) {
 
 });
 
-const cypher = "merge (x:twitterUser { id_str: {user} }) " +
-            "merge (y:twitterUser { id_str: {friend} }) with x, y " +
-            "merge (x)-[r:follows]->(y) ";
-
 function saveFriends(result) {
   return new Promise(function(resolve, reject) {
     var user = result.user;
@@ -101,7 +97,8 @@ function saveFriends(result) {
     var query = {
       statements: [
         {
-          statement: "merge (u:twitterUser { id_str: {user}.id_str })",
+          statement: "merge (u:twitterUser { id_str: {user}.id_str }) " +
+                     "set u.analytics_updated = 0 ",
           parameters: {
             'user': {
               id_str: user.id_str
@@ -111,7 +108,7 @@ function saveFriends(result) {
       query.statements.push({
         statement: "match (u:twitterUser { id_str: {user}.id_str }) " +
                    "merge (f:twitterUser { id_str: {friend}.id_str }) " +
-                   "merge (u)-[:follows]->(f) ",
+                   "create unique (u)-[:follows]->(f) ",
         parameters: {
           'user': { id_str: user.id_str },
           'friend': { id_str: friendID }
@@ -167,6 +164,7 @@ function updateFriendsIDsQueryTime(result){
 
 function queryFriendsIDs(user, cursor, job) {
   return new Promise(function(resolve, reject) {
+    //T.setAuth(tokens)
     logger.debug("queryFriendsIDs");
     limiter.removeTokens(1, function(err, remainingRequests) {
       T.get('friends/ids', { user_id: user.id_str, cursor: cursor, count: 5000, stringify_ids: true }, function (err, data)

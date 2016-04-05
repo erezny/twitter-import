@@ -94,7 +94,8 @@ queue.process('queryFollowersIDs', function(job, done) {
       var query = {
         statements: [
           {
-            statement: "merge (f:twitterUser { id_str: {user}.id_str })",
+            statement: "merge (f:twitterUser { id_str: {user}.id_str }) " +
+                       "set f.analytics_updated = 0 ",
             parameters: {
               'user': {
                 id_str: user.id_str
@@ -105,9 +106,9 @@ queue.process('queryFollowersIDs', function(job, done) {
       };
       for ( var followerid of uniqueUsers ) {
         query.statements.push({
-          statement: "match (f:twitterUser { id_str: {user}.id_str }) " +
-                     "merge (u:twitterUser { id_str: {follower}.id_str }) " +
-                     "merge (u)-[:follows]->(f) ",
+          statement: "match (u:twitterUser { id_str: {user}.id_str }) " +
+                     "merge (f:twitterUser { id_str: {follower}.id_str }) " +
+                     "create unique (f)-[:follows]->(u) ",
           parameters: {
             'user': { id_str: user.id_str },
             'follower': { id_str: followerid }
