@@ -144,7 +144,7 @@ function queryFollowersList(user, cursor) {
 
 const follower_cypher = "match (y:twitterUser { id_str: {user}.id_str }) " +
             "merge (x:twitterUser { id_str: {follower}.id_str }) " +
-            "create unique (x)-[r:follows]->(y) " +
+            "merge (x)-[r:follows]->(y) " +
             "set y.analytics_updated = 0 " +
             " x.screen_name = {follower}.screen_name, " +
             " x.name = {follower}.name, " +

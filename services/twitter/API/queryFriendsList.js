@@ -143,7 +143,7 @@ function queryFriendsList(user, cursor) {
 
 const friend_cypher = "match (y:twitterUser { id_str: {user}.id_str }) " +
             "merge (x:twitterUser { id_str: {friend}.id_str }) " +
-            "create unique (x)-[r:follows]->(y) " +
+            "merge (x)-[r:follows]->(y) " +
             "set y.analytics_updated = 0 " +
             " x.screen_name = {friend}.screen_name, " +
             " x.name = {friend}.name, " +

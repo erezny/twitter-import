@@ -108,7 +108,7 @@ queue.process('queryFollowersIDs', function(job, done) {
         query.statements.push({
           statement: "match (u:twitterUser { id_str: {user}.id_str }) " +
                      "merge (f:twitterUser { id_str: {follower}.id_str }) " +
-                     "create unique (f)-[:follows]->(u) ",
+                     "merge (f)-[:follows]->(u) ",
           parameters: {
             'user': { id_str: user.id_str },
             'follower': { id_str: followerid }

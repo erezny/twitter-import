@@ -108,7 +108,7 @@ function saveFriends(result) {
       query.statements.push({
         statement: "match (u:twitterUser { id_str: {user}.id_str }) " +
                    "merge (f:twitterUser { id_str: {friend}.id_str }) " +
-                   "create unique (u)-[:follows]->(f) ",
+                   "merge (u)-[:follows]->(f) ",
         parameters: {
           'user': { id_str: user.id_str },
           'friend': { id_str: friendID }
