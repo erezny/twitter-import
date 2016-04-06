@@ -43,7 +43,7 @@ function shutdown(sig) {
   for ( var name of Object.keys(childs))  {
     childs[name].kill('sig');
   }
-  setTimer( function() {
+  setTimeout( function() {
     process.exit( 0 );
   }, 70 * 1000);
 }
