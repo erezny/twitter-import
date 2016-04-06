@@ -30,26 +30,27 @@ function cleanup() {
     });
   });
 
+  // kue.Job.rangeByState( 'inactive', 0, 100000, 'asc', function( err, jobs ) {
+  //   jobs.forEach( function( job ) {
+  //     job.remove( function() {
+  //       console.log( 'removed ', job.id );
+  //     });
+  //   });
+  // });
+  //
+  // kue.Job.rangeByState( 'active', 0, 100, 'asc', function( err, jobs ) {
+  //   jobs.forEach( function( job ) {
+  //     job.remove( function() {
+  //       console.log( 'removed ', job.id );
+  //     });
+  //   });
+  // });
 }
 cleanup();
 
-// kue.Job.rangeByState( 'inactive', 0, 100000, 'asc', function( err, jobs ) {
-//   jobs.forEach( function( job ) {
-//     job.remove( function() {
-//       console.log( 'removed ', job.id );
-//     });
-//   });
-// });
-//
-// kue.Job.rangeByState( 'active', 0, 100, 'asc', function( err, jobs ) {
-//   jobs.forEach( function( job ) {
-//     job.remove( function() {
-//       console.log( 'removed ', job.id );
-//     });
-//   });
-// });
+const queueName = 'queryFollowersIDs';
 
-kue.Job.rangeByType( 'receiveStubUser', 'inactive', 0, 100000, 'asc', function( err, jobs ) {
+kue.Job.rangeByType( queueName, 'inactive', 0, 100000, 'asc', function( err, jobs ) {
   jobs.forEach( function( job ) {
     job.remove( function() {
       console.log( 'removed ', job.id );
@@ -57,22 +58,14 @@ kue.Job.rangeByType( 'receiveStubUser', 'inactive', 0, 100000, 'asc', function( 
   });
 });
 
-kue.Job.rangeByType( 'receiveStubUser', 'active', 0, 1000, 'asc', function( err, jobs ) {
+kue.Job.rangeByType( queueName, 'active', 0, 1000, 'asc', function( err, jobs ) {
   jobs.forEach( function( job ) {
     job.remove( function() {
       console.log( 'removed ', job.id );
     });
   });
 });
-kue.Job.rangeByType( 'receiveStubUser', 'completed', 0, 1000, 'asc', function( err, jobs ) {
-  jobs.forEach( function( job ) {
-    job.remove( function() {
-      console.log( 'removed ', job.id );
-    });
-  });
-});
-
-kue.Job.rangeByType( 'receiveStubUser', 'failed', 0, 1000, 'asc', function( err, jobs ) {
+kue.Job.rangeByType( queueName, 'completed', 0, 1000, 'asc', function( err, jobs ) {
   jobs.forEach( function( job ) {
     job.remove( function() {
       console.log( 'removed ', job.id );
@@ -80,7 +73,15 @@ kue.Job.rangeByType( 'receiveStubUser', 'failed', 0, 1000, 'asc', function( err,
   });
 });
 
-kue.Job.rangeByType( 'receiveStubUser', 'delayed', 0, 1000, 'asc', function( err, jobs ) {
+kue.Job.rangeByType( queueName, 'failed', 0, 1000, 'asc', function( err, jobs ) {
+  jobs.forEach( function( job ) {
+    job.remove( function() {
+      console.log( 'removed ', job.id );
+    });
+  });
+});
+
+kue.Job.rangeByType( queueName, 'delayed', 0, 1000, 'asc', function( err, jobs ) {
   jobs.forEach( function( job ) {
     job.remove( function() {
       console.log( 'removed ', job.id );
