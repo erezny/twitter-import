@@ -19,7 +19,7 @@ var neo4j = require('../../../lib/neo4j.js');
 var RateLimiter = require('limiter').RateLimiter;
 //set rate limiter slightly lower than twitter api limit
 var limiter = new RateLimiter(1, (1 / 29) * 15 * 60 * 1000);
-
+var model = require('../../../lib/twitter/models/user.js');
 var RSVP = require('rsvp');
 var logger = require('tracer').colorConsole( {
   level: 'info'
