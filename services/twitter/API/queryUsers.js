@@ -16,112 +16,153 @@ var queue = require('../../../lib/kue.js');
 
 var RateLimiter = require('limiter').RateLimiter;
 //set rate limiter slightly lower than twitter api limit
-var limiter = new RateLimiter(1, (1 / 180) * 15 * 60 * 1000);
-
+var limiter = new RateLimiter(1, (1 / 60) * 15 * 60 * 1000);
+var model = require('../../../lib/twitter/models/user.js');
 var RSVP = require('rsvp');
 var logger = require('tracer').colorConsole( {
   level: 'info'
 } );
+var neo4j = require('../../../lib/neo4j.js');
 
 var redis = require("redis").createClient({
   host: process.env.REDIS_HOST,
   port: parseInt(process.env.REDIS_PORT),
 });
 
-setInterval( function() {
-  queue.inactiveCount( 'queryUser', function( err, total ) { // others are activeCount, completeCount, failedCount, delayedCount
-    metrics.setGauge("queue.inactive", total);
-  });
-}, 15 * 1000 );
-
-queue.process('queryUser', function(job, done) {
-  //  logger.info("received job");
-  logger.trace("received job %j", job);
-  metrics.counter("start").increment();
-
-  checkUserQueryTime(job.data.user)
-  .then(queryUser)
-  .then(updateUserQueryTime)
-  .then(function(user) {
-    metrics.counter("finish").increment();
-    done();
-  }, function(err) {
-    logger.debug("queryUser error %j: %j", job.data, err);
-    metrics.counter("queryError").increment(count = 1, tags = { apiError: err.code, apiMessage: err.message });
-    done(err);
-  });
-});
-
-function checkUserQueryTime(user){
+function queryUser(id_str_list) {
   return new Promise(function(resolve, reject) {
-    var key = util.format("twitter:%s", user.id_str);
-    var currentTimestamp = new Date().getTime();
-    redis.hgetall(key, function(err, obj) {
-      if ( obj && obj.saveTimestamp ){
-        if ( obj.saveTimestamp > parseInt((+new Date) / 1000) - (60 * 60 * 24 * 7) ) {
-            metrics.counter("repeatQuery").increment();
-            reject( { message: "user recently queried" , timestamp:parseInt((+new Date) / 1000), queryTimestamp: obj.queryTimestamp } );
-        } else {
-          resolve(user);
+    limiter.removeTokens(1, function(err, remainingRequests) {
+      T.post('users/lookup', { id_str: id_str_list }, function(err, data)
+      {
+        if (!_.isEmpty(err)){
+            logger.error("twitter api error %j %j", user, err);
+            metrics.counter("apiError").increment(count = 1, tags = { apiError: err.code, apiMessage: err.message });
+            reject({ user: user, err: err, message: "twitter api error" });
+            return;
         }
+        resolve(data);
+      });
+    });
+  });
+}
+
+  setInterval( function() {
+    queue.inactiveCount( 'queryUser', function( err, total ) { // others are activeCount, completeCount, failedCount, delayedCount
+      metrics.setGauge("queue.inactive", total);
+    });
+  }, 15 * 1000 );
+
+  const user_cypher = "match (y:twitterUser { id_str: {user}.id_str }) " +
+              "set y.analytics_updated = 0 " +
+              " y.screen_name = {user}.screen_name, " +
+              " y.name = {user}.name, " +
+              " y.followers_count = {user}.followers_count, " +
+              " y.friends_count = {user}.friends_count, " +
+              " y.favourites_count = {user}.favourites_count, " +
+              " y.description = {user}.description, " +
+              " y.location = {user}.location, " +
+              " y.statuses_count = {user}.statuses_count, " +
+              " y.protected = {user}.protected " ;
+
+function saveUsers(result) {
+  return new Promise(function(resolve, reject) {
+    var users = result.list;
+    logger.info("save");
+
+    var query = {
+      statements: [ ]
+    };
+    for ( var user of users ) {
+      query.statements.push({
+        statement: user_cypher,
+        parameters: {
+          'user':  model.filterUser(user)
+        }
+      });
+    }
+    var operation = neo4j.operation('transaction/commit', 'POST', query);
+    neo4j.call(operation, function(err, neo4jresult, neo4jresponse) {
+      if (!_.isEmpty(err)){
+        logger.error("query error: %j", err);
+        metricTxnError.increment();
+        reject(err);
       } else {
-        resolve(user);
+        logger.info("committed");
+        metricTxnFinished.increment();
+        resolve(result);
       }
     });
   });
 }
 
-function updateUserQueryTime(user){
-  return new Promise(function(resolve, reject) {
-    var key = util.format("twitter:%s", user.id_str);
-    var currentTimestamp = new Date().getTime();
-    redis.hset(key, "queryTimestamp", parseInt((+new Date) / 1000), function() {
-      resolve()
-    });
-  });
+setInterval(findVIPUsers, 24 * 60 * 60 * 1000 );
+findVIPUsers();
+
+function updateTemplate(params){
+  return "match (n:twitterUser) where id(n) in {nodes} " +
+"  optional match followerships=(n)<-[:follows]-(m:twitterUser)  " +
+"    where not m.screen_name is null " +
+"    with n, size(collect( followerships)) as followers_imported_count " +
+"  optional match friendships=(n)-[:follows]->(l:twitterUser)  " +
+"    where not l.screen_name is null " +
+"  with n, followers_imported_count, size(collect (friendships)) as friends_imported_count " +
+"return n, followers_imported_count , friends_imported_count " ;
 }
 
-function queryUser(user) {
-  return new Promise(function(resolve, reject) {
-    logger.debug("queryUser %s", user.id_str);
-    limiter.removeTokens(1, function(err, remainingRequests) {
-      T.get('users/show', { user_id: user.id_str }, function(err, data)
-      {
-        if (!_.isEmpty(err)){
-          if (err.code == 50){
-            //user doesn't exist
-            //queue.create('expireUser', {user: user}).removeOnComplete(true).save();
-            reject({ user: user, err: err, message: "user doesn't exist" } );
-            return;
-          } else if (err.message == "User has been suspended."){
-            queue.create('markUserSuspended', { user: user } ).removeOnComplete(true).save();
-            resolve({ user: user, list: [] });
-            return;
-          } else {
-            logger.error("twitter api error %j %j", user, err);
-            metrics.counter("apiError").increment(count = 1, tags = { apiError: err.code, apiMessage: err.message });
-            reject({ user: user, err: err, message: "twitter api error" });
-            return;
-          }
-        }
-        logger.trace("Data %j", data);
-        logger.debug("queryUser twitter api callback");
-        var queriedUser = {
-          id_str: data.id_str,
-          screen_name: data.screen_name,
-          name: data.name,
-          followers_count: data.followers_count,
-          friends_count: data.friends_count,
-          favourites_count: data.favourites_count,
-          description: data.description,
-          location: data.location,
-          statuses_count: data.statuses_count,
-          protected: data.protected
-        }
-        queue.create('saveUser', { user: queriedUser } ).removeOnComplete( true ).save();
-        metrics.counter("queryFinished").increment();
-        resolve(queriedUser);
-      });
+function queryTemplate(depth){
+  return {
+    "order": "breadth_first",
+    "return_filter": {
+      "name": "all_but_start_node",
+      "language": "builtin"
+    },
+    "prune_evaluator": {
+      "name": "none",
+      "language": "builtin"
+    },
+    "uniqueness": "node_global",
+    "relationships": [ {
+      "direction": "out",
+      "type": "includes"
+    }, {
+      "direction": "out",
+      "type": "follows"
+    } ],
+    "max_depth": depth
+  };
+}
+
+function findVIPUsers(){
+  var processed = 0;
+
+  function updateNodes(twitterUsers){
+    var id_str_list = twitterUsers.map(function(m) {
+      return m.data.id_str;
     });
+    return queryUser(id_str_list);
+  }
+
+  var operation = neo4j.operation('node/7307455/paged/traverse/node?pageSize=100&leaseTime=600', 'POST', queryTemplate(4) );
+  runNextPage(operation, updateNodes);
+}
+
+function runNextPage(operation, cb){
+  neo4j.call(operation, function(err, results, response) {
+    if (!_.isEmpty(err)){
+      if (err.neo4jError && err.neo4jError.fullname == 'org.neo4j.graphdb.NotFoundException') {
+        logger.info("paging finished");
+      } else {
+        logger.error(err);
+      }
+    } else {
+      if (response) {
+        var next_page = response.replace(/.*\/db\/data\//, "");
+        operation = neo4j.operation(next_page);
+      }
+      logger.trace("found %d nodes", results.length);
+      cb(results).then(function() {
+        process.nextTick(runNextPage, operation, cb);
+      });
+    }
   });
-};
+}
