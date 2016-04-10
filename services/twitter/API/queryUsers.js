@@ -58,7 +58,7 @@ const user_cypher = "match (y:twitterUser { id_str: {user}.id_str }) " +
 
 function saveUsers(result) {
   return new Promise(function(resolve, reject) {
-    var users = result.list;
+    var users = result;
     logger.info("save");
 
     var query = {
