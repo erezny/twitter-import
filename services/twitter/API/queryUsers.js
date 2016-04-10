@@ -32,12 +32,12 @@ var redis = require("redis").createClient({
 function queryUser(id_str_list) {
   return new Promise(function(resolve, reject) {
     limiter.removeTokens(1, function(err, remainingRequests) {
-      T.post('users/lookup', { id_str: id_str_list }, function(err, data)
+      T.post('users/lookup', { user_id: id_str_list }, function(err, data)
       {
         if (!_.isEmpty(err)){
             logger.error("twitter api error %j %j", id_str_list, err);
             metrics.counter("apiError").increment(count = 1, tags = { apiError: err.code, apiMessage: err.message });
-            reject({ user: user, err: err, message: "twitter api error" });
+            reject({ err: err, message: "twitter api error" });
             return;
         }
         resolve(data);
