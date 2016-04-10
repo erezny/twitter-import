@@ -22,30 +22,8 @@ function updateTemplate(params) {
 "match n-[r]->m " +
 "with n,m,type(r) as t, tail(collect(r)) as coll " +
 "foreach(x in coll | delete x)";
-
 }
 
-var friends_imported_count = 0,
-    friends_count = 0,
-    followers_imported_count = 0,
-    followers_count = 0,
-    found = 0;
-
-function countRelationships(twitterUsers){
-  return new Promise(function(resolve, reject) {
-    var nodeIDs = twitterUsers.map(function(m) {
-      return m.metadata.id;
-    });
-    neo4j.query(updateTemplate(), { nodes: nodeIDs }, function(err, results) {
-      if (!_.isEmpty(err)){
-        logger.error("neo4j find error %j",err);
-        reject();
-      }
-      logger.info("neo4j found %j", results.map(function(m) {return m.screen_name; }));
-      resolve();
-    });
-  });
-}
 function queryTemplate(depth){
   return {
     "order": "breadth_first",
@@ -70,8 +48,27 @@ function queryTemplate(depth){
 }
 
 function findVIPUsers(){
+  var processed = 0;
+
+  function countRelationships(twitterUsers){
+    return new Promise(function(resolve, reject) {
+      var nodeIDs = twitterUsers.map(function(m) {
+        return m.metadata.id;
+      });
+      neo4j.query(updateTemplate(), { nodes: nodeIDs }, function(err, results) {
+        if (!_.isEmpty(err)){
+          logger.error("neo4j find error %j",err);
+          reject();
+        }
+        processed += nodeIDs.length;
+        logger.info("processed %d nodes", processed);
+        resolve();
+      });
+    });
+  }
+
   logger.info("run");
-  var operation = neo4j.operation('node/7307455/paged/traverse/node?pageSize=5&leaseTime=600', 'POST', queryTemplate(4) );
+  var operation = neo4j.operation('node/7307455/paged/traverse/node?pageSize=1000&leaseTime=600', 'POST', queryTemplate(4) );
   runNextPage(operation, countRelationships);
 }
 
@@ -88,7 +85,7 @@ function runNextPage(operation, cb){
         var next_page = response.replace(/.*\/db\/data\//, "");
         operation = neo4j.operation(next_page);
       }
-      logger.info("found %d nodes", results.length);
+      logger.trace("found %d nodes", results.length);
       cb(results).then(function() {
         process.nextTick(runNextPage, operation, cb);
       });
