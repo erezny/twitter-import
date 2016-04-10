@@ -58,8 +58,8 @@ function queryUser(id_str_list) {
   });
 }
 
-const user_cypher = "match (y:twitterUser { id_str: {user}.id_str }) " +
-            "set y.analytics_updated = 0 " +
+const user_cypher = "match (y:twitterUser) where y.id_str= {user}.id_str " +
+            "set y.analytics_updated = 0, " +
             " y.screen_name = {user}.screen_name, " +
             " y.name = {user}.name, " +
             " y.followers_count = {user}.followers_count, " +
