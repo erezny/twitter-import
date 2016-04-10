@@ -68,6 +68,7 @@ const user_cypher = "match (y:twitterUser { id_str: {user}.id_str }) " +
             " y.description = {user}.description, " +
             " y.location = {user}.location, " +
             " y.statuses_count = {user}.statuses_count, " +
+            " y.listed_count = {user}.listed_count, " +
             " y.protected = {user}.protected " ;
 
 function saveUsers(result) {
