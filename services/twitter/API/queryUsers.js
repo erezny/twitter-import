@@ -27,6 +27,20 @@ var redis = require("redis").createClient({
   port: parseInt(process.env.REDIS_PORT),
 });
 
+const metricRelSaved = metrics.counter("rel_saved");
+const metricRelError = metrics.counter("rel_error");
+const metricStart = metrics.counter("start");
+const metricFreshQuery = metrics.counter("freshQuery");
+const metricContinuedQuery = metrics.counter("continuedQuery");
+const metricFinish = metrics.counter("finish");
+const metricQueryError = metrics.counter("queryError");
+const metricRepeatQuery = metrics.counter("repeatQuery");
+const metricUpdatedTimestamp = metrics.counter("updatedTimestamp");
+const metricApiError = metrics.counter("apiError");
+const metricApiFinished = metrics.counter("apiFinished");
+const metricTxnFinished = metrics.counter("txnFinished");
+const metricTxnError = metrics.counter("txnError");
+
 function queryUser(id_str_list) {
   return new Promise(function(resolve, reject) {
     limiter.removeTokens(1, function(err, remainingRequests) {
