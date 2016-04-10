@@ -106,7 +106,7 @@ function queryTemplate(depth){
   return {
     "order": "breadth_first",
     "return_filter": {
-      "body": "! position.endNode().hasProperty('user_imported') || position.endNode().getProperty('user_imported') < timestamp() - (60 * 60 * 24 * 1000) ",
+      "body": "! position.endNode().hasProperty('user_imported') || position.endNode().getProperty('user_imported') < 1460328669293",
       "language": "builtin"
     },
     "prune_evaluator": {
