@@ -1,33 +1,28 @@
 
 var util = require('util');
+var assert = require('assert');
 var _ = require('../../../lib/util.js');
-var assert = require('assert');const metrics = require('../../../lib/crow.js').init("importer", {
-  api: "twitter",
-  module: "relationships",
-  mvc: "model",
-  function: "count",
-});
 var RSVP = require('rsvp');
 var logger = require('tracer').colorConsole( {
   level: 'info'
 } );
+
 var neo4j = require('../../../lib/neo4j.js');
+var state = 0;
+const s_reset = 0;
+const s_findVips = 1;
+const s_traverseDepth = 2;
+const s_continueNextDepth = 3;
 
 setInterval(findVIPUsers, 24 * 60 * 60 * 1000 );
 findVIPUsers();
 
-function updateTemplate(params){
+function updateTemplate(params) {
   return "match (n:twitterUser) where id(n) in {nodes} " +
-"  optional match followerships=(n)<-[:follows]-(m:twitterUser)  " +
-"    where not m.screen_name is null " +
-"    with n, size(collect( followerships)) as followers " +
-"  optional match friendships=(n)-[:follows]->(l:twitterUser)  " +
-"    where not l.screen_name is null " +
-"  with n, followers, size(collect (friendships)) as friends " +
-"set     n.followers_imported_count = followers, " +
-"        n.friends_imported_count = friends, " +
-"  	 	  n.analytics_updated = 10 " +
-"with n return n" ;
+"match n-[r]->m " +
+"with n,m,type(r) as t, tail(collect(r)) as coll " +
+"foreach(x in coll | delete x)";
+
 }
 
 var friends_imported_count = 0,
@@ -76,7 +71,7 @@ function queryTemplate(depth){
 
 function findVIPUsers(){
   logger.info("run");
-  var operation = neo4j.operation('node/7307455/paged/traverse/node?pageSize=5&leaseTime=6000', 'POST', queryTemplate(4) );
+  var operation = neo4j.operation('node/7307455/paged/traverse/node?pageSize=5&leaseTime=600', 'POST', queryTemplate(4) );
   runNextPage(operation, countRelationships);
 }
 
