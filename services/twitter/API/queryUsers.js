@@ -22,10 +22,6 @@ var logger = require('tracer').colorConsole( {
   level: 'info'
 } );
 var neo4j = require('../../../lib/neo4j.js');
-var redis = require("redis").createClient({
-  host: process.env.REDIS_HOST,
-  port: parseInt(process.env.REDIS_PORT),
-});
 
 const metricRelSaved = metrics.counter("rel_saved");
 const metricRelError = metrics.counter("rel_error");
@@ -110,8 +106,8 @@ function queryTemplate(depth){
   return {
     "order": "breadth_first",
     "return_filter": {
-      "name": "! position.endNode().hasProperty('user_imported') || position.endNode().getProperty('user_imported') < parseInt((+new Date) - (60 * 60 * 24 * 1000) )  ",
-      "language": "javascript"
+      "body": "! position.endNode().hasProperty('user_imported') || position.endNode().getProperty('user_imported') < parseInt((+new Date) ) - (60 * 60 * 24 * 1000) ",
+      "language": "builtin"
     },
     "prune_evaluator": {
       "name": "none",
