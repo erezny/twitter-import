@@ -122,7 +122,7 @@ function findVIPUsers(){
     });
     processed += id_str_list.length;
     logger.info("api queried %d", processed);
-    return queryUser(id_str_list);
+    return queryUser(id_str_list).then(saveUsers);
   }
   var operation = neo4j.operation('node/7307455/paged/traverse/node?pageSize=100&leaseTime=600', 'POST', queryTemplate(4) );
   runNextPage(operation, updateNodes);
