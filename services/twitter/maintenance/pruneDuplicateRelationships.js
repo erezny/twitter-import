@@ -85,7 +85,7 @@ function runNextPage(operation, cb){
       }
     } else {
       if (response) {
-        var next_page = response.replace("http://192.168.1.100:25066/db/data/", "");
+        var next_page = response.replace(/.*\/db\/data\//, "");
         operation = neo4j.operation(next_page);
       }
       logger.info("found %d nodes", results.length);
