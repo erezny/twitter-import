@@ -78,7 +78,7 @@ function findVIPUsers(){
 function runNextPage(operation, cb){
   neo4j.call(operation, function(err, results, response) {
     if (!_.isEmpty(err)){
-      if (err.neo4jError.fullname == 'org.neo4j.graphdb.NotFoundException') {
+      if (err.neo4jError && err.neo4jError.fullname == 'org.neo4j.graphdb.NotFoundException') {
         logger.info("paging finished");
       } else {
         logger.error(err);
