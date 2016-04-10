@@ -12,7 +12,6 @@ const metrics = require('../../../lib/crow.js').init("importer", {
   function: "query",
   kue: "queryUser",
 });
-var queue = require('../../../lib/kue.js');
 
 var RateLimiter = require('limiter').RateLimiter;
 //set rate limiter slightly lower than twitter api limit
@@ -23,7 +22,6 @@ var logger = require('tracer').colorConsole( {
   level: 'info'
 } );
 var neo4j = require('../../../lib/neo4j.js');
-
 var redis = require("redis").createClient({
   host: process.env.REDIS_HOST,
   port: parseInt(process.env.REDIS_PORT),
@@ -46,23 +44,17 @@ function queryUser(id_str_list) {
   });
 }
 
-  setInterval( function() {
-    queue.inactiveCount( 'queryUser', function( err, total ) { // others are activeCount, completeCount, failedCount, delayedCount
-      metrics.setGauge("queue.inactive", total);
-    });
-  }, 15 * 1000 );
-
-  const user_cypher = "match (y:twitterUser { id_str: {user}.id_str }) " +
-              "set y.analytics_updated = 0 " +
-              " y.screen_name = {user}.screen_name, " +
-              " y.name = {user}.name, " +
-              " y.followers_count = {user}.followers_count, " +
-              " y.friends_count = {user}.friends_count, " +
-              " y.favourites_count = {user}.favourites_count, " +
-              " y.description = {user}.description, " +
-              " y.location = {user}.location, " +
-              " y.statuses_count = {user}.statuses_count, " +
-              " y.protected = {user}.protected " ;
+const user_cypher = "match (y:twitterUser { id_str: {user}.id_str }) " +
+            "set y.analytics_updated = 0 " +
+            " y.screen_name = {user}.screen_name, " +
+            " y.name = {user}.name, " +
+            " y.followers_count = {user}.followers_count, " +
+            " y.friends_count = {user}.friends_count, " +
+            " y.favourites_count = {user}.favourites_count, " +
+            " y.description = {user}.description, " +
+            " y.location = {user}.location, " +
+            " y.statuses_count = {user}.statuses_count, " +
+            " y.protected = {user}.protected " ;
 
 function saveUsers(result) {
   return new Promise(function(resolve, reject) {
@@ -97,17 +89,6 @@ function saveUsers(result) {
 
 setInterval(findVIPUsers, 24 * 60 * 60 * 1000 );
 findVIPUsers();
-
-function updateTemplate(params){
-  return "match (n:twitterUser) where id(n) in {nodes} " +
-"  optional match followerships=(n)<-[:follows]-(m:twitterUser)  " +
-"    where not m.screen_name is null " +
-"    with n, size(collect( followerships)) as followers_imported_count " +
-"  optional match friendships=(n)-[:follows]->(l:twitterUser)  " +
-"    where not l.screen_name is null " +
-"  with n, followers_imported_count, size(collect (friendships)) as friends_imported_count " +
-"return n, followers_imported_count , friends_imported_count " ;
-}
 
 function queryTemplate(depth){
   return {
