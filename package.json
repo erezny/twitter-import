@@ -27,6 +27,7 @@
     "rsvp": "^3.0.17",
     "semaphore": "^1.0.1",
     "seraph": "^0.14.1",
+    "socks-proxy-agent": "^2.0.0",
     "tracer": "^0.7.3",
     "twit": "^2.1.1"
   },
