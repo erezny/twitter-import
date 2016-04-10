@@ -69,7 +69,8 @@ const user_cypher = "match (y:twitterUser) where y.id_str= {user}.id_str " +
             " y.location = {user}.location, " +
             " y.statuses_count = {user}.statuses_count, " +
             " y.listed_count = {user}.listed_count, " +
-            " y.protected = {user}.protected " ;
+            " y.protected = {user}.protected, " +
+            " y.user_imported = timestamp() " ;
 
 function saveUsers(result) {
   return new Promise(function(resolve, reject) {
@@ -109,8 +110,8 @@ function queryTemplate(depth){
   return {
     "order": "breadth_first",
     "return_filter": {
-      "name": "all_but_start_node",
-      "language": "builtin"
+      "name": "! position.endNode().hasProperty('user_imported') || position.endNode().getProperty('user_imported') < parseInt((+new Date) - (60 * 60 * 24 * 1000) )  ",
+      "language": "javascript"
     },
     "prune_evaluator": {
       "name": "none",
