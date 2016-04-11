@@ -33,6 +33,7 @@ const metricUpdatedTimestamp = metrics.counter("updatedTimestamp");
 const metricApiError = metrics.counter("apiError");
 const metricApiFinished = metrics.counter("apiFinished");
 const metricTxnFinished = metrics.counter("txnFinished");
+const metricTxnError = metrics.counter("txnError");
 //
 // queue.process('queryFriendsIDs', function(job, done) {
 //   //  logger.info("received job");
