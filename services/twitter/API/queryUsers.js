@@ -43,10 +43,15 @@ function queryUser(id_str_list) {
       T.post('users/lookup', { user_id: id_str_list }, function(err, data)
       {
         if (!_.isEmpty(err)){
+          if (err.twitterReply.statusCode == 500) {
+            //not a priority, just continue
+            resolve(data);
+          } else {
             logger.error("twitter api error %j %j", id_str_list, err);
             metrics.counter("apiError").increment(count = 1, tags = { apiError: err.code, apiMessage: err.message });
             reject({ err: err, message: "twitter api error" });
             return;
+          }
         }
         resolve(data);
       });
