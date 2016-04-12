@@ -69,7 +69,7 @@ const metricTxnError = metrics.counter("txnError");
 // });
 
 function saveFriends(user, friendsIDs, resolve, reject) {
-    logger.info("save");
+    logger.debug("save");
 
     var query = {
       statements: [
@@ -163,7 +163,8 @@ function queryTemplate(depth){
     "return_filter": {
       "body":
       " ( (! position.endNode().hasProperty('friends_imported')) || (position.endNode().getProperty('friends_imported') < 1460328669293) ) && " +
-              "position.endNode().hasProperty('friends_count')  && position.endNode().getProperty('friends_count') <= 5000",
+              "position.endNode().hasProperty('friends_count')  && position.endNode().getProperty('friends_count') <= 5000 && " +
+              "! position.endNode().getProperty('protected') ",
       "language": "javascript"
     },
     "prune_evaluator": {
@@ -216,7 +217,7 @@ function findVIPUsers(){
 }
 
 function runNextPage(operation, cb){
-  logger.info("run");
+  logger.trace("run");
   neo4j.call(operation, function(err, results, response) {
     if (!_.isEmpty(err)){
       if (err.neo4jError && err.neo4jError.fullname == 'org.neo4j.graphdb.NotFoundException') {
@@ -229,7 +230,7 @@ function runNextPage(operation, cb){
         var next_page = response.replace(/.*\/db\/data\//, "");
         operation = neo4j.operation(next_page);
       }
-      logger.info("found %d nodes", results.length);
+      logger.debug("found %d nodes", results.length);
       cb(results).then(function() {
         process.nextTick(runNextPage, operation, cb);
       });
