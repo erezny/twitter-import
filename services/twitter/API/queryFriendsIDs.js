@@ -201,13 +201,15 @@ function findVIPUsers(){
           logger.error("neo4j find error %j",err);
           reject();
         }
-        logger.info(results);
+        logger.trace(results);
         var jobs = [];
         for (var n of results) {
           jobs.push( queryFriendsIDs(n.n, "-1"));
         }
-        processed += nodeIDs.length;
-        logger.info("processed %d nodes", processed);
+        processed += results.length;
+        if (results.length > 0){
+          logger.info("processed %d nodes", processed);
+        }
         RSVP.allSettled(jobs).then(resolve);
       });
     });
