@@ -159,7 +159,7 @@ function runNextPage(operation, cb){
         operation = neo4j.operation(next_page);
       }
       logger.trace("found %d nodes", results.length);
-      cb(results).then(function() {
+      cb(results).finally(function() {
         process.nextTick(runNextPage, operation, cb);
       });
     }
