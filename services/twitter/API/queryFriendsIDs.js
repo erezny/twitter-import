@@ -164,7 +164,7 @@ function queryTemplate(depth){
       "body":
       " ( (! position.endNode().hasProperty('friends_imported')) || (position.endNode().getProperty('friends_imported') < 1460328669293) ) && " +
               "position.endNode().hasProperty('friends_count')  && position.endNode().getProperty('friends_count') <= 5000 && " +
-              "((! position.endNode().hasProperty('protected')) || position.endNode().getProperty('protected')) ",
+              "((! position.endNode().hasProperty('protected')) || position.endNode().getProperty('protected') == false) ",
       "language": "javascript"
     },
     "prune_evaluator": {
