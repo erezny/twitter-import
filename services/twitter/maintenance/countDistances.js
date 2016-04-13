@@ -100,7 +100,7 @@ function runGraphTraversal(startNode, pageSize, traversal, node_callback){
     var url = util.format('node/%s/paged/traverse/node?pageSize=%d&leaseTime=3600', startNode, pageSize);
     logger.info('url: %s', url);
     var operation = neo4j.operation(url, 'POST', traversal );
-    runNextPage(operation, node_callback).then(resolve,reject);
+    runNextPage(operation, node_callback, resolve,reject);
   });
 }
 
@@ -117,14 +117,13 @@ function runQuery(data, query){
   });
 }
 
-function runNextPage(operation, cb){
-  return new Promise(function(resolve, reject) {
+function runNextPage(operation, cb, resolve, reject){
     neo4j.call(operation, function(err, results, response) {
       if (!_.isEmpty(err)){
         if (err.neo4jError && err.neo4jError.fullname == 'org.neo4j.graphdb.NotFoundException') {
           resolve();
         } else {
-          logger.error();
+          logger.error(error);
           reject(err);
         }
       } else {
@@ -133,9 +132,8 @@ function runNextPage(operation, cb){
           operation = neo4j.operation(next_page);
         }
         cb(results).finally(function() {
-          process.nextTick(runNextPage, operation, cb);
+          process.nextTick(runNextPage, operation, cb, resolve, reject);
         });
       }
     });
-  });
 }
