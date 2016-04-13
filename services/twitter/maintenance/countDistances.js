@@ -58,7 +58,7 @@ function findVIPUsers(){
       logger.info('traversing %d friends of VIP: %s', vip.data.friends_count, vip.data.screen_name);
       var nodeStr = util.format('%d', vip.metadata.id);
       function traverse(distance) {
-        return runGraphTraversal(nodeStr, 100000, queryFriends(distance), mergeDistancesTemplate(vip, distance));
+        return runGraphTraversal(nodeStr, 10000, queryFriends(distance), mergeDistancesTemplate(vip, distance));
       }
       traverse(1).then(function() {
         return traverse(2);
