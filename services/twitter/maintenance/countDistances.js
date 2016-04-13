@@ -58,7 +58,7 @@ function findVIPUsers(){
       logger.info('traversing %d friends of VIP: %s', vip.data.friends_count, vip.data.screen_name);
       var nodeStr = util.format('%d', vip.metadata.id);
       function traverse(distance) {
-        return runGraphTraversal(nodeStr, 1000, queryFriends(distance), mergeDistancesTemplate(vip, distance));
+        return runGraphTraversal(nodeStr, 5000, queryFriends(distance), mergeDistancesTemplate(vip, distance));
       }
       traverse(1).then(function() {
         return traverse(2);
@@ -94,7 +94,6 @@ function mergeDistancesTemplate(vip, distance){
       var nodeIDs = twitterUsers.map(function(m) {
         return m.metadata.id;
       });
-      logger.info('%j', nodeIDs);
       return runQuery( { vip: vip.metadata, users: nodeIDs, distance: distance }, updateTemplate());
   }
   return mergeDistances;
