@@ -77,7 +77,7 @@ function saveFriends(user, friendsIDs, resolve, reject) {
 function queryFriendsIDs(user, cursor) {
 
   var cursor = cursor || "-1";
-  return new Promise(function(resolve, reject) {
+  return new RSVP.Promise(function(resolve, reject) {
     //T.setAuth(tokens)
     logger.debug("queryFriendsIDs");
     limiter.removeTokens(1, function(err, remainingRequests) {
@@ -154,7 +154,7 @@ function findVIPUsers(){
   var processed = 0;
 
   function updateNodes(nodes){
-    return new Promise(function(resolve, reject) {
+    return new RSVP.Promise(function(resolve, reject) {
       var nodeIDs = nodes.map(function(m) {
         return m.metadata.id;
       });
