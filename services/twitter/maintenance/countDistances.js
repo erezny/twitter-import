@@ -58,7 +58,7 @@ function findVIPUsers(){
       logger.info('traversing %d friends of VIP: %s', vip.data.friends_count, vip.data.screen_name);
       var nodeStr = util.format('%d', vip.metadata.id);
       function traverse(distance) {
-        return runGraphTraversal(nodeStr, 5000, queryFriends(distance), mergeDistancesTemplate(vip, distance));
+        return runGraphTraversal(nodeStr, 100000, queryFriends(distance), mergeDistancesTemplate(vip, distance));
       }
       traverse(1).then(function() {
         return traverse(2);
@@ -103,7 +103,7 @@ function mergeDistancesTemplate(vip, distance){
 function runGraphTraversal(startNode, pageSize, traversal, node_callback){
   return new RSVP.Promise(function(resolve, reject) {
     var processed = 0;
-    var url = util.format('node/%s/paged/traverse/node?pageSize=%d&leaseTime=3600', startNode, pageSize);
+    var url = util.format('node/%s/paged/traverse/node?pageSize=%d&leaseTime=36000', startNode, pageSize);
     logger.info('url: %s', url);
     var operation = neo4j.operation(url, 'POST', traversal );
     runNextPage(operation, node_callback, resolve,reject);
