@@ -34,39 +34,6 @@ const metricApiError = metrics.counter("apiError");
 const metricApiFinished = metrics.counter("apiFinished");
 const metricTxnFinished = metrics.counter("txnFinished");
 const metricTxnError = metrics.counter("txnError");
-//
-// queue.process('queryFriendsIDs', function(job, done) {
-//   //  logger.info("received job");
-//   logger.trace("queryFriendsIDs received job %j", job);
-//   metricStart.increment();
-//   var user = job.data.user;
-//   var cursor = job.data.cursor || "-1";
-//   var promise = null;
-//   job.data.numReceived = job.data.numReceived || 0;
-//   if (cursor == "-1"){
-//     metricFreshQuery.increment();
-//     promise = checkFriendsIDsQueryTime(job.data.user)
-//   } else {
-//     metricContinuedQuery.increment();
-//     promise = new Promise(function(resolve) { resolve(); });
-//   }
-//   promise.then(function() {
-//     return queryFriendsIDs(user, cursor, job)
-//   }, function(err) {
-//     done();
-//   })
-//   .then(saveFriends)
-//   .then(updateFriendsIDsQueryTime)
-//   .then(function(result) {
-//     metricFinish.increment();
-//     done();
-//   }, function(err) {
-//     logger.error("queryFriendsIDs error: %j %j", job, err);
-//     metricQueryError.increment();
-//     done(err);
-//   });
-//
-// });
 
 function saveFriends(user, friendsIDs, resolve, reject) {
     logger.debug("save");
@@ -99,7 +66,7 @@ function saveFriends(user, friendsIDs, resolve, reject) {
         metricTxnError.increment();
         reject(err);
       } else {
-        logger.info("committed");
+        logger.debug("committed");
         metricTxnFinished.increment();
         resolve();
       }
@@ -233,7 +200,7 @@ function runNextPage(operation, cb){
         operation = neo4j.operation(next_page);
       }
       logger.debug("found %d nodes", results.length);
-      cb(results).then(function() {
+      cb(results).finally(function() {
         process.nextTick(runNextPage, operation, cb);
       });
     }
