@@ -83,6 +83,7 @@ function queryFriendsIDs(user, cursor) {
     limiter.removeTokens(1, function(err, remainingRequests) {
       T.get('friends/ids', { user_id: user.id_str, cursor: cursor, count: 5000, stringify_ids: true }, function (err, data)
       {
+        logger.debug("queryFriendsIDs twitter api callback");
         if (!_.isEmpty(err)){
           if (err.message == "Not authorized."){
             //queue.create('markUserPrivate', { user: user } ).removeOnComplete(true).save();
@@ -99,16 +100,14 @@ function queryFriendsIDs(user, cursor) {
             return;
           }
         }
-        logger.trace("Data %j", data);
-        logger.debug("queryFriendsIDs twitter api callback");
-        logger.info("queryFriendsIDs %s found %d friends", user.screen_name, data.ids.length);
-
-        // if (data.next_cursor_str !== '0'){
-        //   //var numReceived = job.data.numReceived + data.ids.length;
-        //   //queue.create('queryFriendsIDs', { user: user, cursor: data.next_cursor_str, numReceived: numReceived }).attempts(5).removeOnComplete( true ).save();
-        // }
-        metricApiFinished.increment();
-        saveFriends( user, data.ids, resolve, reject);
+        if (data){
+          logger.trace("Data %j", data);
+          if (data.ids){
+          logger.info("queryFriendsIDs %s found %d friends", user.screen_name, data.ids.length);
+          metricApiFinished.increment();
+          saveFriends( user, data.ids, resolve, reject);
+          }
+        }
       });
     });
   });
