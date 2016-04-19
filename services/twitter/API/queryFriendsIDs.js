@@ -59,7 +59,7 @@ function saveFriends(user, friendsIDs, resolve, reject) {
 }
 
 function repeatQuery(user, query) {
-    logger.info("repeatQuery %s", user.screen_name);
+    logger.debug("start %s", user.screen_name);
     return new RSVP.Promise(function(resolve, reject) {
       var cursor = cursor || "-1";
       var itemsFound = 0;
@@ -70,7 +70,7 @@ function repeatQuery(user, query) {
         logger.trace(results);
         if (queryResults.ids && queryResults.ids.length > 0){
           itemsFound += queryResults.ids.length;
-          logger.info(itemsFound);
+          logger.debug(itemsFound);
           jobs.save = saveFriends( user, queryResults.ids);
         } else {
           jobs.save = new RSVP.Promise(function(done) {done();});
@@ -197,6 +197,7 @@ logger.trace();
           logger.error("error %j", err);
         }
         var jobs = results.map(function(node) {
+          logger.debug("queryFriendsIDs %s, expecting %d", node.n.screen_name, node.n.friends_count);
           return repeatQuery( node.n , queryFriendsIDs)
           .then(success, error);
         });
