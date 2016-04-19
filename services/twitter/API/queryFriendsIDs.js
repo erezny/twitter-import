@@ -113,7 +113,6 @@ function queryFriendsIDs(user, cursor) {
   });
 }
 
-setInterval(findVIPUsers, 7 * 24 * 60 * 60 * 1000 );
 findVIPUsers();
 
 function checkNodes(params){
@@ -193,6 +192,7 @@ function runNextPage(operation, cb){
       } else {
         logger.error(err);
       }
+      setTimeout(findVIPUsers,  4 * 60 * 60 * 1000 );
     } else {
       if (response) {
         var next_page = response.replace(/.*\/db\/data\//, "");
