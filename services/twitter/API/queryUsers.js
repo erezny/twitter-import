@@ -1,10 +1,11 @@
-
-// #refactor:10 write queries
 var util = require('util');
-var T = require('../../../lib/twit.js');
-var _ = require('../../../lib/util.js');
+var RSVP = require('rsvp');
 var assert = require('assert');
-
+var Twit = require('../../../lib/twit.js');
+var _ = require('../../../lib/util.js');
+const Neo4j = require('../../../lib/neo4j.js');
+var model = require('../../../lib/twitter/models/user.js');
+var Services = require('../../../lib/models/services.js');
 const metrics = require('../../../lib/crow.js').init("importer", {
   api: "twitter",
   module: "user",
@@ -12,38 +13,12 @@ const metrics = require('../../../lib/crow.js').init("importer", {
   function: "query",
   kue: "queryUser",
 });
-
-var RateLimiter = require('limiter').RateLimiter;
-//set rate limiter slightly lower than twitter api limit
-var limiter = new RateLimiter(1, (1 / 60) * 15 * 60 * 1000);
-var model = require('../../../lib/twitter/models/user.js');
-var RSVP = require('rsvp');
 var logger = require('tracer').colorConsole( {
   level: 'info'
 } );
-var neo4j = require('../../../lib/neo4j.js');
-
-function queryUser(id_str_list) {
-  return new RSVP.Promise(function(resolve, reject) {
-    limiter.removeTokens(1, function(err, remainingRequests) {
-      T.post('users/lookup', { user_id: id_str_list }, function(err, data)
-      {
-        if (!_.isEmpty(err)){
-          if (err.twitterReply.statusCode == 500) {
-            //not a priority, just continue
-            resolve(data);
-          } else {
-            logger.error("twitter api error %j %j", id_str_list, err);
-            metrics.counter("apiError").increment(count = 1, tags = { apiError: err.code, apiMessage: err.message });
-            reject({ err: err, message: "twitter api error" });
-            return;
-          }
-        }
-        resolve(data);
-      });
-    });
-  });
-}
+var neo4j = new Neo4j(logger, metrics);
+var T = new Twit(logger, metrics);
+var serviceHandler = new Services(neo4j, T, logger, metrics);
 
 const user_cypher = "match (y:twitterUser) where y.id_str= {user}.id_str " +
             "set y.analytics_updated = 0, " +
@@ -124,7 +99,7 @@ function findVIPUsers(){
     });
     processed += id_str_list.length;
     logger.info("api queried %d", processed);
-    return queryUser(id_str_list).then(saveUsers);
+    return T.queries.user(id_str_list).then(saveUsers);
   }
   var operation = neo4j.operation('node/7307455/paged/traverse/node?pageSize=100&leaseTime=600', 'POST', queryTemplate(4) );
   runNextPage(operation, updateNodes);
