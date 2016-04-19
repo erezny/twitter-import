@@ -81,7 +81,8 @@ function repeatQuery(user, query) {
           .then(successHandler, errorHandler);
         } else {
           jobs.save.then(function() {
-            resolve(user, itemsFound);
+            logger.info("queryFriendsIDs %s found %d friends", user.screen_name, itemsFound);
+            resolve(user);
           }, reject);
         }
       }
@@ -188,9 +189,8 @@ logger.trace();
         }
         logger.trace(results);
 
-        function success(user, num_found) {
+        function success(user) {
           processed += 1;
-          logger.info("queryFriendsIDs %s found %d friends", user.screen_name, num_found);
           logger.debug("processed %d nodes", processed);
         }
         function error(err){
@@ -232,6 +232,7 @@ function runNextPage(operation, cb){
           process.nextTick(runNextPage, operation, cb);
         } else {
           logger.info("shutdown");
+          process.exit(0);
         }
       }, function(err) {
         logger.error(err);
