@@ -29,12 +29,11 @@ function addEvents(child) {
   });
 }
 process.once( 'SIGTERM', shutdown );
-
 process.once( 'SIGINT', shutdown );
 
 function shutdown(sig) {
-  for ( var name of Object.keys(childs))  {
-    childs[name].kill('sig');
+  for ( var child of childs)  {
+    child.kill(sig);
   }
   setTimeout( function() {
     process.exit( 0 );
