@@ -1,9 +1,9 @@
 
 var util = require('util');
+var assert = require('assert');
 var T = require('../../../lib/twit.js');
 var _ = require('../../../lib/util.js');
-var assert = require('assert');
-
+var neo4j = require('../../../lib/neo4j.js');
 const metrics = require('../../../lib/crow.js').init("importer", {
   api: "twitter",
   module: "friendsIDs",
@@ -11,7 +11,6 @@ const metrics = require('../../../lib/crow.js').init("importer", {
   function: "query",
   kue: "queryFriendsIDs",
 });
-var neo4j = require('../../../lib/neo4j.js');
 var RateLimiter = require('limiter').RateLimiter;
 //set rate limiter slightly lower than twitter api limit
 var limiter = new RateLimiter(1, (1 / 14) * 15 * 60 * 1000);
@@ -23,7 +22,6 @@ var logger = require('tracer').colorConsole( {
 
 function saveFriends(user, friendsIDs, resolve, reject) {
     logger.debug("save");
-
     var query = {
       statements: [
         {
@@ -33,7 +31,6 @@ function saveFriends(user, friendsIDs, resolve, reject) {
             'user': {
               id_str: user.id_str
     } } } ] };
-
     for ( var friendID of friendsIDs ) {
       query.statements.push({
         statement: "match (u:twitterUser { id_str: {user}.id_str }) " +
@@ -57,41 +54,70 @@ function saveFriends(user, friendsIDs, resolve, reject) {
         resolve();
       }
     });
+}
 
+function repeatQuery(user, query) {
+    var cursor = cursor || "-1";
+    var itemsFound = 0;
+    logger.info("repeatQuery %s", user.screen_name);
+    return new RSVP.Promise(function(resolve, reject) {
+      function successHandler(results){
+        var queryResults = results.query;
+        var jobs = {};
+        logger.trace(results);
+        if (queryResults.ids){
+          itemsFound += queryResults.ids.length;
+          jobs.save = saveFriends( user, queryResults.ids);
+        }
+        if (queryResults.next_cursor_str !== "0"){
+          jobs.query = query(user, queryResults.next_cursor_str );
+          RSVP.hash(jobs)
+          .then(successHandler, errorHandler);
+        } else {
+          logger.info();
+          jobs.save.then(function() {
+            resolve(itemsFound);
+          }, reject);
+        }
+      }
+      function errorHandler(results) {
+        logger.error("%j", results);
+        reject();
+      }
+      RSVP.hash( { query: query(user, cursor) } )
+      .then(successHandler, errorHandler);
+    });
 }
 
 function queryFriendsIDs(user, cursor) {
-
-  var cursor = cursor || "-1";
   return new RSVP.Promise(function(resolve, reject) {
     //T.setAuth(tokens)
-    logger.debug("queryFriendsIDs");
+    logger.info("queryFriendsIDs %s %s", user.screen_name, cursor);
     limiter.removeTokens(1, function(err, remainingRequests) {
       T.get('friends/ids', { user_id: user.id_str, cursor: cursor, count: 5000, stringify_ids: true }, function (err, data)
       {
         logger.debug("queryFriendsIDs twitter api callback");
-        if (!_.isEmpty(err)){
+        if ( !_.isEmpty(err)){
           if (err.message == "Not authorized."){
             //queue.create('markUserPrivate', { user: user } ).removeOnComplete(true).save();
-            resolve({ user: user, list: [] });
             return;
           } else if (err.message == "User has been suspended."){
             //queue.create('markUserSuspended', { user: user } ).removeOnComplete(true).save();
-            resolve({ user: user, list: [] });
             return;
           } else {
             logger.error("twitter api error %j %j", user, err);
             metrics.ApiError.increment();
-            reject({ message: "unknown twitter error", err: err });
             return;
           }
+          reject(err);
         }
         if (data){
           logger.trace("Data %j", data);
-          if (data.ids){
-          logger.info("queryFriendsIDs %s found %d friends", user.screen_name, data.ids.length);
-          metrics.ApiFinished.increment();
-          saveFriends( user, data.ids, resolve, reject);
+          if ( !data.ids) {
+            reject();
+          } else {
+            metrics.ApiFinished.increment();
+            resolve(data);
           }
         }
       });
@@ -136,6 +162,8 @@ function queryTemplate(depth){
 
 function findVIPUsers(){
   var processed = 0;
+  var operation = neo4j.operation('node/7307455/paged/traverse/node?pageSize=1&leaseTime=6000', 'POST', queryTemplate(3) );
+logger.trace();
 
   function updateNodes(nodes){
     return new RSVP.Promise(function(resolve, reject) {
@@ -145,26 +173,35 @@ function findVIPUsers(){
       var twitterUsers = nodes.map(function(m) {
         return m.data;
       });
-
+      logger.trace();
       neo4j.query(checkNodes(), { nodes: nodeIDs }, function(err, results) {
         if (!_.isEmpty(err)){
           logger.error("neo4j find error %j",err);
-          reject();
+          reject(err);
         }
         logger.trace(results);
-        var jobs = [];
-        for (var n of results) {
-          jobs.push( queryFriendsIDs(n.n, "-1"));
+
+        function success(num_found) {
+          processed += 1;
+          logger.info("queryFriendsIDs %s found %d friends", n.screen_name, num_found);
+          logger.debug("processed %d nodes", processed);
         }
-        processed += results.length;
-        if (results.length > 0){
-          logger.info("processed %d nodes", processed);
+        function error(err){
+          logger.error("error %j", err);
         }
-        RSVP.allSettled(jobs).then(resolve);
+        var jobs = results.map(function(node) {
+          return repeatQuery( node.n , queryFriendsIDs)
+          .then(success, error);
+        });
+        if (jobs.length === 0 ) {
+          resolve();
+        } else {
+          RSVP.all(jobs).then(resolve, reject)
+        }
       });
     });
   }
-  var operation = neo4j.operation('node/7307455/paged/traverse/node?pageSize=1&leaseTime=600', 'POST', queryTemplate(3) );
+
   runNextPage(operation, updateNodes);
 }
 
@@ -183,8 +220,7 @@ function runNextPage(operation, cb){
         var next_page = response.replace(/.*\/db\/data\//, "");
         operation = neo4j.operation(next_page);
       }
-      logger.debug("found %d nodes", results.length);
-      cb(results).finally(function() {
+      cb(results).then(function() {
         process.nextTick(runNextPage, operation, cb);
       });
     }
