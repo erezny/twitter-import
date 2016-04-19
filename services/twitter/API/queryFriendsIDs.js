@@ -21,38 +21,40 @@ var logger = require('tracer').colorConsole( {
 } );
 
 function saveFriends(user, friendsIDs, resolve, reject) {
-    logger.debug("save");
-    var query = {
-      statements: [
-        {
-          statement: "merge (u:twitterUser { id_str: {user}.id_str }) " +
-                     "set u.friends_imported = timestamp() ",
+  return new RSVP.Promise(function(resolve, reject) {
+      logger.debug("save");
+      var query = {
+        statements: [
+          {
+            statement: "merge (u:twitterUser { id_str: {user}.id_str }) " +
+                       "set u.friends_imported = timestamp() ",
+            parameters: {
+              'user': {
+                id_str: user.id_str
+      } } } ] };
+      for ( var friendID of friendsIDs ) {
+        query.statements.push({
+          statement: "match (u:twitterUser { id_str: {user}.id_str }) " +
+                     "merge (f:twitterUser { id_str: {friend}.id_str }) " +
+                     "merge (u)-[:follows]->(f) ",
           parameters: {
-            'user': {
-              id_str: user.id_str
-    } } } ] };
-    for ( var friendID of friendsIDs ) {
-      query.statements.push({
-        statement: "match (u:twitterUser { id_str: {user}.id_str }) " +
-                   "merge (f:twitterUser { id_str: {friend}.id_str }) " +
-                   "merge (u)-[:follows]->(f) ",
-        parameters: {
-          'user': { id_str: user.id_str },
-          'friend': { id_str: friendID }
+            'user': { id_str: user.id_str },
+            'friend': { id_str: friendID }
+          }
+        });
+      }
+      var operation = neo4j.operation('transaction/commit', 'POST', query);
+      neo4j.call(operation, function(err, neo4jresult, neo4jresponse) {
+        if (!_.isEmpty(err)){
+          logger.error("query error: %j", err);
+          metrics.TxnError.increment();
+          reject(err);
+        } else {
+          logger.debug("committed");
+          metrics.TxnFinished.increment();
+          resolve();
         }
       });
-    }
-    var operation = neo4j.operation('transaction/commit', 'POST', query);
-    neo4j.call(operation, function(err, neo4jresult, neo4jresponse) {
-      if (!_.isEmpty(err)){
-        logger.error("query error: %j", err);
-        metrics.TxnError.increment();
-        reject(err);
-      } else {
-        logger.debug("committed");
-        metrics.TxnFinished.increment();
-        resolve();
-      }
     });
 }
 
