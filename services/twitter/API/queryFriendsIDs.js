@@ -22,7 +22,7 @@ var logger = require('tracer').colorConsole( {
 
 function saveFriends(user, friendsIDs, resolve, reject) {
   return new RSVP.Promise(function(resolve, reject) {
-      logger.info("save");
+      logger.debug("save");
       var query = {
         statements: [
           {
@@ -50,7 +50,7 @@ function saveFriends(user, friendsIDs, resolve, reject) {
           metrics.TxnError.increment();
           reject(err);
         } else {
-          logger.info("committed");
+          logger.debug("committed");
           metrics.TxnFinished.increment();
           resolve();
         }
@@ -201,7 +201,7 @@ logger.trace();
         if (jobs.length === 0 ) {
           resolve();
         } else {
-          RSVP.all(jobs).then(resolve, reject)
+          RSVP.all(jobs).then(resolve, reject);
         }
       });
     });
@@ -227,6 +227,8 @@ function runNextPage(operation, cb){
       }
       cb(results).then(function() {
         process.nextTick(runNextPage, operation, cb);
+      }, function(err) {
+        logger.error(err);
       });
     }
   });
