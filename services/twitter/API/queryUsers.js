@@ -38,7 +38,7 @@ const metricTxnFinished = metrics.counter("txnFinished");
 const metricTxnError = metrics.counter("txnError");
 
 function queryUser(id_str_list) {
-  return new Promise(function(resolve, reject) {
+  return new RSVP.Promise(function(resolve, reject) {
     limiter.removeTokens(1, function(err, remainingRequests) {
       T.post('users/lookup', { user_id: id_str_list }, function(err, data)
       {
@@ -74,7 +74,7 @@ const user_cypher = "match (y:twitterUser) where y.id_str= {user}.id_str " +
             " y.user_imported = timestamp() " ;
 
 function saveUsers(result) {
-  return new Promise(function(resolve, reject) {
+  return new RSVP.Promise(function(resolve, reject) {
     var users = result;
     logger.info("save");
 
@@ -104,7 +104,6 @@ function saveUsers(result) {
   });
 }
 
-setInterval(findVIPUsers, 24 * 60 * 60 * 1000 );
 findVIPUsers();
 
 function queryTemplate(depth){
@@ -153,6 +152,8 @@ function runNextPage(operation, cb){
       } else {
         logger.error(err);
       }
+      //reset
+      setTimeout(findVIPUsers, 4 * 60 * 60 * 1000 );
     } else {
       if (response) {
         var next_page = response.replace(/.*\/db\/data\//, "");
