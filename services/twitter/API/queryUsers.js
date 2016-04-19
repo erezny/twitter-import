@@ -23,20 +23,6 @@ var logger = require('tracer').colorConsole( {
 } );
 var neo4j = require('../../../lib/neo4j.js');
 
-const metricRelSaved = metrics.counter("rel_saved");
-const metricRelError = metrics.counter("rel_error");
-const metricStart = metrics.counter("start");
-const metricFreshQuery = metrics.counter("freshQuery");
-const metricContinuedQuery = metrics.counter("continuedQuery");
-const metricFinish = metrics.counter("finish");
-const metricQueryError = metrics.counter("queryError");
-const metricRepeatQuery = metrics.counter("repeatQuery");
-const metricUpdatedTimestamp = metrics.counter("updatedTimestamp");
-const metricApiError = metrics.counter("apiError");
-const metricApiFinished = metrics.counter("apiFinished");
-const metricTxnFinished = metrics.counter("txnFinished");
-const metricTxnError = metrics.counter("txnError");
-
 function queryUser(id_str_list) {
   return new RSVP.Promise(function(resolve, reject) {
     limiter.removeTokens(1, function(err, remainingRequests) {
@@ -93,11 +79,11 @@ function saveUsers(result) {
     neo4j.call(operation, function(err, neo4jresult, neo4jresponse) {
       if (!_.isEmpty(err)){
         logger.error("query error: %j", err);
-        metricTxnError.increment();
+        metrics.TxnError.increment();
         reject(err);
       } else {
         logger.info("committed");
-        metricTxnFinished.increment();
+        metrics.TxnFinished.increment();
         resolve(result);
       }
     });

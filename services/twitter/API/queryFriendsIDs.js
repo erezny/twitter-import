@@ -21,20 +21,6 @@ var logger = require('tracer').colorConsole( {
   level: 'info'
 } );
 
-const metricRelSaved = metrics.counter("rel_saved");
-const metricRelError = metrics.counter("rel_error");
-const metricStart = metrics.counter("start");
-const metricFreshQuery = metrics.counter("freshQuery");
-const metricContinuedQuery = metrics.counter("continuedQuery");
-const metricFinish = metrics.counter("finish");
-const metricQueryError = metrics.counter("queryError");
-const metricRepeatQuery = metrics.counter("repeatQuery");
-const metricUpdatedTimestamp = metrics.counter("updatedTimestamp");
-const metricApiError = metrics.counter("apiError");
-const metricApiFinished = metrics.counter("apiFinished");
-const metricTxnFinished = metrics.counter("txnFinished");
-const metricTxnError = metrics.counter("txnError");
-
 function saveFriends(user, friendsIDs, resolve, reject) {
     logger.debug("save");
 
@@ -63,11 +49,11 @@ function saveFriends(user, friendsIDs, resolve, reject) {
     neo4j.call(operation, function(err, neo4jresult, neo4jresponse) {
       if (!_.isEmpty(err)){
         logger.error("query error: %j", err);
-        metricTxnError.increment();
+        metrics.TxnError.increment();
         reject(err);
       } else {
         logger.debug("committed");
-        metricTxnFinished.increment();
+        metrics.TxnFinished.increment();
         resolve();
       }
     });
@@ -95,7 +81,7 @@ function queryFriendsIDs(user, cursor) {
             return;
           } else {
             logger.error("twitter api error %j %j", user, err);
-            metricApiError.increment();
+            metrics.ApiError.increment();
             reject({ message: "unknown twitter error", err: err });
             return;
           }
@@ -104,7 +90,7 @@ function queryFriendsIDs(user, cursor) {
           logger.trace("Data %j", data);
           if (data.ids){
           logger.info("queryFriendsIDs %s found %d friends", user.screen_name, data.ids.length);
-          metricApiFinished.increment();
+          metrics.ApiFinished.increment();
           saveFriends( user, data.ids, resolve, reject);
           }
         }
@@ -128,7 +114,7 @@ function queryTemplate(depth){
     "return_filter": {
       "body":
       " ( (! position.endNode().hasProperty('friends_imported')) || (position.endNode().getProperty('friends_imported') < 1460328669293) ) && " +
-              "position.endNode().hasProperty('friends_count')  && position.endNode().getProperty('friends_count') <= 5000 && " +
+              "position.endNode().hasProperty('friends_count')  && position.endNode().getProperty('friends_count') <= 50000 && " +
               "((! position.endNode().hasProperty('protected')) || position.endNode().getProperty('protected') == false) ",
       "language": "javascript"
     },
@@ -159,7 +145,6 @@ function findVIPUsers(){
       var twitterUsers = nodes.map(function(m) {
         return m.data;
       });
-      //logger.info(twitterUsers);
 
       neo4j.query(checkNodes(), { nodes: nodeIDs }, function(err, results) {
         if (!_.isEmpty(err)){
