@@ -70,6 +70,7 @@ function repeatQuery(user, query) {
         logger.trace(results);
         if (queryResults.ids && queryResults.ids.length > 0){
           itemsFound += queryResults.ids.length;
+          logger.info(itemsFound);
           jobs.save = saveFriends( user, queryResults.ids);
         } else {
           jobs.save = new RSVP.Promise(function(done) {done();});
@@ -164,6 +165,8 @@ function queryTemplate(depth){
   };
 }
 
+var keep_running = 1;
+
 function findVIPUsers(){
   var processed = 0;
   var operation = neo4j.operation('node/7307455/paged/traverse/node?pageSize=1&leaseTime=6000', 'POST', queryTemplate(3) );
@@ -225,10 +228,22 @@ function runNextPage(operation, cb){
         operation = neo4j.operation(next_page);
       }
       cb(results).then(function() {
-        process.nextTick(runNextPage, operation, cb);
+        if (keep_running){
+          process.nextTick(runNextPage, operation, cb);
+        } else {
+          logger.info("shutdown");
+        }
       }, function(err) {
         logger.error(err);
       });
     }
   });
 }
+
+function interrupt_running( sig ) {
+  logger.info("prepare for shutdown");
+  keep_running = 0;
+}
+
+process.once( 'SIGTERM', interrupt_running);
+process.once( 'SIGINT', interrupt_running);
