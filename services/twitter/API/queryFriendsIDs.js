@@ -97,7 +97,7 @@ function repeatQuery(user, query) {
 function queryFriendsIDs(user, cursor) {
   return new RSVP.Promise(function(resolve, reject) {
     //T.setAuth(tokens)
-    logger.info("queryFriendsIDs %s %s", user.screen_name, cursor);
+    logger.debug("queryFriendsIDs %s %s", user.screen_name, cursor);
     limiter.removeTokens(1, function(err, remainingRequests) {
       T.get('friends/ids', { user_id: user.id_str, cursor: cursor, count: 5000, stringify_ids: true }, function (err, data)
       {
@@ -188,7 +188,7 @@ logger.trace();
 
         function success(user, num_found) {
           processed += 1;
-          logger.info("queryFriendsIDs %s found %d friends", node.screen_name, num_found);
+          logger.info("queryFriendsIDs %s found %d friends", user.screen_name, num_found);
           logger.debug("processed %d nodes", processed);
         }
         function error(err){
