@@ -59,10 +59,11 @@ function saveFriends(user, friendsIDs, resolve, reject) {
 }
 
 function repeatQuery(user, query) {
-    var cursor = cursor || "-1";
-    var itemsFound = 0;
     logger.info("repeatQuery %s", user.screen_name);
     return new RSVP.Promise(function(resolve, reject) {
+      var cursor = cursor || "-1";
+      var itemsFound = 0;
+
       function successHandler(results){
         var queryResults = results.query;
         var jobs = {};
@@ -78,9 +79,7 @@ function repeatQuery(user, query) {
           RSVP.hash(jobs)
           .then(successHandler, errorHandler);
         } else {
-          logger.info();
           jobs.save.then(function() {
-            logger.info();
             resolve(user, itemsFound);
           }, reject);
         }
