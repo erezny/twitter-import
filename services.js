@@ -12,21 +12,14 @@ var childOpts =  {
     'logFile': './log/forever.log', // Path to log output from forever process (when daemonized)
   };
 
-var childs = {
-//    queryUsers: new (forever.Monitor)('./services/twitter/API/queryUsers.js', childOpts).start(),
-//    queryListMembers: new (forever.Monitor)('./services/twitter/API/queryListMembers.js', childOpts).start(),
-//    queryListOwnership: new (forever.Monitor)('./services/twitter/API/queryListOwnership.js', childOpts).start(),
-//    queryFriendsList: new (forever.Monitor)('./services/twitter/API/queryFriendsList.js', childOpts).start(),
-    queryFriendsIDs: new (forever.Monitor)('./services/twitter/API/queryFriendsIDs.js', childOpts).start(),
-    queryFollowerIDs: new (forever.Monitor)('./services/twitter/API/queryFollowersIDs.js', childOpts).start(),
-//    queryFollowersList: new (forever.Monitor)('./services/twitter/API/queryFollowersList.js', childOpts).start(),
-// fillFriendsQueue: new (forever.Monitor)('./services/twitter/maintenance/fillFriendsIDsQueue.js', childOpts).start(),
-// fillFollowersQueue: new (forever.Monitor)('./services/twitter/maintenance/fillFollowersQueue.js', childOpts).start(),
-//    statsVIP: new (forever.Monitor)('./services/twitter/monitoring/statsVIP.js', childOpts).start(),
-//    fillUsersQueue: new (forever.Monitor)('./services/twitter/maintenance/fillUsersQueue.js', childOpts).start(),
-//    countImportedRelationships: new (forever.Monitor)('./services/twitter/maintenance/countImportedRelationships.js', childOpts).start(),
-    kueUI: new (forever.Monitor)('./services/twitter/ui/kue.js', childOpts).start()
-};
+var scripts = [
+    './services/twitter/import.js',
+    './services/twitter/ui/kue.js'
+];
+var childs = scripts.map(function (filename) {
+  return new (forever.Monitor)(filename, childOpts).start();
+});
+
 function addEvents(child) {
   child.on('exit', function () {
     console.log('%s has exited after %d restarts', child.command, child.restarts);
@@ -45,5 +38,5 @@ function shutdown(sig) {
   }
   setTimeout( function() {
     process.exit( 0 );
-  }, 70 * 1000);
+  }, 5 * 60 * 1000);
 }
