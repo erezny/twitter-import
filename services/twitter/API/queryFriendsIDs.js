@@ -81,7 +81,7 @@ function repeatQuery(user, query) {
           logger.info();
           jobs.save.then(function() {
             logger.info();
-            resolve(itemsFound);
+            resolve(user, itemsFound);
           }, reject);
         }
       }
@@ -186,9 +186,9 @@ logger.trace();
         }
         logger.trace(results);
 
-        function success(num_found) {
+        function success(user, num_found) {
           processed += 1;
-          logger.info("queryFriendsIDs %s found %d friends", n.screen_name, num_found);
+          logger.info("queryFriendsIDs %s found %d friends", node.screen_name, num_found);
           logger.debug("processed %d nodes", processed);
         }
         function error(err){
