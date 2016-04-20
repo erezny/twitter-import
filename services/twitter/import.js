@@ -1,4 +1,5 @@
 
+var RSVP = require('rsvp');
 var Twit = require('../../lib/twit.js');
 const Neo4j = require('../../lib/neo4j.js');
 var Services = require('../../lib/models/services.js');
