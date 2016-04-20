@@ -19,8 +19,9 @@ var friendsImporter = serviceHandler.importFriendsIDs();
 var usersImporter = serviceHandler.importUsers();
 var listImporter = serviceHandler.importUserListOwnership();
 var listMembersImporter = serviceHandler.importListMembers();
+var importUserListSubscriptions = serviceHandler.importUserListSubscriptions();
 
-RSVP.allSettled([ friendsImporter, usersImporter, listImporter, listMembersImporter ])
+RSVP.allSettled([ friendsImporter, usersImporter, listImporter, listMembersImporter, importUserListSubscriptions ])
 .then(function() {
   process.nextTick(process.exit, 0);
 });
