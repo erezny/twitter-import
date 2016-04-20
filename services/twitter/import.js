@@ -7,11 +7,17 @@ const metrics = require('../../lib/crow.js').init("importer", {
   function: "import",
 });
 var logger = require('tracer').colorConsole( {
-  level: 'info'
+  level: 'debug'
 } );
 var neo4j = new Neo4j(logger, metrics);
 var T = new Twit(logger, metrics);
 
 var serviceHandler = new Services(neo4j, T, logger, metrics);
 
-serviceHandler.importFriendsIDs();
+var friendsImporter = serviceHandler.importFriendsIDs();
+var usersImporter = serviceHandler.importUsers();
+
+RSVP.allSettled([ friendsImporter, usersImporter ])
+.then(function() {
+  process.nextTick(process.exit, 0);
+});
