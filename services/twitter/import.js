@@ -18,8 +18,9 @@ var serviceHandler = new Services(neo4j, T, logger, metrics);
 var friendsImporter = serviceHandler.importFriendsIDs();
 var usersImporter = serviceHandler.importUsers();
 var listImporter = serviceHandler.importUserListOwnership();
+var listMembersImporter = serviceHandler.importListMembers();
 
-RSVP.allSettled([ friendsImporter, usersImporter, listImporter ])
+RSVP.allSettled([ friendsImporter, usersImporter, listImporter, listMembersImporter ])
 .then(function() {
   process.nextTick(process.exit, 0);
 });
