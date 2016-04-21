@@ -4,7 +4,7 @@
   "description": "import your twitter info into mongo",
   "main": "app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "./node_modules/mocha/bin/mocha",
     "start": "node app.js",
     "complexity": "node scripts/jscomplexity.js"
   },
