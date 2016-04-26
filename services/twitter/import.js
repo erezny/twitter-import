@@ -13,8 +13,6 @@ var neo4j = new Neo4j(logger, metrics);
 
 var serviceHandler = new Services(neo4j, logger, metrics);
 
-var jobs = serviceHandler.runAppImports();
-
 serviceHandler.runAllUserImports().then(function(jobs) {
   for (var job of serviceHandler.runAppImports()){
     jobs.push(job);
