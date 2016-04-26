@@ -1,4 +1,4 @@
-
+'use strict';
 var RSVP = require('rsvp');
 const Neo4j = require('../../lib/neo4j.js');
 var Services = require('../../lib/models/services.js');
