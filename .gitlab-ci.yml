@@ -30,7 +30,7 @@ build-dev:
     - npm config set strict-ssl false
     - rm -rf node_modules dist tmp
     - npm install
-    - docker build -t "twitter-import:test" .
+    - docker build -t "social_graph:test" .
   except:
     - master
   tags:
@@ -39,8 +39,8 @@ build-dev:
 deploy-dev:
   stage: deploy
   script:
-    - docker tag -f "twitter-import:test" tutum.co/erezny/twitter-import:test
-    - docker push tutum.co/erezny/twitter-import:test
+    - docker tag -f "social_graph:test" erezny/social_graph:test
+    - docker push erezny/social_graph:test
   except:
     - master
   tags:
@@ -74,7 +74,7 @@ build-prod:
     - npm config set strict-ssl false
     - rm -rf node_modules dist tmp
     - npm install --production
-    - docker build -t "twitter-import:latest" .
+    - docker build -t "social_graph:latest" .
   only:
     - master
   tags:
@@ -83,8 +83,8 @@ build-prod:
 deploy-prod:
   stage: deploy
   script:
-    - docker tag -f "twitter-import:latest" tutum.co/erezny/twitter-import:latest
-    - docker push tutum.co/erezny/twitter-import:latest
+    - docker tag -f "social_graph:latest" erezny/social_graph:latest
+    - docker push erezny/social_graph:latest
   only:
     - master
   tags:
