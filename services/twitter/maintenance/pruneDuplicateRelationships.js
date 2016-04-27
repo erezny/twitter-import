@@ -6,13 +6,7 @@ var RSVP = require('rsvp');
 var logger = require('tracer').colorConsole( {
   level: 'info'
 } );
-
 var neo4j = require('../../../lib/neo4j.js');
-var state = 0;
-const s_reset = 0;
-const s_findVips = 1;
-const s_traverseDepth = 2;
-const s_continueNextDepth = 3;
 
 setInterval(findVIPUsers, 24 * 60 * 60 * 1000 );
 findVIPUsers();
@@ -50,7 +44,7 @@ function queryTemplate(depth){
 function findVIPUsers(){
   var processed = 0;
 
-  function countRelationships(twitterUsers){
+  function updateNodes(twitterUsers){
     return new Promise(function(resolve, reject) {
       var nodeIDs = twitterUsers.map(function(m) {
         return m.metadata.id;
@@ -66,10 +60,8 @@ function findVIPUsers(){
       });
     });
   }
-
-  logger.info("run");
   var operation = neo4j.operation('node/7307455/paged/traverse/node?pageSize=1000&leaseTime=600', 'POST', queryTemplate(4) );
-  runNextPage(operation, countRelationships);
+  runNextPage(operation, updateNodes);
 }
 
 function runNextPage(operation, cb){
