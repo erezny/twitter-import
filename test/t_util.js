@@ -82,16 +82,16 @@ describe('util', function() {
       done();
     });
 
-    it('should catch SIGINT (press ctrl-c) and set to false after SIGINT', function(done) {
-      var keep_running = new util.CatchSigterm();
-      this.timeout(6000);
-      console.log("Press ctrl-c");
-      setInterval(() => {
-        if ( !keep_running.get()){
-          done();
-        }
-      }, 1000);
-    });
+    // it('should catch SIGINT (press ctrl-c) and set to false after SIGINT', function(done) {
+    //   var keep_running = new util.CatchSigterm();
+    //   this.timeout(6000);
+    //   console.log("Press ctrl-c");
+    //   setInterval(() => {
+    //     if ( !keep_running.get()){
+    //       done();
+    //     }
+    //   }, 1000);
+    // });
 
   });
 
