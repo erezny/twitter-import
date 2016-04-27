@@ -11,6 +11,5 @@ EXPOSE 80
 
 # Run npm install before building docker image
 ADD ./ /data/app
-RUN NPM_CONFIG_LOGLEVEL=warn npm install -g forever
 
-ENTRYPOINT ["node", "/data/app/services.js"]
+ENTRYPOINT ["npm", "run", "start"]

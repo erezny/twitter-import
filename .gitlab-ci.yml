@@ -1,12 +1,9 @@
-
 stages:
   - test
   - build
   - deploy
 
-complexity:
-  stage: test
-  script:
+  before_script:
     - source ~/.nvm/nvm.sh || echo OK
     - export NPM_CONFIG_LOGLEVEL=error
     - npm cache clean
@@ -15,21 +12,24 @@ complexity:
     - npm config set strict-ssl false
     - rm -rf node_modules dist tmp
     - npm install -s
+
+complexity:
+  stage: test
+  script:
     - npm run complexity
+  tags:
+    - local
+
+mocha:
+  stage: test
+  script:
+    - npm run test
   tags:
     - local
 
 build-dev:
   stage: build
   script:
-    - source ~/.nvm/nvm.sh || echo OK
-    - export NPM_CONFIG_LOGLEVEL=warn
-    - npm cache clean
-    - npm config set proxy http://192.168.1.100:19465
-    - npm config set https-proxy http://192.168.1.100:19465
-    - npm config set strict-ssl false
-    - rm -rf node_modules dist tmp
-    - npm install
     - docker build -t "social_graph:test" .
   except:
     - master
@@ -46,34 +46,9 @@ deploy-dev:
   tags:
     - local
 
-test-prod:
-  stage: test
-  script:
-    - source ~/.nvm/nvm.sh || echo OK
-    - npm cache clean
-    - export NPM_CONFIG_LOGLEVEL=warn
-    - npm config set proxy http://192.168.1.100:19465
-    - npm config set https-proxy http://192.168.1.100:19465
-    - npm config set strict-ssl false
-    - rm -rf node_modules dist tmp
-    - npm install
-    - npm test || echo OK
-  only:
-    - master
-  tags:
-    - local
-
 build-prod:
   stage: build
   script:
-    - source ~/.nvm/nvm.sh || echo OK
-    - export NPM_CONFIG_LOGLEVEL=warn
-    - npm cache clean
-    - npm config set proxy http://192.168.1.100:19465
-    - npm config set https-proxy http://192.168.1.100:19465
-    - npm config set strict-ssl false
-    - rm -rf node_modules dist tmp
-    - npm install --production
     - docker build -t "social_graph:latest" .
   only:
     - master

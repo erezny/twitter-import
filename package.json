@@ -5,7 +5,7 @@
   "main": "app.js",
   "scripts": {
     "test": "./node_modules/mocha/bin/mocha",
-    "start": "node app.js",
+    "start": "node services.js",
     "complexity": "node scripts/jscomplexity.js"
   },
   "author": "Elliott Rezny",
