@@ -35,11 +35,9 @@ return n, distance order by distance asc limit 10
 with distance, count(distinct distance) as distribution
 return distance, distribution
 
-
 distance	distribution
 6	1
 0	1
-
 
 set n.vip_links_p = vip_links
 match p=(m:twitterUser)<-[:follows]-(t)
@@ -132,3 +130,20 @@ optional match p=(n)<-[r:follows]-(m:twitterUser) with n, length(p) as links, di
 set n.vip_distance 			   = distance,
     n.followers_imported_count = links,
     n.weighted_vip_distance    = sqrt( links*links / (n.vip_distance*n.vip_distance) )
+
+profile match (v:service) where v.type="VIP"
+match (v)-[*..2]-(n:twitterUser)
+    where (not exists(n.weighted_vip_distance)) and exists(n.vip_distance)
+    with v, n order by n.vip_distance asc limit 10000
+        optional match path=shortestPath((n)<-[*..20]-(v)) with n, length(path) as distance
+        optional match followerships=(n)<-[:follows]-(m:twitterUser)
+        where not m.screen_name is null
+        with n, distance, size(collect( followerships)) as followers
+        optional match friendships=(n)-[:follows]->(l:twitterUser)
+        where not l.screen_name is null
+        with n, distance, followers, size(collect (friendships)) as friends
+        set n.vip_distance = distance,
+            n.followers_imported_count = followers,
+            n.friends_imported_count = friends,
+            n.weighted_vip_distance    = sqrt( toFloat(friends*friends) / toFloat(distance*distance) )
+    with n match (n) return n order by n.weighted_vip_distance desc limit 10
