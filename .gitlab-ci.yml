@@ -16,28 +16,28 @@ build:
     - npm config set strict-ssl false
     - rm -rf node_modules dist tmp
     - npm install -s
-    - docker build -t "social_graph:test" .
+    - docker build -q -t "social_graph:test" .
   tags:
     - local
 
 complexity:
   stage: test
   script:
-    - docker run "social_graph:test" complexity
+    - docker run --rm=true "social_graph:test" complexity
   tags:
     - local
 
 mocha:
   stage: test
   script:
-    - docker run "social_graph:test" test
+    - docker run --rm=true "social_graph:test" test
   tags:
     - local
 
 jscs:
   stage: test
   script:
-    - docker run "social_graph:test" jscs
+    - docker run --rm=true "social_graph:test" jscs
   tags:
     - local
   allow_failure: true
@@ -52,19 +52,10 @@ deploy-dev:
   tags:
     - local
 
-build-prod:
-  stage: build
-  script:
-    - docker build -t "social_graph:latest" .
-  only:
-    - master
-  tags:
-    - local
-
 deploy-prod:
   stage: deploy
   script:
-    - docker tag -f "social_graph:latest" erezny/social_graph:latest
+    - docker tag -f "social_graph:test" erezny/social_graph:latest
     - docker push erezny/social_graph:latest
   only:
     - master
