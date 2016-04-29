@@ -1,5 +1,5 @@
 
-FROM node:5.2-slim
+FROM node:4.2-slim
 
 MAINTAINER Elliott Rezny <erezny@gmail.com>
 
