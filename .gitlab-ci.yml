@@ -33,7 +33,7 @@ jscs:
     - npm run jscs
   tags:
     - local
-  allow-failure: true
+  allow_failure: true
 
 build-dev:
   stage: build
