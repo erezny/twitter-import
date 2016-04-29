@@ -54,7 +54,6 @@ var table = new Table({
 RSVP.all(complexityTasks).then(function() {
   Array.prototype.push.apply(table, report.tableArray());
   console.log(table.toString());
-  consol
   // posts contains an array of results for the given promises
 }).catch( function( reason ) {
   // if any of the promises fails.

@@ -8,69 +8,86 @@ const crow = require('../../lib/crow.js');
 var assert = require('assert');
 const TwitterNeo4j = require('../../lib/twitter/controller/neo4j.js');
 
-describe('twitter.controller', function() {
+describe('twitter neo4j controller', function() {
 
-  var crowMetrics, logger, neo4j;
+    // it('should list object keys', function() {
+    //   logger.info(Object.keys(TwitterNeo4j.prototype));
+    //   assert(neo4j);
+    //
+    // });
 
-    before( function() {
-      crowMetrics = crow.init("importer", {
-        continuousIntegration: "unitTest",
-        api: "twitter",
-        function: "neo4j",
-      });
-      logger = require('tracer').colorConsole( {
-        level: 'info'
-      } );
-      neo4j = new TwitterNeo4j(logger, crowMetrics);
+    it('should expose queryRunner', function() {
+      assert(TwitterNeo4j.prototype.queryRunner);
     });
-
-    it('should construct object', function() {
-
-      assert(neo4j);
-
-    });
-
     it('should expose saveFriendsIDs', function() {
-      assert(neo4j.saveFriendsIDs);
+      assert(TwitterNeo4j.prototype.saveFriendsIDs);
     });
-    // module.exports = function(_neo4j, _logger, _metrics) {
-    //   neo4j = _neo4j;
-    //   logger = _logger;
-    //   metrics = _metrics;
-    //   return {
     it('should expose saveFriendsIDs', function() {
-      assert(neo4j.saveFriendsIDs);
+      assert(TwitterNeo4j.prototype.saveFriendsIDs);
     });
-
     it('should expose saveUsers', function() {
-      assert(neo4j.saveUsers);
+      assert(TwitterNeo4j.prototype.saveUsers);
     });
-
     it('should expose resetFriends', function() {
-      assert(neo4j.resetFriends);
+      assert(TwitterNeo4j.prototype.resetFriends);
     });
-
     it('should expose saveLists', function() {
-      assert(neo4j.saveLists);
+      assert(TwitterNeo4j.prototype.saveLists);
     });
-
     it('should expose resetListOwnerships', function() {
-      assert(neo4j.resetListOwnerships);
+      assert(TwitterNeo4j.prototype.resetListOwnerships);
     });
-
     it('should expose resetListMembers', function() {
-      assert(neo4j.resetListMembers);
+      assert(TwitterNeo4j.prototype.resetListMembers);
     });
-
     it('should expose saveListMembers', function() {
-      assert(neo4j.saveListMembers);
+      assert(TwitterNeo4j.prototype.saveListMembers);
     });
-
     it('should expose saveListSubscriptions', function() {
-      assert(neo4j.saveListSubscriptions);
+      assert(TwitterNeo4j.prototype.saveListSubscriptions);
+    });
+    it('should expose saveStatuses', function() {
+      assert(TwitterNeo4j.prototype.saveStatuses);
+    });
+    it('should expose saveStatusQuery', function() {
+      assert(TwitterNeo4j.prototype.saveStatusQuery);
+    });
+    it('should expose saveStatusUserEntityQuery', function() {
+      assert(TwitterNeo4j.prototype.saveStatusUserEntityQuery);
+    });
+    it('should expose saveStatusHashTagsQuery', function() {
+      assert(TwitterNeo4j.prototype.saveStatusHashTagsQuery);
+    });
+    it('should expose saveStatusURLSQuery', function() {
+      assert(TwitterNeo4j.prototype.saveStatusURLSQuery);
+    });
+    it('should expose saveStatusEntitiesQuery', function() {
+      assert(TwitterNeo4j.prototype.saveStatusEntitiesQuery);
+    });
+    it('shouldn\'t expose anything else', function() {
+      assert.equal(Object.keys(TwitterNeo4j.prototype).length, 16);
     });
 
-    it('should expose resetListSubscriptions', function() {
-      assert(neo4j.resetListSubscriptions);
+    describe('integration tests', function() {
+      var crowMetrics, logger, neo4j;
+
+        before( function() {
+          crowMetrics = crow.init("importer", {
+            continuousIntegration: "unitTest",
+            api: "twitter",
+            function: "neo4j",
+          });
+          logger = require('tracer').colorConsole( {
+            level: 'info'
+          } );
+          neo4j = new TwitterNeo4j(logger, crowMetrics);
+        });
+
+        it('should construct object', function() {
+
+          assert(neo4j);
+
+        });
     });
+
   });
