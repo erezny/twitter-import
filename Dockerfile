@@ -12,4 +12,5 @@ EXPOSE 80
 # Run npm install before building docker image
 ADD ./ /data/app
 
-ENTRYPOINT ["npm", "run", "start"]
+ENTRYPOINT ["npm", "run"]
+CMD "start"
