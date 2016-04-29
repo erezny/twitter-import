@@ -3,44 +3,42 @@
   "version": "1.2.1",
   "description": "import twitter info into neo4j",
   "main": "services.js",
-  "repository" :
-  { "type" : "git"
-  , "url" : "https://github.com/erezny/twitter-import.git"
-},
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/erezny/twitter-import.git"
+  },
   "scripts": {
     "test": "./node_modules/mocha/bin/mocha",
     "start": "node services.js",
     "complexity": "node scripts/jscomplexity.js",
-    "dev": "./"
+    "dev": "./node_modules/mocha/bin/mocha --watch"
   },
   "author": "Elliott Rezny",
   "license": "MIT",
-  "engines" : { "node" : "~4.2.6" },
+  "engines": {
+    "node": "~4.2.6"
+  },
   "dependencies": {
-    "bloomfilter": "0.0.14",
-    "cache-manager": "^1.4.0",
-    "co": "^4.6.0",
     "crow-metrics": "^2.3.7",
     "express": "^4.13.4",
     "forever-monitor": "^1.7.0",
-    "influx": "^4.1.0",
     "kue": "^0.10.5",
     "kue-ui": "^0.1.0",
     "limiter": "^1.0.5",
-    "mongodb": "^2.1.4",
-    "redis": "^2.4.2",
-    "request": "^2.69.0",
+    "mongodb": "^2.1.18",
+    "redis": "^2.5.3",
+    "request": "^2.72.0",
     "rsvp": "^3.0.17",
-    "semaphore": "^1.0.1",
-    "seraph": "^0.14.1",
+    "seraph": "^0.14.2",
     "socks-proxy-agent": "^2.0.0",
-    "tracer": "^0.7.3",
-    "twit": "^2.1.1"
+    "tracer": "^0.8.3",
+    "twit": "^2.2.3"
   },
   "devDependencies": {
-    "jscs": "^1.11.3",
-    "mocha": "^2.1.0",
+    "cli-table": "^0.3.1",
     "jscomplexity": "^1.1.1",
-    "cli-table": "^0.3.1"
+    "jscs": "^2.11.0",
+    "mocha": "^2.1.0",
+    "mocha-jscs": "^4.2.1"
   }
 }
