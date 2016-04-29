@@ -40,7 +40,6 @@ jscs:
     - docker run --rm=true "social_graph:test" jscs
   tags:
     - local
-  allow_failure: true
 
 deploy-dev:
   stage: deploy
