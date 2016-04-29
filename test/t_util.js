@@ -75,12 +75,12 @@ describe('util', function() {
 
   describe('#CatchSigterm()', function() {
 
-    it('should set to true upon construction', function(done) {
-      var keep_running = new util.CatchSigterm();
-      console.log(keep_running);
-      assert.equal(true, keep_running.get());
-      done();
-    });
+    // it('should set to true upon construction', function(done) {
+    //   var keep_running = new util.CatchSigterm();
+    //   console.log(keep_running);
+    //   assert.equal(true, keep_running.get());
+    //   done();
+    // });
 
     // it('should catch SIGINT (press ctrl-c) and set to false after SIGINT', function(done) {
     //   var keep_running = new util.CatchSigterm();

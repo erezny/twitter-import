@@ -1,175 +1,76 @@
 
-const TwitterNeo4j = require('./twitter/controller/neo4j.js');
+'use strict';
 
+var RSVP = require('rsvp');
+const Neo4j = require('../../lib/neo4j.js');
+var Services = require('../../lib/models/services.js');
+const crow = require('../../lib/crow.js');
 var assert = require('assert');
+const TwitterNeo4j = require('../../lib/twitter/controller/neo4j.js');
 
-describe('twitter.controller', function(){
-    before( function(){
-    });
+describe('twitter.controller', function() {
 
-    after( function(){
-      twitter_controller.db.close();
-    });
+  var crowMetrics, logger, neo4j;
 
-    it('should have queryUser', function(){
-
-      //console.log(typeof(twitter_controller.queryUser));
-      assert.equal(typeof(twitter_controller.queryUser), 'function');
-      //done();
-
-    });
-
-  it('should have updateUser', function(){
-
-    //console.log(typeof(twitter_controller.updateUser));
-    assert.equal(typeof(twitter_controller.updateUser), 'function');
-
-  });
-
-  it('should have updateTweet', function(){
-
-    //console.log(typeof(twitter_controller.saveTweet));
-    assert.equal(typeof(twitter_controller.updateTweet), 'function');
-
-  });
-
-  it('should have saveFollowers', function(){
-
-    assert.equal(typeof(twitter_controller.saveFollowers), 'function');
-
-  });
-
-  it('should have saveFollowing', function(){
-
-    assert.equal(typeof(twitter_controller.saveFollowing), 'function');
-
-  });
-
-  it('should have a database connection', function(){
-    //console.log(twitter_controller.db);
-    assert(twitter_controller.db !== null, 'collection not ready');
-
-  });
-
-  var user = {
-        "id": 16876313,
-        "id_str": "16876313",
-        "name": "Elliott Rezny",
-        "screen_name": "erezny",
-        "followers_count": 74,
-        "friends_count": 258,
-      };
-
-  var insertUser = {
-        "id": 76,
-        "id_str": "76",
-        "name": "Trombones",
-        "screen_name": "trombin",
-        "followers_count": 80000,
-        "friends_count": 76,
-      };
-
-
-  describe('#queryUser()', function(){
-
-      it('should return user from database', function(done){
-
-          twitter_controller.queryUser(user, function(err, result_){
-
-            assert(err === null, 'query returned an error');
-            result = result_;
-            //console.log(result);
-            assert(result.name == 'Elliott Rezny', 'did not return 1 object');
-
-            done();
-          });
-
+    before( function() {
+      crowMetrics = crow.init("importer", {
+        continuousIntegration: "unitTest",
+        api: "twitter",
+        function: "neo4j",
       });
+      logger = require('tracer').colorConsole( {
+        level: 'info'
+      } );
+      neo4j = new TwitterNeo4j(logger, crowMetrics);
+    });
 
+    it('should construct object', function() {
+
+      assert(neo4j);
 
     });
 
-  describe('#updateUser()', function(){
-
-
-    it('should add user not already in database', function(done){
-
-      twitter_controller.updateUser(insertUser, function(err, result_){
-
-        assert(err === null, 'query returned an error');
-        //console.log(result);
-        done();
-      });
-
+    it('should expose saveFriendsIDs', function() {
+      assert(neo4j.saveFriendsIDs);
+    });
+    // module.exports = function(_neo4j, _logger, _metrics) {
+    //   neo4j = _neo4j;
+    //   logger = _logger;
+    //   metrics = _metrics;
+    //   return {
+    it('should expose saveFriendsIDs', function() {
+      assert(neo4j.saveFriendsIDs);
     });
 
-    before(function(){
-
-      insertUser = {
-            "id": 76,
-            "id_str": "76",
-            "name": "Brass Rails",
-            "screen_name": "trombin",
-            "followers_count": 80000,
-            "friends_count": 76,
-          };
-
+    it('should expose saveUsers', function() {
+      assert(neo4j.saveUsers);
     });
 
-    it('should change user in database', function(done){
-
-      twitter_controller.updateUser(insertUser, function(err, result_){
-
-        assert(err === null, 'query returned an error');
-        //console.log(result);
-        done();
-      });
-
+    it('should expose resetFriends', function() {
+      assert(neo4j.resetFriends);
     });
 
+    it('should expose saveLists', function() {
+      assert(neo4j.saveLists);
+    });
 
+    it('should expose resetListOwnerships', function() {
+      assert(neo4j.resetListOwnerships);
+    });
+
+    it('should expose resetListMembers', function() {
+      assert(neo4j.resetListMembers);
+    });
+
+    it('should expose saveListMembers', function() {
+      assert(neo4j.saveListMembers);
+    });
+
+    it('should expose saveListSubscriptions', function() {
+      assert(neo4j.saveListSubscriptions);
+    });
+
+    it('should expose resetListSubscriptions', function() {
+      assert(neo4j.resetListSubscriptions);
+    });
   });
-
-  describe('#updateTweet()', function(){
-
-    var tweet = {
-      text: "RT @ChinaFile: Game Boys—In China's vast subculture of video game addicts, a few go pro and get rich—Gregory Isaacson via @aeonmag—http://t…",
-      id: 563843714552844289,
-      id_str: "563843714552844289",
-      user: {
-        id: 481943972,
-        followers_count: 54254,
-        id_str: "481943972",
-        screen_name: "aeonmag",
-      },
-    }
-
-    it('should add tweet not already in database', function(done){
-
-      twitter_controller.updateTweet(tweet, function(err, result_){
-
-        assert(err === null, 'query returned an error');
-        //console.log(result);
-        done();
-      });
-
-    });
-
-
-
-    it('should change tweet in database', function(done){
-
-      twitter_controller.updateTweet(tweet, function(err, result_){
-
-        assert(err === null, 'query returned an error');
-        //console.log(result);
-        done();
-      });
-
-    });
-
-
-
-  });
-
-});

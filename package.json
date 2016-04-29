@@ -1,15 +1,21 @@
 {
   "name": "twitter-import",
-  "version": "1.1.1",
-  "description": "import your twitter info into mongo",
-  "main": "app.js",
+  "version": "1.2.1",
+  "description": "import twitter info into neo4j",
+  "main": "services.js",
+  "repository" :
+  { "type" : "git"
+  , "url" : "https://github.com/erezny/twitter-import.git"
+},
   "scripts": {
     "test": "./node_modules/mocha/bin/mocha",
     "start": "node services.js",
-    "complexity": "node scripts/jscomplexity.js"
+    "complexity": "node scripts/jscomplexity.js",
+    "dev": "./"
   },
   "author": "Elliott Rezny",
   "license": "MIT",
+  "engines" : { "node" : "~4.2.6" },
   "dependencies": {
     "bloomfilter": "0.0.14",
     "cache-manager": "^1.4.0",
