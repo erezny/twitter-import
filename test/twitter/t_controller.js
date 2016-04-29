@@ -1,6 +1,5 @@
 
-var twitter_controller = require('../../lib/twitter/controller.js');
-twitter_controller.init(function(){return;});
+const TwitterNeo4j = require('./twitter/controller/neo4j.js');
 
 var assert = require('assert');
 
