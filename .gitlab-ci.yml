@@ -27,6 +27,14 @@ mocha:
   tags:
     - local
 
+jscs:
+  stage: test
+  script:
+    - npm run jscs
+  tags:
+    - local
+  allow-failure: true
+
 build-dev:
   stage: build
   script:

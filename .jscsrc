@@ -22,5 +22,4 @@
 , "requireSpaceAfterBinaryOperators": [ "+", "-", "/", "*", "=", "==", "===", "!=", "!==" ]
 , "disallowKeywordsOnNewLine": [ "else" ]
 , "requireSpacesInFunctionExpression": { "beforeOpeningCurlyBrace": true }
-, "esnext": true
 }

@@ -11,7 +11,8 @@
     "test": "./node_modules/mocha/bin/mocha",
     "start": "node services.js",
     "complexity": "node scripts/jscomplexity.js",
-    "dev": "./node_modules/mocha/bin/mocha --watch"
+    "dev": "./node_modules/mocha/bin/mocha --watch",
+    "jscs": "./node_modules/jscs/bin/jscs -r summary ./lib ./scripts ./services/ services.js",
   },
   "author": "Elliott Rezny",
   "license": "MIT",
@@ -37,8 +38,7 @@
   "devDependencies": {
     "cli-table": "^0.3.1",
     "jscomplexity": "^1.1.1",
-    "jscs": "^2.11.0",
-    "mocha": "^2.1.0",
-    "mocha-jscs": "^4.2.1"
+    "jscs": "^3.0.2",
+    "mocha": "^2.1.0"
   }
 }
