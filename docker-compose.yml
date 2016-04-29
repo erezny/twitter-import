@@ -13,7 +13,7 @@ haproxy:
 influx:
   image: 'tutum/influxdb:latest'
 neo4j:
-  image: 'neo4j:2.3.3-enterprise'
+  image: 'neo4j:latest'
 redis:
   image: 'redis:latest'
 social_graph:
