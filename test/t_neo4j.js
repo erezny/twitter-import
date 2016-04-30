@@ -27,7 +27,7 @@ describe('neo4j controller', function() {
             function: "neo4j",
           });
           logger = require('tracer').colorConsole( {
-            level: 'info'
+            level: 'trace'
           } );
           neo4j = new Neo4j(logger, crowMetrics);
         });
@@ -36,6 +36,22 @@ describe('neo4j controller', function() {
 
           assert(neo4j);
 
+        });
+
+        it ('should query neo4j', function(done) {
+          this.timeout(5000);
+          var query = {
+            statements: [ {
+              statement: "match n return n limit 1",
+              parameters: {  }
+            } ] };
+          neo4j.twitter.queryRunner(query).then(function() {
+            assert(1);
+            done();
+          }, function() {
+            assert(0);
+            done();
+          });
         });
     });
 
