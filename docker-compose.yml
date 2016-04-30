@@ -1,0 +1,24 @@
+grafana:
+  image: 'grafana/grafana:latest'
+  links:
+    - 'influx'
+haproxy:
+  image: 'dockercloud/haproxy:latest'
+  links:
+    - grafana
+  ports:
+    - '80'
+    - '443'
+    - '1936'
+influx:
+  image: 'tutum/influxdb:latest'
+neo4j:
+  image: 'neo4j:2.3.3'
+redis:
+  image: 'redis:latest'
+social_graph:
+  image: 'erezny/social_graph:test'
+  environment:
+  links:
+    - 'neo4j'
+    - 'redis'

@@ -5,29 +5,32 @@ module.exports = {
     api: {
       consumer_key:         process.env.TWITTER_CONSUMER_KEY,
       consumer_secret:      process.env.TWITTER_CONSUMER_SECRET,
-      access_token:         process.env.TWITTER_ACCESS_TOKEN,
-      access_token_secret:  process.env.TWITTER_ACCESS_TOKEN_SECRET
+      //access_token:         process.env.TWITTER_ACCESS_TOKEN,
+      //access_token_secret:  process.env.TWITTER_ACCESS_TOKEN_SECRET
+      app_only_auth:        true
     },
     controller: {
-      url: util.format('mongodb://%s:%d/%s',
-        process.env.MONGO_TUTUM_SERVICE_HOSTNAME,
-        process.env.MONGO_PORT_27017_TCP_PORT,
-        process.env.MONGO_COLLECTION
+      url: util.format('mongodb://%s:%s@%s:%d/%s?authMechanism=SCRAM-SHA-1&authSource=%s',
+        process.env.MONGO_USER,
+        process.env.MONGO_PASSWD,
+        process.env.MONGO_HOST,
+        process.env.MONGO_PORT,
+        process.env.MONGO_DATABASE,
+        process.env.MONGO_DATABASE
       ),
     },
+    influx: {
+      host: process.env.INFLUX_HOST,
+      port: parseInt(process.env.INFLUX_PORT),
+      protocol: process.env.INFLUX_PROTOCOL,
+      username: process.env.INFLUX_USERNAME,
+      password: process.env.INFLUX_PASSWORD,
+      database: process.env.INFLUX_DATABASE
+    }
   },
 
   logger:{
-    level: 'debug',
+    level: 'info',
     root: './',
-  },
-  keen: {
-    projectId: '',
-    writeKey: '',
-    readKey: '',
-    masterKey: '',
-    protocol: 'https',              // String (optional: https | http | auto)
-    host: 'api.keen.io/3.0',        // String (optional)
-    requestType: 'jsonp'            // String (optional: jsonp, xhr, beacon)
   },
 };
