@@ -13,4 +13,4 @@ EXPOSE 80
 ADD ./ /data/app
 
 ENTRYPOINT ["npm", "run"]
-CMD "start"
+CMD ["start"]
