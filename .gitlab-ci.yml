@@ -1,11 +1,11 @@
 stages:
-  - build_test
+  - build
   - test
   - build
   - deploy
 
 build:
-  stage: build_test
+  stage: build
   script:
     - source ~/.nvm/nvm.sh || echo OK
     - nvm use
