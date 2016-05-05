@@ -30,7 +30,7 @@ complexity:
 mocha:
   stage: test
   script:
-    - docker run --rm=true "social_graph:test" test
+    - docker run --rm=true --env-file ./docker-env.list "social_graph:test" test
   tags:
     - local
 
