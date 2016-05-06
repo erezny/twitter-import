@@ -64,8 +64,11 @@ describe('twitter neo4j controller', function() {
     it('should expose saveStatusEntitiesQuery', function() {
       assert(TwitterNeo4j.prototype.saveStatusEntitiesQuery);
     });
+    it('should expose getVIPNode', function() {
+      assert(TwitterNeo4j.prototype.getVIPNode);
+    });
     it('shouldn\'t expose anything else', function() {
-      assert.equal(Object.keys(TwitterNeo4j.prototype).length, 16);
+      assert.equal(Object.keys(TwitterNeo4j.prototype).length, 17);
     });
 
     describe('integration tests', function() {
