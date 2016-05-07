@@ -12,7 +12,8 @@
     "start": "node services.js",
     "complexity": "node scripts/jscomplexity.js",
     "dev": "./node_modules/mocha/bin/mocha --watch",
-    "jscs": "./node_modules/jscs/bin/jscs -r summary ./lib ./scripts ./services/ services.js"
+    "jscs": "./node_modules/jscs/bin/jscs -r summary ./lib ./scripts ./services/ services.js",
+    "resetEnvironment": "node scripts/twitter/resetEnvironment.js"
   },
   "author": "Elliott Rezny",
   "license": "MIT",
