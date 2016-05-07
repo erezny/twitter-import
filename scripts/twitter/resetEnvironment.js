@@ -47,11 +47,12 @@ var removeAllNodesExceptVIP = function() {
   var query = {
     statements: [
       { statement:
-        `profile match (n:twitterUser)
+        `match (n:twitterUser)
         where (not n.screen_name in {users} ) or (not has(n.screen_name))
         with n limit ${limit}
         optional match (n)-[r]-()
-        delete n,r`,
+        delete n,r
+        with n return count(n)`,
         parameters: {
           'users': [ "erezny", "Tuggernuts23" ],
         }
@@ -60,7 +61,8 @@ var removeAllNodesExceptVIP = function() {
         `match (n:twitterList)
         with n limit ${limit}
         optional match (n)-[r]-()
-        delete n,r`,
+        delete n,r
+        with n return count(n)`,
         parameters: {
         }
        } ] };
@@ -68,7 +70,8 @@ var removeAllNodesExceptVIP = function() {
     var countRemoved = 0;
     function run(){
       neo4j.queryRunner(query).then(function(results) {
-        var count = results[0].data[0].row[0];
+        logger.info(results);
+        var count = results[0].data[0].row[0] + results[1].data[0].row[0];
         countRemoved += count;
         logger.info("%d removed / %d Total removed / ? remaining", count, countRemoved);
         if (count < limit ){
