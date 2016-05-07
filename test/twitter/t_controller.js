@@ -22,14 +22,17 @@ describe('twitter neo4j controller', function() {
     it('should expose saveFriendsIDs', function() {
       assert(TwitterNeo4j.prototype.saveFriendsIDs);
     });
-    it('should expose saveFriendsIDs', function() {
-      assert(TwitterNeo4j.prototype.saveFriendsIDs);
+    it('should expose saveFollowersIDs', function() {
+      assert(TwitterNeo4j.prototype.saveFollowersIDs);
     });
     it('should expose saveUsers', function() {
       assert(TwitterNeo4j.prototype.saveUsers);
     });
     it('should expose resetFriends', function() {
       assert(TwitterNeo4j.prototype.resetFriends);
+    });
+    it('should expose resetFollowers', function() {
+      assert(TwitterNeo4j.prototype.resetFollowers);
     });
     it('should expose saveLists', function() {
       assert(TwitterNeo4j.prototype.saveLists);
@@ -68,7 +71,7 @@ describe('twitter neo4j controller', function() {
       assert(TwitterNeo4j.prototype.getVIPNode);
     });
     it('shouldn\'t expose anything else', function() {
-      assert.equal(Object.keys(TwitterNeo4j.prototype).length, 17);
+      assert.equal(Object.keys(TwitterNeo4j.prototype).length, 19);
     });
 
     describe('integration tests', function() {
