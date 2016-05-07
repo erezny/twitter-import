@@ -44,7 +44,7 @@ jscs:
 reset-test-env:
   stage: envsetup
   script:
-    - docker-cloud service stop --sync twitter-import-dasbob-test
+    - docker-cloud service stop --sync twitter-import-dasbob-test || echo "OK"
     - docker run --rm=true "social_graph:test" resetEnvironment
   except:
     - master
