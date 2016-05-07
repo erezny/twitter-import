@@ -49,7 +49,7 @@ reset-test-env:
   except:
     - master
   tags:
-    -local
+    - local
 
 deploy-dev:
   stage: deploy
