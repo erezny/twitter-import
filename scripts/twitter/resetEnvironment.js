@@ -87,28 +87,28 @@ var removeAllNodesExceptVIP = function() {
 removeAllNodesExceptVIP()
 .then(function() {
   logger.info();
-  removeAllProperty('twitterUser', 'user_imported');
+  return removeAllProperty('twitterUser', 'user_imported');
 }).then(function() {
   logger.info();
-  removeAllProperty('twitterUser', 'friends_imported');
+  return removeAllProperty('twitterUser', 'friends_imported');
 }).then(function() {
   logger.info();
-  removeAllProperty('twitterUser', 'followers_imported');
+  return removeAllProperty('twitterUser', 'followers_imported');
 }).then(function() {
   logger.info();
-  removeAllProperty('twitterUser', 'listOwnership_imported');
+  return removeAllProperty('twitterUser', 'listOwnership_imported');
 }).then(function() {
   logger.info();
-  removeAllProperty('twitterUser', 'listSubscriptions_imported');
+  return removeAllProperty('twitterUser', 'listSubscriptions_imported');
 }).then(function() {
   logger.info();
-  removeAllProperty('twitterUser', 'listMemberships_imported');
+  return removeAllProperty('twitterUser', 'listMemberships_imported');
 }).then(function() {
   logger.info();
-  removeAllProperty('twitterList', 'members_imported');
+  return removeAllProperty('twitterList', 'members_imported');
 }).then(function() {
   logger.info();
-  removeAllProperty('twitterList', 'list_imported');
+  return removeAllProperty('twitterList', 'list_imported');
 }).then(function() {
   process.exit(0);
 }).catch(function() {
