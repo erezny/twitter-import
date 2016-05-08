@@ -96,8 +96,6 @@ removeAllNodesExceptVIP()
 }).then(function() {
   return removeAllProperty('twitterUser', 'listSubscriptions_imported');
 }).then(function() {
-  return removeAllProperty('twitterUser', 'listMemberships_imported');
-}).then(function() {
   return removeAllProperty('twitterList', 'members_imported');
 }).then(function() {
   return removeAllProperty('twitterList', 'list_imported');
