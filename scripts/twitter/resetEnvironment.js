@@ -70,7 +70,6 @@ var removeAllNodesExceptVIP = function() {
     var countRemoved = 0;
     function run(){
       neo4j.queryRunner(query).then(function(results) {
-        logger.info(results);
         var count = results[0].data[0].row[0] + results[1].data[0].row[0];
         countRemoved += count;
         logger.info("%d removed / %d Total removed / ? remaining", count, countRemoved);
@@ -87,20 +86,28 @@ var removeAllNodesExceptVIP = function() {
 
 removeAllNodesExceptVIP()
 .then(function() {
+  logger.info();
   removeAllProperty('twitterUser', 'user_imported');
 }).then(function() {
+  logger.info();
   removeAllProperty('twitterUser', 'friends_imported');
 }).then(function() {
+  logger.info();
   removeAllProperty('twitterUser', 'followers_imported');
 }).then(function() {
+  logger.info();
   removeAllProperty('twitterUser', 'listOwnership_imported');
 }).then(function() {
+  logger.info();
   removeAllProperty('twitterUser', 'listSubscriptions_imported');
 }).then(function() {
+  logger.info();
   removeAllProperty('twitterUser', 'listMemberships_imported');
 }).then(function() {
+  logger.info();
   removeAllProperty('twitterList', 'members_imported');
 }).then(function() {
+  logger.info();
   removeAllProperty('twitterList', 'list_imported');
 }).then(function() {
   process.exit(0);
